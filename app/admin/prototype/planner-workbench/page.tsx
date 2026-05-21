@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { PlannerWorkbenchPrototype } from '@/components/admin-next';
+import { createPlannerAgentLedgerSnapshot } from '@/lib/admin-next/agent-ledger-source';
 import { getAdminNextDataSourceMode } from '@/lib/admin-next/flags';
 import {
   createPlannerWorkbenchAdapter,
@@ -29,7 +30,11 @@ export default async function PlannerWorkbenchPrototypePage() {
     notFound();
   }
 
-  const dataSourceMode = getAdminNextDataSourceMode();
+  const requestedDataSourceMode = getAdminNextDataSourceMode();
+  const dataSourceMode =
+    requestedDataSourceMode === 'readonly' && session.flags.adminNextBetaReadonly
+      ? 'readonly'
+      : 'fixture';
   const adapter =
     dataSourceMode === 'readonly'
       ? createPlannerWorkbenchAdapter({
@@ -40,11 +45,16 @@ export default async function PlannerWorkbenchPrototypePage() {
         })
       : createPlannerWorkbenchAdapter(dataSourceMode);
   const fixture = await adapter.getWorkbench();
+  const agentLedger = createPlannerAgentLedgerSnapshot(fixture, {
+    sourceMode: dataSourceMode,
+  });
 
   return (
     <PlannerWorkbenchPrototype
       session={session}
       fixture={fixture}
+      agentLedger={agentLedger}
+      dataSourceMode={dataSourceMode}
     />
   );
 }
