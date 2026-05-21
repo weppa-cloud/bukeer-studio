@@ -23,7 +23,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
-import { extractWebsiteLocaleSettings } from '@/lib/seo/locale-routing';
+import { extractWebsiteLocaleSettings, localeToLanguage } from '@/lib/seo/locale-routing';
 import { Logo } from '../primitives/logo';
 import { Icons } from '../primitives/icons';
 import { HeaderScrollState, MobileNavToggle } from './site-header.client';
@@ -50,7 +50,9 @@ export function EditorialSiteHeader({
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
     ?? localeSettings.defaultLocale
   );
-  const isEnglish = resolvedLocale.startsWith('en');
+  const language = localeToLanguage(resolvedLocale);
+  const isEnglish = language === 'en';
+  const isFrench = language === 'fr';
   const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale);
   const siteName = content.account?.name || content.siteName;
@@ -58,9 +60,9 @@ export function EditorialSiteHeader({
 
   // Fallback to designer canonical nav labels if no navigation prop is passed.
   const fallbackNav: NavigationItem[] = [
-    { slug: 'destinations', label: isEnglish ? 'Destinations' : 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
-    { slug: 'packages', label: isEnglish ? 'Packages' : 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
-    { slug: 'experiences', label: isEnglish ? 'Experiences' : 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
+    { slug: 'destinations', label: isEnglish || isFrench ? 'Destinations' : 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
+    { slug: 'packages', label: isEnglish ? 'Packages' : isFrench ? 'Forfaits' : 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
+    { slug: 'experiences', label: isEnglish ? 'Experiences' : isFrench ? 'Expériences' : 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
     { slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' },
   ];
   const rawNavItems = navigation && navigation.length > 0 ? navigation : fallbackNav;
@@ -92,8 +94,22 @@ export function EditorialSiteHeader({
     .map((key) => navByKey.get(key))
     .filter((item): item is NavigationItem => Boolean(item));
   const navLabelForLocale = (label: string): string => {
-    if (!isEnglish) return label;
     const normalized = label.trim().toLowerCase();
+
+    if (isFrench) {
+      if (normalized === 'destinos' || normalized === 'destinations') return 'Destinations';
+      if (normalized === 'paquetes' || normalized === 'packages') return 'Forfaits';
+      if (
+        normalized === 'experiencias'
+        || normalized === 'experiences'
+        || normalized === 'actividades'
+        || normalized === 'activities'
+      ) return 'Expériences';
+      if (normalized === 'nosotros' || normalized === 'sobre nosotros' || normalized === 'about') return 'À propos';
+      return label;
+    }
+
+    if (!isEnglish) return label;
     if (normalized === 'destinos') return 'Destinations';
     if (normalized === 'paquetes') return 'Packages';
     if (normalized === 'experiencias') return 'Experiences';
