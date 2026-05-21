@@ -27,7 +27,7 @@ import {
   type PublicMetadataLocaleContext,
 } from "@/lib/seo/public-metadata";
 import {
-  buildPublicLocalizedPath,
+  buildPublicCanonicalPathname,
   localeToLanguage,
   localeToOgLocale,
   normalizeLocale,
@@ -119,7 +119,7 @@ function buildCanonicalUrl(
   pathname: string,
   localeContext: PublicMetadataLocaleContext,
 ): string {
-  const localizedPath = buildPublicLocalizedPath(
+  const localizedPath = buildPublicCanonicalPathname(
     pathname,
     localeContext.resolvedLocale,
     localeContext.defaultLocale,

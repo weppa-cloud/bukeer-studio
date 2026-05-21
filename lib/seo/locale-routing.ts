@@ -491,6 +491,23 @@ export function buildPublicLocalizedPath(
   return `/${segment}${normalizedPathname}`;
 }
 
+export function buildPublicCanonicalPathname(
+  pathname: string,
+  resolvedLocale: string,
+  defaultLocale: string,
+): string {
+  const translatedPathname = translateCategoryPathname(
+    pathname,
+    localeToLanguage(resolvedLocale),
+  );
+
+  return buildPublicLocalizedPath(
+    translatedPathname,
+    resolvedLocale,
+    defaultLocale,
+  );
+}
+
 export function buildLegalPagePath(
   type: LegalPageType,
   resolvedLocale: string,

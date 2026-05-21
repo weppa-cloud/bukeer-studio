@@ -664,27 +664,10 @@ export async function getBlogPostBySlug(
 
     // Fallback path: RPC locale-window lookup (legacy `es/en` + canonical
     // `es-CO/en-US`) to avoid hard failures when direct query errors.
-    const localeCandidates: string[] = [];
     const normalizedLocale = typeof locale === "string" ? locale.trim() : "";
-    if (normalizedLocale) {
-      localeCandidates.push(normalizedLocale);
-      const lang = normalizedLocale.split("-")[0]?.toLowerCase();
-      if (lang && lang !== normalizedLocale) localeCandidates.push(lang);
-      if (normalizedLocale === "es-CO") localeCandidates.push("es");
-      if (normalizedLocale === "en-US") localeCandidates.push("en");
-      if (normalizedLocale === "pt-BR") localeCandidates.push("pt");
-      if (normalizedLocale === "fr-FR") localeCandidates.push("fr");
-      if (normalizedLocale === "de-DE") localeCandidates.push("de");
-      if (normalizedLocale === "es") localeCandidates.push("es-CO");
-      if (normalizedLocale === "en") localeCandidates.push("en-US");
-      if (normalizedLocale === "pt") localeCandidates.push("pt-BR");
-      if (normalizedLocale === "fr") localeCandidates.push("fr-FR");
-      if (normalizedLocale === "de") localeCandidates.push("de-DE");
-    } else {
-      localeCandidates.push("");
-    }
-
-    const uniqueLocales = [...new Set(localeCandidates)];
+    const uniqueLocales = normalizedLocale
+      ? getBlogLocaleLookupCandidates(normalizedLocale)
+      : [""];
 
     for (const localeCandidate of uniqueLocales) {
       let fallbackQuery = supabase
@@ -707,6 +690,21 @@ export async function getBlogPostBySlug(
       if (!fallbackError && fallbackPost) return fallbackPost as BlogPost;
     }
 
+    if (normalizedLocale) {
+      const postInAnotherLocale = await getBlogPostAnyLocale(
+        websiteId,
+        normalizedSlug,
+      );
+      if (postInAnotherLocale?.translation_group_id) {
+        const localizedPost = await getBlogPostByTranslationGroup(
+          websiteId,
+          postInAnotherLocale.translation_group_id,
+          normalizedLocale,
+        );
+        if (localizedPost) return localizedPost;
+      }
+    }
+
     return null;
   } catch {
     // Keep public blog detail resilient — do not raise noisy dev overlay logs
@@ -725,22 +723,47 @@ export async function getBlogPostByTranslationGroup(
   locale: string,
 ): Promise<BlogPost | null> {
   try {
-    const { data, error } = await supabase
-      .from("website_blog_posts")
-      .select(`*, category:website_blog_categories(*)`)
-      .eq("website_id", websiteId)
-      .eq("translation_group_id", translationGroupId)
-      .eq("locale", locale)
-      .eq("status", "published")
-      .is("deleted_at", null)
-      .limit(1)
-      .maybeSingle();
+    for (const localeCandidate of getBlogLocaleLookupCandidates(locale)) {
+      const { data, error } = await supabase
+        .from("website_blog_posts")
+        .select(`*, category:website_blog_categories(*)`)
+        .eq("website_id", websiteId)
+        .eq("translation_group_id", translationGroupId)
+        .eq("locale", localeCandidate)
+        .eq("status", "published")
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle();
 
-    if (error) return null;
-    return data as BlogPost;
+      if (!error && data) return data as BlogPost;
+    }
+
+    return null;
   } catch {
     return null;
   }
+}
+
+
+export function getBlogLocaleLookupCandidates(locale: string): string[] {
+  const normalizedLocale = typeof locale === "string" ? locale.trim() : "";
+  if (!normalizedLocale) return [];
+
+  const localeCandidates = [normalizedLocale];
+  const lang = normalizedLocale.split("-")[0]?.toLowerCase();
+  if (lang && lang !== normalizedLocale) localeCandidates.push(lang);
+  if (normalizedLocale === "es-CO") localeCandidates.push("es");
+  if (normalizedLocale === "en-US") localeCandidates.push("en");
+  if (normalizedLocale === "pt-BR") localeCandidates.push("pt");
+  if (normalizedLocale === "fr-FR") localeCandidates.push("fr");
+  if (normalizedLocale === "de-DE") localeCandidates.push("de");
+  if (normalizedLocale === "es") localeCandidates.push("es-CO");
+  if (normalizedLocale === "en") localeCandidates.push("en-US");
+  if (normalizedLocale === "pt") localeCandidates.push("pt-BR");
+  if (normalizedLocale === "fr") localeCandidates.push("fr-FR");
+  if (normalizedLocale === "de") localeCandidates.push("de-DE");
+
+  return [...new Set(localeCandidates)];
 }
 
 export async function getBlogPostTranslationLocales(
