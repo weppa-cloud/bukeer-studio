@@ -1,6 +1,10 @@
+import { localeToPublicSegment } from '@/lib/seo/locale-routing';
+
 export interface LocalizedLegalLookupContext {
   localizedPathname: string;
   languageSegment: string | null;
+  resolvedLocale?: string;
+  defaultLocale?: string;
 }
 
 /**
@@ -18,9 +22,14 @@ export function getLocalizedLegalLookupSlug(
     .split('/')
     .filter(Boolean);
 
+  const segmentFromLocale = context.resolvedLocale
+    ? localeToPublicSegment(context.resolvedLocale, context.defaultLocale)
+    : null;
+  const publicLocaleSegment = context.languageSegment || segmentFromLocale;
+
   if (
-    context.languageSegment &&
-    parts[0]?.toLowerCase() === context.languageSegment.toLowerCase()
+    publicLocaleSegment &&
+    parts[0]?.toLowerCase() === publicLocaleSegment.toLowerCase()
   ) {
     parts.shift();
   }
