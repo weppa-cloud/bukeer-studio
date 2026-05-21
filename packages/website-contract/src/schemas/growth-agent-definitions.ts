@@ -24,10 +24,10 @@ import { GrowthTenantScopeSchema } from './growth-attribution';
  */
 
 /**
- * Canonical agent lanes per SPEC_GROWTH_OS_AGENT_LANES.md §"Agent Lanes V1".
- * Five lanes only. Gating action classes (paid mutation, experiment activation,
- * publish, transcreation merge) are NOT lanes — they are action policies
- * applied across lanes by the lane-level autonomy gate (#408).
+ * Canonical agent lanes per SPEC_GROWTH_OS_AGENT_LANES.md §"Agent Lanes V1"
+ * plus the governed SEO360 media lane. Gating action classes (paid mutation,
+ * experiment activation, publish, transcreation merge) are NOT lanes — they are
+ * action policies applied across lanes by the lane-level autonomy gate (#408).
  */
 export const AgentLaneSchema = z.enum([
   'orchestrator',
@@ -35,6 +35,7 @@ export const AgentLaneSchema = z.enum([
   'transcreation',
   'content_creator',
   'content_curator',
+  'media',
 ]);
 export type AgentLane = z.infer<typeof AgentLaneSchema>;
 
