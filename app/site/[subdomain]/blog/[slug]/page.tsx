@@ -220,9 +220,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     <>
       {/* JSON-LD Structured Data for SEO and AI crawlers */}
       <JsonLd data={schemas} />
-      <h1 className="sr-only" aria-hidden="true">
-        {post.title}
-      </h1>
       <BlogDetail
         subdomain={subdomain}
         locale={resolvedLocale}
