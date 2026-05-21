@@ -13,6 +13,8 @@ Latest update: 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR audit revision f
 
 Latest spec addition: 2026-05-15 - [[SPEC_PUBLIC_TEMPLATE_SYSTEMIC_FIX_V1]] defines the ColombiaTours public-template systemic fix for PT-BR blog routing, reciprocal hreflang, localized custom pages, BlogPosting/FAQPage JSON-LD, and non-ES template chrome.
 
+Latest ops addition: 2026-05-20 - [[growth-media-pack-real-image-sourcing]] defines the SEO360 MediaPack lane for real-image sourcing, legal/provenance boundaries, reference-only visual briefs, AI-assisted reality preservation, and traffic_ready/hold_scale gating.
+
 Latest spec addition: 2026-05-15 - [[SPEC_MEDIA_ASSET_LIBRARY_V1]] defines Studio as the primary tenant Media Asset Library surface over `public.media_assets`, with Flutter registration/reuse as the cross-repo v1 contract.
 
 Latest spec addition: 2026-05-14 - [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2]] redirects Epic #521 into the Neo/Hermes Provider Profile Beta: GitHub remains planning SSOT, Supabase remains operational SSOT, Neo/Hermes acts as architect-orchestrator, provider profiles own API access, workers consume context packets/facts, and paid media profiles enter the same read-only/freshness-governed architecture.
@@ -209,6 +211,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[growth-provider-profiles]]             | [file](./ops/growth-provider-profiles.md)             | Epic #310 Max Performance provider profiles: DataForSEO, GSC, GA4, tracking, AI/GEO, translation cadence, paid-call approvals and joint facts.          |
 | [[growth-ai-search-geo-profile]]         | [file](./ops/growth-ai-search-geo-profile.md)         | Epic #310 AI Search / GEO profile: crawler readiness, DataForSEO AI Optimization, normalized visibility facts and `ai_search` inventory rows.           |
 | [[growth-translation-quality-gate]]      | [file](./ops/growth-translation-quality-gate.md)      | Epic #310 transcreation lane gate: translation quality checks, QA findings, Growth backlog content status and Council approval rules.                   |
+| [[growth-media-pack-real-image-sourcing]] | [file](./ops/growth-media-pack-real-image-sourcing.md) | SMART SEO / SEO360 media lane runbook: real-image sourcing hierarchy, MediaPack schema, legal reference-only boundaries and traffic_ready gating.        |
 | [[growth-data-automation-cadence]]       | [file](./ops/growth-data-automation-cadence.md)       | Epic #310 Max Performance automation contract: raw/cache -> normalized facts -> joint facts -> `growth_inventory` -> Council, health and backlog rules. |
 | [[growth-mass-execution-vs-experiments]] | [file](./ops/growth-mass-execution-vs-experiments.md) | Epic #310 operating runbook: execute large backlog batches while Council keeps only five active measurable readouts.                                    |
 | [[waflow-crm-lifecycle-parity]]          | [file](./ops/waflow-crm-lifecycle-parity.md)          | Epic #310/#322 WAFlow parity and shared CRM lifecycle contract: WAFlow -> `requests` -> Chatwoot -> itinerary -> `funnel_events`.                       |

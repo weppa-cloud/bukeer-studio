@@ -38,6 +38,7 @@ export const GrowthProviderWorkerLaneSchema = z
     'technical',
     'cro',
     'campaign_optimizer',
+    'media',
     'all',
   ])
   .or(z.string().min(1).max(80));

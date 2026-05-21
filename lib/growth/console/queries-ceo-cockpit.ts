@@ -16,6 +16,7 @@ const LANE_LABELS: Record<AgentLane, string> = {
   transcreation: "Transcreation",
   content_creator: "Content Creator",
   content_curator: "Content Curator",
+  media: "Media",
 };
 
 const LANE_MISSIONS: Record<AgentLane, string> = {
@@ -24,6 +25,7 @@ const LANE_MISSIONS: Record<AgentLane, string> = {
   transcreation: "Adapta contenido por mercado sin romper calidad locale.",
   content_creator: "Convierte evidencia en contenido organico publicable.",
   content_curator: "Protege calidad, Council y aprendizajes aprobados.",
+  media: "Verifica imagenes reales, licencias y readiness de MediaPack.",
 };
 
 export type AgentCompanyStatus =

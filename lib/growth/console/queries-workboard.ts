@@ -173,6 +173,7 @@ const AGENT_PROFILE_BY_LANE: Record<AgentLane, string> = {
   transcreation: "Transcreation Agent",
   content_creator: "Content Creator",
   content_curator: "Curator",
+  media: "Media Agent",
 };
 
 const DEFAULT_CAPABILITIES_BY_LANE: Record<AgentLane, string[]> = {
@@ -181,6 +182,7 @@ const DEFAULT_CAPABILITIES_BY_LANE: Record<AgentLane, string[]> = {
   transcreation: ["adaptación por mercado", "QA de idioma", "tono de marca"],
   content_creator: ["briefs", "drafts", "previews", "contenido SEO"],
   content_curator: ["calidad editorial", "evidencia", "riesgo", "Council"],
+  media: ["imagenes reales", "licencias", "provenance", "alt text"],
 };
 
 const STALE_RUNTIME_MS = 60 * 60 * 1000;
