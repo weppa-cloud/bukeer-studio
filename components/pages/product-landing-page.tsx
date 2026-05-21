@@ -41,8 +41,6 @@ import { HeroSplit } from '@/components/site/product-detail/p1/hero-split';
 import { GalleryStrip } from '@/components/site/product-detail/p1/gallery-strip';
 import { SummarySidebar as ProductSummarySidebar, type SummarySidebarFact } from '@/components/site/product-detail/p1/summary-sidebar';
 import { PricingTiers, type PricingTier } from '@/components/site/product-detail/p3/pricing-tiers';
-import { RelatedCarousel } from '@/components/site/product-detail/p3/related-carousel.client';
-import { WhatsAppFlowDrawer } from '@/components/site/product-detail/p3/whatsapp-flow';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -103,6 +101,10 @@ function SectionSkeleton() {
   return <div aria-hidden="true" className="h-24 w-full animate-pulse rounded-xl bg-muted/30" />;
 }
 
+function GallerySkeleton() {
+  return <div aria-hidden="true" className="h-[280px] w-full animate-pulse rounded-2xl bg-muted/30" />;
+}
+
 const MeetingPointMap = dynamic(
   () => import('@/components/site/meeting-point-map').then((mod) => mod.MeetingPointMap),
   { ssr: false, loading: () => <MapSectionSkeleton /> }
@@ -131,6 +133,16 @@ const ProductFAQ = dynamic(
 const TrustBadges = dynamic(
   () => import('@/components/site/trust-badges').then((mod) => mod.TrustBadges),
   { loading: () => <SectionSkeleton /> }
+);
+
+const RelatedCarousel = dynamic(
+  () => import('@/components/site/product-detail/p3/related-carousel.client').then((mod) => mod.RelatedCarousel),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const WhatsAppFlowDrawer = dynamic(
+  () => import('@/components/site/product-detail/p3/whatsapp-flow').then((mod) => mod.WhatsAppFlowDrawer),
+  { ssr: false }
 );
 
 function SpainMetaAdsCampaignPanel({
@@ -820,13 +832,15 @@ export function ProductLandingPage({
             )}
 
             {!isTransfer && !suppressEditorialSections ? (
-              <GalleryStrip
-                images={images}
-                displayName={displayName}
-                activeImageIndex={activeImageIndex}
-                onSetActiveImageIndex={setActiveImageIndex}
-                onOpenLightbox={openLightbox}
-              />
+              <DeferredRender fallback={<GallerySkeleton />} rootMargin="240px">
+                <GalleryStrip
+                  images={images}
+                  displayName={displayName}
+                  activeImageIndex={activeImageIndex}
+                  onSetActiveImageIndex={setActiveImageIndex}
+                  onOpenLightbox={openLightbox}
+                />
+              </DeferredRender>
             ) : null}
 
             {/* Description */}
@@ -991,20 +1005,24 @@ export function ProductLandingPage({
         <div className="max-w-7xl mx-auto px-6 pb-16 space-y-16">
           <SectionErrorBoundary sectionName="product-faq">
             <div data-testid="detail-faq">
-              <ProductFAQ
-                title="Preguntas frecuentes"
-                faqs={campaignFaqSource}
-                website={website}
-              />
+              <DeferredRender fallback={<SectionSkeleton />} rootMargin="200px">
+                <ProductFAQ
+                  title="Preguntas frecuentes"
+                  faqs={campaignFaqSource}
+                  website={website}
+                />
+              </DeferredRender>
             </div>
           </SectionErrorBoundary>
 
           <SectionErrorBoundary sectionName="trust-badges">
             <div data-testid="detail-trust">
-              <TrustBadges
-                title="Reserva con confianza"
-                website={website}
-              />
+              <DeferredRender fallback={<SectionSkeleton />} rootMargin="200px">
+                <TrustBadges
+                  title="Reserva con confianza"
+                  website={website}
+                />
+              </DeferredRender>
             </div>
           </SectionErrorBoundary>
         </div>
@@ -1050,13 +1068,15 @@ export function ProductLandingPage({
       </section>
 
       {!isTransfer ? (
-        <RelatedCarousel
-          title={relatedTitle}
-          viewAllHref={`${basePath}/${getCategorySlug(productType)}`}
-          viewAllLabel="Ver todos"
-          items={relatedCarouselItems}
-          showPrice={productType !== 'activity'}
-        />
+        <DeferredRender fallback={<SectionSkeleton />} rootMargin="260px">
+          <RelatedCarousel
+            title={relatedTitle}
+            viewAllHref={`${basePath}/${getCategorySlug(productType)}`}
+            viewAllLabel="Ver todos"
+            items={relatedCarouselItems}
+            showPrice={productType !== 'activity'}
+          />
+        </DeferredRender>
       ) : null}
 
       <WhatsAppFlowDrawer
