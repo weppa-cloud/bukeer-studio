@@ -30,6 +30,7 @@ export interface JsonLdWebPage {
   name: string;
   description?: string;
   url: string;
+  inLanguage?: string;
   isPartOf: {
     '@type': 'WebSite';
     name: string;
@@ -94,11 +95,14 @@ export interface JsonLdFAQ {
 /**
  * Generate Organization JSON-LD for the travel agency
  */
-export function generateOrganizationSchema(website: WebsiteData): JsonLdOrganization {
+export function generateOrganizationSchema(
+  website: WebsiteData,
+  publicBaseUrl?: string,
+): JsonLdOrganization {
   const content = website.content || {};
   const contact = content.contact || {};
   const social = content.social || {};
-  const baseUrl = `https://${website.subdomain}.bukeer.com`;
+  const baseUrl = publicBaseUrl || `https://${website.subdomain}.bukeer.com`;
 
   // Prefer account data over content data
   const orgName = content.account?.name || content.siteName || website.subdomain;
@@ -140,10 +144,11 @@ export function generateWebPageSchema(
   website: WebsiteData,
   pageTitle: string,
   pageDescription: string | undefined,
-  pageUrl: string
+  pageUrl: string,
+  options: { publicBaseUrl?: string; inLanguage?: string } = {},
 ): JsonLdWebPage {
   const content = website.content || {};
-  const baseUrl = `https://${website.subdomain}.bukeer.com`;
+  const baseUrl = options.publicBaseUrl || `https://${website.subdomain}.bukeer.com`;
 
   const webSiteName = content.account?.name || content.siteName || website.subdomain;
 
@@ -153,6 +158,7 @@ export function generateWebPageSchema(
     name: pageTitle,
     description: pageDescription,
     url: pageUrl,
+    inLanguage: options.inLanguage,
     isPartOf: {
       '@type': 'WebSite',
       name: webSiteName,
@@ -267,6 +273,36 @@ export function generateFAQSchema(
       },
     })),
   };
+}
+
+/**
+ * Generate WebPage + Organization JSON-LD for custom/static public pages.
+ *
+ * These pages are resolved from `website_pages`, not product/blog routes, so
+ * they need a generic governed schema instead of product-specific markup.
+ */
+export function generateStaticPageSchemas(
+  website: WebsiteData,
+  page: {
+    title: string;
+    seo_title?: string | null;
+    seo_description?: string | null;
+    intro_content?: { text?: string | null } | null;
+  },
+  pageUrl: string,
+  options: { publicBaseUrl?: string; inLanguage?: string } = {},
+): [JsonLdWebPage, JsonLdOrganization] {
+  const pageTitle = page.seo_title || page.title;
+  const pageDescription =
+    page.seo_description ||
+    (typeof page.intro_content?.text === 'string' ? page.intro_content.text : undefined) ||
+    website.content?.seo?.description ||
+    website.content?.tagline;
+
+  return [
+    generateWebPageSchema(website, pageTitle, pageDescription, pageUrl, options),
+    generateOrganizationSchema(website, options.publicBaseUrl),
+  ];
 }
 
 /**

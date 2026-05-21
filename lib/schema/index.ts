@@ -45,8 +45,8 @@
  * ```
  */
 
-// Components
-export { JsonLd, safeStringifySchema } from './json-ld';
+// Components and legacy static-page helpers
+export { JsonLd, safeStringifySchema, generateStaticPageSchemas } from './json-ld';
 
 // Generators
 export {
