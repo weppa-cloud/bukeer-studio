@@ -476,21 +476,60 @@ function normalizeBlogPublicLocale(
 async function findPublishedBlogPostAnyLocale(
   websiteId: string,
   slug: string,
-): Promise<{ slug: string; locale: string | null } | null> {
+): Promise<{
+  slug: string;
+  locale: string | null;
+  translation_group_id: string | null;
+} | null> {
   const cacheKey = `blog-any-locale:${websiteId}:${slug}`;
-  const cached = getCached<{ slug: string; locale: string | null } | null>(
+  const cached = getCached<{
+    slug: string;
+    locale: string | null;
+    translation_group_id: string | null;
+  } | null>(
     cacheKey,
   );
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<
-    Array<{ slug: string; locale: string | null }>
+    Array<{
+      slug: string;
+      locale: string | null;
+      translation_group_id: string | null;
+    }>
   >(
-    `/rest/v1/website_blog_posts?select=slug,locale&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(slug)}&status=eq.published&deleted_at=is.null&limit=1`,
+    `/rest/v1/website_blog_posts?select=slug,locale,translation_group_id&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(slug)}&status=eq.published&deleted_at=is.null&limit=1`,
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
   return result;
+}
+
+async function findPublishedBlogPostByTranslationGroupForLocale(
+  websiteId: string,
+  translationGroupId: string | null | undefined,
+  locale: string,
+): Promise<{ slug: string; locale: string | null } | null> {
+  if (!translationGroupId) return null;
+  const cacheKey = `blog-tg-locale:${websiteId}:${translationGroupId}:${locale}`;
+  const cached = getCached<{ slug: string; locale: string | null } | null>(
+    cacheKey,
+  );
+  if (cached !== undefined) return cached;
+
+  for (const candidate of localeLookupCandidates(locale)) {
+    const data = await supabaseFetch<Array<{ slug: string; locale: string | null }>>(
+      `/rest/v1/website_blog_posts?select=slug,locale&website_id=eq.${encodeURIComponent(websiteId)}&translation_group_id=eq.${encodeURIComponent(translationGroupId)}&locale=eq.${encodeURIComponent(candidate)}&status=eq.published&deleted_at=is.null&limit=1`,
+    );
+    if (data && data.length > 0) {
+      const result = data[0];
+      setCached(cacheKey, result);
+      return result;
+    }
+  }
+
+  setCached(cacheKey, null);
+  return null;
 }
 
 async function tryMissingBlogNotFound(
@@ -516,24 +555,47 @@ async function tryMissingBlogNotFound(
   const defaultLocale = normalizeBlogPublicLocale(
     localeResolution.defaultLocale,
   );
-  if (resolvedLocale && defaultLocale && resolvedLocale === defaultLocale) {
+  if (resolvedLocale && defaultLocale) {
     const postInAnotherLocale = await findPublishedBlogPostAnyLocale(
       website.id,
       decodeURIComponent(match[1]),
     );
     const postLocale = normalizeBlogPublicLocale(postInAnotherLocale?.locale);
-    if (postInAnotherLocale && postLocale && postLocale !== resolvedLocale) {
-      return NextResponse.redirect(
-        new URL(
-          buildPublicLocalizedPath(
-            `/blog/${postInAnotherLocale.slug}`,
-            postLocale,
-            localeResolution.defaultLocale,
+
+    if (resolvedLocale === defaultLocale) {
+      if (postInAnotherLocale && postLocale && postLocale !== resolvedLocale) {
+        return NextResponse.redirect(
+          new URL(
+            buildPublicLocalizedPath(
+              `/blog/${postInAnotherLocale.slug}`,
+              postLocale,
+              localeResolution.defaultLocale,
+            ),
+            request.url,
           ),
-          request.url,
-        ),
-        308,
+          308,
+        );
+      }
+    } else if (postInAnotherLocale?.translation_group_id) {
+      const localizedPost = await findPublishedBlogPostByTranslationGroupForLocale(
+        website.id,
+        postInAnotherLocale.translation_group_id,
+        resolvedLocale,
       );
+
+      if (localizedPost) {
+        return NextResponse.redirect(
+          new URL(
+            buildPublicLocalizedPath(
+              `/blog/${localizedPost.slug}`,
+              localizedPost.locale || resolvedLocale,
+              localeResolution.defaultLocale,
+            ),
+            request.url,
+          ),
+          308,
+        );
+      }
     }
   }
 

@@ -173,6 +173,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
+  if (post.slug && post.slug !== slug) {
+    redirect(
+      buildPublicLocalizedPath(`/blog/${post.slug}`, resolvedLocale, defaultLocale),
+    );
+  }
+
   // If post exists but is in the wrong locale (e.g. ES slug served on /en/),
   // redirect to the correct-locale counterpart if available.
   const postLocale = normalizeBlogPublicLocale(post.locale);
