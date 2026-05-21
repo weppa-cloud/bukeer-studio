@@ -193,7 +193,7 @@ export const plannerWorkbenchFixture: PlannerWorkbenchFixture =
       {
         id: 'draft-action-missing-data-request',
         title: 'Draft traveler data request',
-        kind: 'missing_data_request',
+        kind: 'manual_whatsapp_handoff',
         status: 'draft_created',
         autonomyLevel: 'A2_draft',
         traceId: 'trace-cartagena-draft-001',

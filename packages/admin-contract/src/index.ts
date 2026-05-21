@@ -258,6 +258,7 @@ export type AgentSuggestion = z.infer<typeof AgentSuggestionSchema>;
 export const DraftActionKindSchema = z.enum([
   'customer_reply',
   'missing_data_request',
+  'manual_whatsapp_handoff',
   'itinerary_outline',
   'approval_packet',
   'supplier_comparison',

@@ -341,7 +341,8 @@ function safeLedgerSummary(value: string | undefined, fallback: string): string 
 function formatToolName(toolName: string): string {
   return toolName
     .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replaceAll('Whatsapp', 'WhatsApp');
 }
 
 function formatTraceTimestamp(value: string | undefined): string {

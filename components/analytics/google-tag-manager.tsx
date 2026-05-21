@@ -77,6 +77,10 @@ function afterInteraction(script: string): string {
 
 function ga4PageviewScript(measurementId: string): string {
   return `
+    window.__bukeerLoadedScripts = window.__bukeerLoadedScripts || {};
+    if (!window.__bukeerLoadedScripts.ga4) {
+      window.__bukeerLoadedScripts.ga4 = true;
+    }
     window.dataLayer = window.dataLayer || [];
     window.gtag = window.gtag || function(){dataLayer.push(arguments);};
     gtag('consent', 'default', {
@@ -173,6 +177,9 @@ function clarityScript(projectId: string, context?: AnalyticsRuntimeContext): st
   });
 
   return `
+    window.__bukeerLoadedScripts = window.__bukeerLoadedScripts || {};
+    if (window.__bukeerLoadedScripts.clarity) return;
+    window.__bukeerLoadedScripts.clarity = true;
     (function(c,l,a,r,i,t,y){
       c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
       t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
@@ -266,6 +273,9 @@ export function GTMHead({ analytics, defer }: GoogleTagManagerProps) {
   if (!analytics?.gtm_id) return null;
 
   const loadGtm = `
+    window.__bukeerLoadedScripts = window.__bukeerLoadedScripts || {};
+    if (window.__bukeerLoadedScripts.gtm) return;
+    window.__bukeerLoadedScripts.gtm = true;
     (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -345,6 +355,9 @@ export function FacebookPixelScript({ analytics, defer }: GoogleTagManagerProps)
   if (!analytics?.facebook_pixel_id || analytics?.gtm_id) return null;
 
   const loadPixel = `
+    window.__bukeerLoadedScripts = window.__bukeerLoadedScripts || {};
+    if (window.__bukeerLoadedScripts.fb_pixel) return;
+    window.__bukeerLoadedScripts.fb_pixel = true;
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
     n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -419,7 +432,16 @@ export function CustomHeadScripts({ analytics, defer }: GoogleTagManagerProps) {
     <Script
       id="custom-head-scripts"
       strategy="lazyOnload"
-      dangerouslySetInnerHTML={{ __html: defer ? afterInteraction(analytics.custom_head_scripts) : analytics.custom_head_scripts }}
+      dangerouslySetInnerHTML={{
+        __html: defer
+          ? afterIdle(afterInteraction(`
+            window.__bukeerLoadedScripts = window.__bukeerLoadedScripts || {};
+            if (window.__bukeerLoadedScripts.custom_head_scripts) return;
+            window.__bukeerLoadedScripts.custom_head_scripts = true;
+            ${analytics.custom_head_scripts}
+          `), 3500)
+          : analytics.custom_head_scripts,
+      }}
     />
   );
 }
@@ -434,7 +456,16 @@ export function CustomBodyScripts({ analytics, defer }: GoogleTagManagerProps) {
     <Script
       id="custom-body-scripts"
       strategy="lazyOnload"
-      dangerouslySetInnerHTML={{ __html: defer ? afterInteraction(analytics.custom_body_scripts) : analytics.custom_body_scripts }}
+      dangerouslySetInnerHTML={{
+        __html: defer
+          ? afterIdle(afterInteraction(`
+            window.__bukeerLoadedScripts = window.__bukeerLoadedScripts || {};
+            if (window.__bukeerLoadedScripts.custom_body_scripts) return;
+            window.__bukeerLoadedScripts.custom_body_scripts = true;
+            ${analytics.custom_body_scripts}
+          `), 3500)
+          : analytics.custom_body_scripts,
+      }}
     />
   );
 }

@@ -7,6 +7,7 @@ import { getDashboardUserContext } from '@/lib/admin/user-context';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import {
   getAdminNextBetaReadonlyGate,
+  getAdminNextExternalHandoffGate,
   isAdminNextPrototypeEnabled,
 } from '@/lib/admin-next/flags';
 
@@ -15,6 +16,7 @@ export type AdminNextSessionFlags = AdminFeatureFlags & {
   adminNextBetaAccountAllowed: boolean;
   adminNextBetaRoleAllowed: boolean;
   adminNextBetaReadonly: boolean;
+  adminNextExternalHandoff: boolean;
 };
 
 export type AdminNextSessionContext =
@@ -110,6 +112,10 @@ export function getAdminNextSessionFlags(input?: {
     accountId: input?.accountId,
     role: input?.role,
   });
+  const externalHandoffGate = getAdminNextExternalHandoffGate({
+    accountId: input?.accountId,
+    role: input?.role,
+  });
 
   return {
     adminNextPrototype,
@@ -117,6 +123,8 @@ export function getAdminNextSessionFlags(input?: {
     adminNextBetaAccountAllowed: betaGate.accountAllowed,
     adminNextBetaRoleAllowed: betaGate.roleAllowed,
     adminNextBetaReadonly: adminNextPrototype && betaGate.betaReadonly,
+    adminNextExternalHandoff:
+      adminNextPrototype && externalHandoffGate.externalHandoff,
   };
 }
 

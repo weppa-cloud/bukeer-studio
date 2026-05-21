@@ -652,6 +652,15 @@ interface LegacyRedirectRow {
   status_code: number;
 }
 
+interface RedirectPolicyRow {
+  old_path: string;
+  action: "redirect" | "bypass";
+  new_path: string | null;
+  status_code: number;
+  preserve_query: boolean;
+  priority: number;
+}
+
 function buildLegacyPathCandidates(pathname: string): string[] {
   const ensuredLeadingSlash = pathname.startsWith("/")
     ? pathname
@@ -690,6 +699,33 @@ function coerceRedirectStatusCode(value: number): 301 | 302 | 307 | 308 {
     return value;
   }
   return 301;
+}
+
+async function getRedirectPolicyForCandidates(
+  websiteId: string,
+  candidates: string[],
+): Promise<RedirectPolicyRow | null> {
+  const cacheKey = `redirect-policy:${websiteId}:${candidates.join("|")}`;
+  const cached = getCached<RedirectPolicyRow | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const uniqueCandidates = [...new Set(candidates.filter(Boolean))];
+  if (uniqueCandidates.length === 0) {
+    setCached(cacheKey, null);
+    return null;
+  }
+
+  const oldPathFilter = uniqueCandidates
+    .map((candidate) => `old_path.eq.${encodeURIComponent(candidate)}`)
+    .join(",");
+
+  const data = await supabaseFetch<Array<RedirectPolicyRow>>(
+    `/rest/v1/website_redirect_policies?select=old_path,action,new_path,status_code,preserve_query,priority&website_id=eq.${encodeURIComponent(websiteId)}&is_active=eq.true&or=(${oldPathFilter})&order=priority.asc&limit=1`,
+  );
+
+  const result = data && data.length > 0 ? data[0] : null;
+  setCached(cacheKey, result);
+  return result;
 }
 
 async function getLegacyRedirect(
@@ -789,6 +825,41 @@ async function tryLegacyRedirect(
 ): Promise<NextResponse | null> {
   if (!website?.id) {
     return null;
+  }
+
+  const policy = await getRedirectPolicyForCandidates(website.id, [
+    ...buildLegacyPathCandidates(pathname),
+  ]);
+
+  if (policy) {
+    if (policy.action === "bypass") {
+      return null;
+    }
+
+    if (policy.action === "redirect" && policy.new_path) {
+      const response = buildLegacyRedirectResponse(request, {
+        new_path: policy.new_path,
+        status_code: policy.status_code,
+      });
+      const target = new URL(response.headers.get("location") || request.url);
+
+      if (!policy.preserve_query) {
+        target.search = "";
+      }
+
+      const current = request.nextUrl;
+      const isSameDestination =
+        target.origin === current.origin &&
+        target.pathname === current.pathname &&
+        target.search === current.search;
+
+      if (!isSameDestination) {
+        return NextResponse.redirect(
+          target,
+          coerceRedirectStatusCode(policy.status_code),
+        );
+      }
+    }
   }
 
   const legacy = await getLegacyRedirect(website.id, pathname);

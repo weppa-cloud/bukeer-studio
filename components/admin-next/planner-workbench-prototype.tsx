@@ -5,12 +5,12 @@ import { Moon, Sun } from 'lucide-react';
 import type {
   AdminDataSourceMode,
   AgentLedgerSnapshot,
-  AuthenticatedAdminSessionContext,
   PlannerOpportunity,
   PlannerWorkbenchFixture,
 } from '@bukeer/admin-contract';
 import { mapAgentLedgerToTrace } from '@/lib/admin-next/agent-ledger-adapter';
 import { agentLedgerFixture } from '@/lib/admin-next/fixtures/agent-ledger';
+import type { AdminNextSessionContext } from '@/lib/admin-next/session/get-admin-session-context';
 import {
   SignatureApprovalCommandBar,
   SignatureBlockedBanner,
@@ -24,10 +24,18 @@ import {
   SignatureSafetyBoundary,
   SignatureTracePreview,
   SignatureTripRail,
+  type BukeerDraftAction,
+  type SignatureWhatsAppHandoffResult,
 } from './signature-ui';
 import { TraceDrawer } from './trace-drawer';
 
 type PrototypeAppearance = 'light' | 'dark';
+type AuthenticatedAdminNextSessionContext = Extract<
+  AdminNextSessionContext,
+  { status: 'authenticated' }
+>;
+
+const WHATSAPP_HANDOFF_ENDPOINT = '/api/admin-next/planner-workbench/whatsapp-handoff';
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
@@ -39,7 +47,7 @@ export function PlannerWorkbenchPrototype({
   agentLedger = agentLedgerFixture,
   dataSourceMode = 'fixture',
 }: {
-  session: AuthenticatedAdminSessionContext;
+  session: AuthenticatedAdminNextSessionContext;
   fixture: PlannerWorkbenchFixture;
   agentLedger?: AgentLedgerSnapshot;
   dataSourceMode?: AdminDataSourceMode;
@@ -61,6 +69,48 @@ export function PlannerWorkbenchPrototype({
 
   function simulate(message: string) {
     setSimulationMessage(message);
+  }
+
+  async function createWhatsAppHandoff(
+    action: BukeerDraftAction
+  ): Promise<SignatureWhatsAppHandoffResult> {
+    const response = await fetch(WHATSAPP_HANDOFF_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        draftActionId: action.id,
+        traceId: action.traceId,
+        opportunityId: fixture.opportunity.id,
+      }),
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const message =
+        typeof payload?.error?.message === 'string'
+          ? payload.error.message
+          : 'Could not create WhatsApp handoff.';
+      throw new Error(message);
+    }
+
+    const data = payload?.data ?? payload;
+    const referenceCode = typeof data?.referenceCode === 'string' ? data.referenceCode : null;
+    const waMeUrl =
+      typeof data?.waMeUrl === 'string'
+        ? data.waMeUrl
+        : typeof data?.whatsappUrl === 'string'
+          ? data.whatsappUrl
+          : null;
+
+    if (!referenceCode || !waMeUrl) {
+      throw new Error('WhatsApp handoff response was incomplete.');
+    }
+
+    return {
+      referenceCode,
+      waMeUrl,
+      expiresAt: typeof data?.expiresAt === 'string' ? data.expiresAt : null,
+    };
   }
 
   function traceIdForOpportunity(_opportunity: PlannerOpportunity, index: number) {
@@ -132,6 +182,8 @@ export function PlannerWorkbenchPrototype({
               draftActions={fixture.draftActions}
               onInspectTrace={inspectTrace}
               onSimulate={simulate}
+              whatsappHandoffEnabled={session.flags.adminNextExternalHandoff}
+              onCreateWhatsAppHandoff={createWhatsAppHandoff}
             />
 
             <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">

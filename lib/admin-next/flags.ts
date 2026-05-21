@@ -10,11 +10,23 @@ type AdminNextBetaReadonlyInput = {
   role?: string | null;
 };
 
+type AdminNextExternalHandoffInput = {
+  accountId?: string | null;
+  role?: string | null;
+};
+
 export type AdminNextBetaReadonlyGate = {
   enabled: boolean;
   accountAllowed: boolean;
   roleAllowed: boolean;
   betaReadonly: boolean;
+};
+
+export type AdminNextExternalHandoffGate = {
+  enabled: boolean;
+  accountAllowed: boolean;
+  roleAllowed: boolean;
+  externalHandoff: boolean;
 };
 
 export function isAdminNextPrototypeEnabled(): boolean {
@@ -38,6 +50,14 @@ export function getAdminNextDataSourceMode(): AdminDataSourceMode {
 export function isAdminNextBetaReadonlyEnabled(): boolean {
   return TRUE_ENV_VALUES.has(
     (process.env.ADMIN_NEXT_BETA_READONLY_ENABLED ?? '').trim().toLowerCase(),
+  );
+}
+
+export function isAdminNextExternalHandoffEnabled(): boolean {
+  return TRUE_ENV_VALUES.has(
+    (process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED ?? '')
+      .trim()
+      .toLowerCase(),
   );
 }
 
@@ -80,6 +100,22 @@ export function getAdminNextBetaReadonlyGate({
     accountAllowed,
     roleAllowed,
     betaReadonly: enabled && accountAllowed && roleAllowed,
+  };
+}
+
+export function getAdminNextExternalHandoffGate({
+  accountId,
+  role,
+}: AdminNextExternalHandoffInput): AdminNextExternalHandoffGate {
+  const enabled = isAdminNextExternalHandoffEnabled();
+  const accountAllowed = isAdminNextBetaAccountAllowed(accountId);
+  const roleAllowed = isAdminNextBetaRoleAllowed(role);
+
+  return {
+    enabled,
+    accountAllowed,
+    roleAllowed,
+    externalHandoff: enabled && accountAllowed && roleAllowed,
   };
 }
 
