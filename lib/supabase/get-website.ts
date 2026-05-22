@@ -804,6 +804,46 @@ export async function getBlogPostTranslationLocales(
   }
 }
 
+export async function getBlogPostTranslationRoutes(
+  websiteId: string,
+  translationGroupId: string | null | undefined,
+  fallback?: { locale?: string | null; slug?: string | null },
+): Promise<Array<{ locale: string; slug: string }>> {
+  const fallbackRoutes = (() => {
+    const locale = normalizeBlogPublicLocale(fallback?.locale);
+    const slug = fallback?.slug?.trim();
+    return locale && slug ? [{ locale, slug }] : [];
+  })();
+  if (!translationGroupId) return fallbackRoutes;
+
+  try {
+    const { data, error } = await supabase
+      .from("website_blog_posts")
+      .select("locale, slug")
+      .eq("website_id", websiteId)
+      .eq("translation_group_id", translationGroupId)
+      .eq("status", "published")
+      .is("deleted_at", null);
+
+    if (error) return fallbackRoutes;
+
+    const routes = new Map<string, string>();
+    for (const row of data ?? []) {
+      const locale = normalizeBlogPublicLocale(
+        (row as { locale?: string | null }).locale,
+      );
+      const slug = (row as { slug?: string | null }).slug?.trim();
+      if (locale && slug && !routes.has(locale)) routes.set(locale, slug);
+    }
+
+    return routes.size > 0
+      ? Array.from(routes.entries()).map(([locale, slug]) => ({ locale, slug }))
+      : fallbackRoutes;
+  } catch {
+    return fallbackRoutes;
+  }
+}
+
 export function normalizeBlogPublicLocale(
   locale: string | null | undefined,
 ): string | null {
