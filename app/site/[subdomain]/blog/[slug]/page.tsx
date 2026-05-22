@@ -6,17 +6,14 @@ import {
   getBlogPostBySlug,
   getBlogPostAnyLocale,
   getBlogPostByTranslationGroup,
-  getBlogPostTranslationLocales,
+  getBlogPostTranslationRoutes,
   normalizeBlogPublicLocale,
 } from "@/lib/supabase/get-website";
 import { JsonLd, generateBlogPostSchemas } from "@/lib/schema";
 import { getPlannerByUserId } from "@/lib/supabase/get-planners";
 import { BlogDetail } from "@/components/site/blog/blog-detail";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
-import {
-  buildLocaleAwareAlternateLanguages,
-  resolvePublicMetadataLocale,
-} from "@/lib/seo/public-metadata";
+import { resolvePublicMetadataLocale } from "@/lib/seo/public-metadata";
 import {
   buildPublicLocalizedPath,
   localeToOgLocale,
@@ -25,6 +22,7 @@ import { isEnBlogQualityBlocked } from "@/lib/seo/en-quality-gate";
 import { normalizePublicMetadataTitle } from "@/lib/seo/metadata-title";
 import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
 import { inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
+import { buildBlogPostAlternateLanguages } from "@/lib/seo/blog-post-alternates";
 
 interface BlogPostPageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -73,18 +71,15 @@ export async function generateMetadata({
   );
   const localizedBlogPath = localizedLocaleContext.localizedPathname;
   const canonical = `${baseUrl}${localizedBlogPath}`;
-  const translatedLocales = await getBlogPostTranslationLocales(
+  const translatedRoutes = await getBlogPostTranslationRoutes(
     website.id,
     post.translation_group_id ?? post.id,
-    normalizeBlogPublicLocale(post.locale),
+    { locale: normalizeBlogPublicLocale(post.locale), slug: post.slug },
   );
-  const languages = buildLocaleAwareAlternateLanguages(
+  const languages = buildBlogPostAlternateLanguages(
     baseUrl,
-    blogPath,
-    localizedLocaleContext,
-    {
-      translatedLocales,
-    },
+    localizedLocaleContext.defaultLocale,
+    translatedRoutes,
   );
   const siteName =
     website.content?.account?.name || website.content?.siteName || subdomain;
