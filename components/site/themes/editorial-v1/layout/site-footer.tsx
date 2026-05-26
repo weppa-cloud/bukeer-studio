@@ -23,17 +23,11 @@ import Link from 'next/link';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
-import {
-  CATEGORY_CANONICAL_SEGMENT,
-  buildLegalPagePath,
-  localeToLanguage,
-  type CategoryLanguage,
-  type LegalPageType,
-} from '@/lib/seo/locale-routing';
+import { buildLegalPagePath, type LegalPageType } from '@/lib/seo/locale-routing';
 import { Icons } from '../primitives/icons';
 import { FooterSwitcher } from './footer-switcher';
 import { FooterNewsletterForm } from './footer-newsletter-form';
-import { getEditorialTextGetter } from '../i18n';
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialSiteFooterProps {
@@ -64,42 +58,6 @@ function isColombiaToursWebsite(website: WebsiteData): boolean {
   );
 }
 
-function stripDiacritics(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-function normalizeCopy(value: string | null | undefined): string {
-  return stripDiacritics(value ?? '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .replace(/[.。]+$/g, '')
-    .trim();
-}
-
-function localizeKnownEditorialFooterCopy(
-  value: string | null | undefined,
-  fallback: string,
-  language: string,
-): string {
-  if (!value) return fallback;
-
-  const normalized = normalizeCopy(value);
-  if (language === 'fr' && normalized === 'descubre colombia con expertos locales') {
-    const suffix = value.trim().endsWith('.') ? '.' : '';
-    return `Découvrez la Colombie avec des experts locaux${suffix}`;
-  }
-
-  return value;
-}
-
-function localizedCategorySegment(
-  productType: keyof typeof CATEGORY_CANONICAL_SEGMENT,
-  language: string,
-): string {
-  const segments = CATEGORY_CANONICAL_SEGMENT[productType];
-  return segments[language as CategoryLanguage] ?? segments.es;
-}
-
 export function EditorialSiteFooter({
   website,
   isCustomDomain = false,
@@ -107,68 +65,41 @@ export function EditorialSiteFooter({
 }: EditorialSiteFooterProps) {
   const editorialText = getEditorialTextGetter(website);
   const { content, subdomain } = website;
-  const resolvedLocale =
-    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
-    ?? content.locale
-    ?? website.default_locale
-    ?? 'es-CO';
-  const defaultLocale = website.default_locale ?? content.locale ?? 'es-CO';
-  const language = localeToLanguage(resolvedLocale);
-  const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale || undefined);
+  const basePath = getBasePath(subdomain, isCustomDomain, (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || undefined);
   const currentYear = new Date().getFullYear();
   const siteName = content.account?.name || content.siteName;
   const social = content.social || {};
   const legal = content.account?.legal;
 
   const logoUrl = content.account?.logo || content.logo || null;
-  const tagline = localizeKnownEditorialFooterCopy(
-    content.tagline,
-    editorialText('editorialFooterTaglineFallback'),
-    language,
-  );
+  const tagline = localizeEditorialText(website, content.tagline) || editorialText('editorialFooterTaglineFallback');
   // WebsiteContent exposes `tagline` + account.* but no top-level
   // `description`. Pull from SEO description as a soft fallback.
-  const aboutBlurb = localizeKnownEditorialFooterCopy(
-    content.seo?.description,
-    editorialText('editorialFooterAboutFallback'),
-    language,
-  );
-  const destinationSegment = localizedCategorySegment('destination', language);
-  const packageSegment = localizedCategorySegment('package', language);
+  const aboutBlurb =
+    localizeEditorialText(website, content.seo?.description) ||
+    editorialText('editorialFooterAboutFallback');
 
   const destinosLinks = [
-    { label: 'Cartagena', href: `${basePath}/${destinationSegment}/cartagena` },
-    { label: 'Eje Cafetero', href: `${basePath}/${destinationSegment}/eje-cafetero` },
-    { label: 'Tayrona', href: `${basePath}/${destinationSegment}/tayrona` },
-    { label: 'San Andrés', href: `${basePath}/${destinationSegment}/san-andres` },
-    { label: 'Amazonas', href: `${basePath}/${destinationSegment}/amazonas` },
+    { label: 'Cartagena', href: `${basePath}/destinos/cartagena` },
+    { label: 'Eje Cafetero', href: `${basePath}/destinos/eje-cafetero` },
+    { label: 'Tayrona', href: `${basePath}/destinos/tayrona` },
+    { label: 'San Andrés', href: `${basePath}/destinos/san-andres` },
+    { label: 'Amazonas', href: `${basePath}/destinos/amazonas` },
     { label: editorialText('editorialFooterViewAll'), href: `${basePath}/#destinations` },
   ];
-  const viajarLinks = language === 'fr' ? [
-    { label: 'Forfaits', href: `${basePath}/${packageSegment}` },
+  const viajarLinks = [
+    { label: localizeEditorialText(website, 'Paquetes'), href: `${basePath}/paquetes` },
     { label: editorialText('editorialFooterSearch'), href: `${basePath}/buscar` },
-    { label: 'Hôtels boutique', href: `${basePath}/#hotels` },
-    { label: 'Voyages de noces', href: `${basePath}/${packageSegment}?tipo=luna-de-miel` },
-    { label: 'Groupes et entreprises', href: `${basePath}/#cta` },
-  ] : [
-    { label: 'Paquetes', href: `${basePath}/${packageSegment}` },
-    { label: editorialText('editorialFooterSearch'), href: `${basePath}/buscar` },
-    { label: 'Hoteles boutique', href: `${basePath}/#hotels` },
-    { label: 'Luna de miel', href: `${basePath}/${packageSegment}?tipo=luna-de-miel` },
-    { label: 'Grupos y corporativo', href: `${basePath}/#cta` },
+    { label: localizeEditorialText(website, 'Hoteles boutique'), href: `${basePath}/#hotels` },
+    { label: localizeEditorialText(website, 'Luna de miel'), href: `${basePath}/paquetes?tipo=luna-de-miel` },
+    { label: localizeEditorialText(website, 'Grupos y corporativo'), href: `${basePath}/#cta` },
   ];
-  const agenciaLinks = language === 'fr' ? [
-    { label: 'À propos', href: `${basePath}/#about` },
-    { label: 'Nos planners', href: `${basePath}/planners` },
+  const agenciaLinks = [
+    { label: localizeEditorialText(website, 'Sobre nosotros'), href: `${basePath}/#about` },
+    { label: localizeEditorialText(website, 'Nuestros planners'), href: `${basePath}/planners` },
     { label: 'Blog', href: `${basePath}/blog` },
-    { label: 'Presse', href: `${basePath}/presse` },
-    { label: 'Contact', href: `${basePath}/#cta` },
-  ] : [
-    { label: 'Sobre nosotros', href: `${basePath}/#about` },
-    { label: 'Nuestros planners', href: `${basePath}/planners` },
-    { label: 'Blog', href: `${basePath}/blog` },
-    { label: 'Prensa', href: `${basePath}/prensa` },
-    { label: 'Contacto', href: `${basePath}/#cta` },
+    { label: localizeEditorialText(website, 'Prensa'), href: `${basePath}/prensa` },
+    { label: localizeEditorialText(website, 'Contacto'), href: `${basePath}/#cta` },
   ];
 
   const whatsappRaw = social.whatsapp || content.account?.phone || '';
@@ -213,6 +144,12 @@ export function EditorialSiteFooter({
   const legalPrivacy = editorialText('editorialFooterLegalPrivacy');
   const legalTerms = editorialText('editorialFooterLegalTerms');
   const legalCancellation = editorialText('editorialFooterLegalCancellation');
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    ?? content.locale
+    ?? website.default_locale
+    ?? 'es-CO';
+  const defaultLocale = website.default_locale ?? content.locale ?? 'es-CO';
   const legalLinks: Array<{ label: string; href: string }> = [
     { label: legalPrivacy, href: legalHref(basePath, 'privacy', resolvedLocale, defaultLocale) },
     { label: legalTerms, href: legalHref(basePath, 'terms', resolvedLocale, defaultLocale) },
