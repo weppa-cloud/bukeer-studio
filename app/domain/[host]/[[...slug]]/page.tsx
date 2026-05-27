@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
@@ -24,6 +25,7 @@ import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import Image from 'next/image';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface CustomDomainPageProps {
   params: Promise<{ host: string; slug?: string[] }>;
@@ -577,6 +579,12 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
   }
 
   const slugPath = slug?.join('/') || '';
+  const requestHeaders = await headers();
+  const resolvedLocale =
+    requestHeaders.get('x-public-locale') ||
+    website.default_locale ||
+    website.content?.locale ||
+    'es-CO';
   const icons = resolveSiteIcons(website);
 
   // Legal page metadata
@@ -647,12 +655,15 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
   // Destination listing
   if (slugPath === 'destinos' || slugPath === 'destinations') {
     const siteName = website.content.account?.name || website.content.siteName;
+    const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+    const pageTitle = editorialText('editorialDestinoBreadcrumbDestinos');
+    const pageDescription = editorialText('editorialDestinosListSubtitle').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
     return {
-      title: `Destinos | ${siteName}`,
-      description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
+      title: `${pageTitle} | ${siteName}`,
+      description: pageDescription,
       openGraph: {
-        title: `Destinos | ${siteName}`,
-        description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
       },
       ...(icons ? { icons } : {}),
     };

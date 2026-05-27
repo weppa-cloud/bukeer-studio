@@ -273,11 +273,18 @@ export async function generateMetadata({
       "activities",
     ]);
     const ogImage = resolveOgImage(website);
-    const isEnglish = localeContext.resolvedLanguage === "en";
-    const pageTitle = isEnglish ? "Activities" : "Actividades";
-    const pageDescription = isEnglish
-      ? `Discover all activities and experiences available with ${siteName}.`
-      : `Descubre todas las actividades y experiencias disponibles con ${siteName}.`;
+    const messages = getPublicUiMessages(localeContext.resolvedLocale);
+    const pageTitle = messages.nav.experiences;
+    const pageDescriptionByLanguage: Record<string, string> = {
+      en: `Discover all activities and experiences available with ${siteName}.`,
+      fr: `Découvrez toutes les activités et expériences disponibles avec ${siteName}.`,
+      pt: `Descubra todas as atividades e experiências disponíveis com ${siteName}.`,
+      de: `Entdecken Sie alle Aktivitäten und Erlebnisse mit ${siteName}.`,
+      es: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
+    };
+    const pageDescription =
+      pageDescriptionByLanguage[localeContext.resolvedLanguage] ??
+      pageDescriptionByLanguage.es;
     const metadata: Metadata = {
       title: pageTitle,
       description: pageDescription,
@@ -463,20 +470,27 @@ export async function generateMetadata({
       "destinations",
     ]);
     const ogImage = resolveOgImage(website);
+    const editorialText = getPublicUiExtraTextGetter(
+      localeContext.resolvedLocale,
+    );
+    const pageTitle = editorialText("editorialDestinoBreadcrumbDestinos");
+    const pageDescription = toPlainMetadataText(
+      editorialText("editorialDestinosListSubtitle"),
+    );
     const metadata: Metadata = {
-      title: "Destinos",
-      description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
+      title: pageTitle,
+      description: pageDescription,
       openGraph: {
-        title: `Destinos | ${siteName}`,
-        description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         type: "website",
         locale: ogLocale,
         ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: "summary_large_image",
-        title: `Destinos | ${siteName}`,
-        description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
