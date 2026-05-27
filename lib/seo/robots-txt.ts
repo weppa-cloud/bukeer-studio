@@ -39,5 +39,8 @@ Sitemap: ${baseUrl}/sitemap.xml
 Sitemap: ${baseUrl}/sitemap_index.xml
 Sitemap: ${baseUrl}/sitemap-es-CO.xml
 Sitemap: ${baseUrl}/sitemap-en-US.xml
+Sitemap: ${baseUrl}/sitemap-fr-FR.xml
+Sitemap: ${baseUrl}/sitemap-de-DE.xml
+Sitemap: ${baseUrl}/sitemap-pt-BR.xml
 `;
 }
