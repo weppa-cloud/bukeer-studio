@@ -15,6 +15,8 @@ Latest spec addition: 2026-05-15 - [[SPEC_PUBLIC_TEMPLATE_SYSTEMIC_FIX_V1]] defi
 
 Latest ops addition: 2026-05-20 - [[growth-media-pack-real-image-sourcing]] defines the SEO360 MediaPack lane for real-image sourcing, legal/provenance boundaries, reference-only visual briefs, AI-assisted reality preservation, and traffic_ready/hold_scale gating.
 
+Latest plan/runbook addition: 2026-05-28 - [[growth-provider-runtime-foundation-issue600]] defines the #600 verifiable objective workflow for ColombiaTours provider runtime certification: `seo_integrations.credential_ref`, no-write GSC/GA4/DataForSEO probes, Supabase-backed provider runner, context packet source refs and GO/NO-GO evidence.
+
 Latest spec addition: 2026-05-15 - [[SPEC_MEDIA_ASSET_LIBRARY_V1]] defines Studio as the primary tenant Media Asset Library surface over `public.media_assets`, with Flutter registration/reuse as the cross-repo v1 contract.
 
 Latest spec addition: 2026-05-14 - [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2]] redirects Epic #521 into the Neo/Hermes Provider Profile Beta: GitHub remains planning SSOT, Supabase remains operational SSOT, Neo/Hermes acts as architect-orchestrator, provider profiles own API access, workers consume context packets/facts, and paid media profiles enter the same read-only/freshness-governed architecture.
@@ -215,6 +217,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[growth-translation-quality-gate]]      | [file](./ops/growth-translation-quality-gate.md)      | Epic #310 transcreation lane gate: translation quality checks, QA findings, Growth backlog content status and Council approval rules.                   |
 | [[growth-media-pack-real-image-sourcing]] | [file](./ops/growth-media-pack-real-image-sourcing.md) | SMART SEO / SEO360 media lane runbook: real-image sourcing hierarchy, MediaPack schema, legal reference-only boundaries and traffic_ready gating.        |
 | [[growth-data-automation-cadence]]       | [file](./ops/growth-data-automation-cadence.md)       | Epic #310 Max Performance automation contract: raw/cache -> normalized facts -> joint facts -> `growth_inventory` -> Council, health and backlog rules. |
+| [[growth-provider-runtime-foundation-issue600]] | [plan](./plans/PLAN_GROWTH_OS_PROVIDER_RUNTIME_FOUNDATION_ISSUE_600.md) / [runbook](./ops/growth-provider-runtime-foundation-runbook.md) | Issue #600 verifiable workflow for ColombiaTours GSC/GA4/DataForSEO provider runtime certification, credential refs, probes, Supabase runner and context packets. |
 | [[growth-mass-execution-vs-experiments]] | [file](./ops/growth-mass-execution-vs-experiments.md) | Epic #310 operating runbook: execute large backlog batches while Council keeps only five active measurable readouts.                                    |
 | [[waflow-crm-lifecycle-parity]]          | [file](./ops/waflow-crm-lifecycle-parity.md)          | Epic #310/#322 WAFlow parity and shared CRM lifecycle contract: WAFlow -> `requests` -> Chatwoot -> itinerary -> `funnel_events`.                       |
 | [[chatwoot-growth-traceability]]         | [file](./ops/chatwoot-growth-traceability.md)         | Epic #310/#322 Chatwoot traceability contract: reference fallback, CRM conflict guard, custom attributes, internal ledger and Meta/GA4 boundary.        |

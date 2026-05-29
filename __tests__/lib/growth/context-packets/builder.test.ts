@@ -272,6 +272,39 @@ describe("buildGrowthProviderContextPacket", () => {
     ]));
   });
 
+  it("supports #600 official profile ids and object source_refs without leaking provider access", async () => {
+    const { packet } = await buildPacket(
+      createRows({
+        growth_profile_runs: [
+          profileRun({
+            profile_id: "gsc_daily_complete_web_v1",
+            source_refs: [{ type: "provider", ref: "gsc:gsc_daily_complete_web_v1" }],
+          }),
+          profileRun({
+            id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            provider: "ga4",
+            profile_id: "ga4_daily_web_traffic_v1",
+            evidence_fingerprint: "sha256:ga4-fresh",
+            source_refs: [{ type: "provider", ref: "ga4:ga4_daily_web_traffic_v1" }],
+            payload: { summary: { sessions: 120, conversions: 8 } },
+            expires_at: "2026-05-22T10:10:00.000Z",
+          }),
+        ],
+      }),
+      ["gsc_daily_complete_web_v1", "ga4_daily_web_traffic_v1"],
+    );
+
+    expect(packet.status).toBe("pass");
+    expect(packet.source_profiles.map((profile) => profile.profile_id)).toEqual([
+      "gsc_daily_complete_web_v1",
+      "ga4_daily_web_traffic_v1",
+    ]);
+    expect(packet.source_profiles[0].source_refs).toContain("provider:gsc:gsc_daily_complete_web_v1");
+    expect(packet.blocked_actions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: "call_provider_api_directly" })]),
+    );
+  });
+
   it("returns WATCH and request_refresh when a required profile is stale", async () => {
     const { packet } = await buildPacket(
       createRows({
@@ -324,6 +357,57 @@ describe("buildGrowthProviderContextPacket", () => {
 
     expect(packet.dedupe_verdict.verdict).toBe("coalesce");
     expect(packet.dedupe_verdict.previous_refs).toContain(`growth_work_items:${activeWorkId}`);
+    expect(packet.dedupe_verdict.reason).toBe("active_work_coalesced");
+    expect(packet.dedupe_verdict.no_go_reasons).not.toContain("active_work:ready");
+  });
+
+  it("represents DataForSEO cost_gated as governed evidence instead of fresh extraction", async () => {
+    const { packet } = await buildPacket(
+      createRows({
+        growth_profile_runs: [
+          profileRun({
+            profile_id: "gsc_daily_complete_web_v1",
+            source_refs: [{ type: "cache", ref: "growth_gsc_cache:gsc-row-1" }],
+          }),
+          profileRun({
+            id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            provider: "ga4",
+            profile_id: "ga4_daily_web_traffic_v1",
+            evidence_fingerprint: "sha256:ga4-fresh",
+            source_refs: [{ type: "cache", ref: "growth_ga4_cache:ga4-row-1" }],
+            payload: { summary: { sessions: 120, keyEvents: 8 } },
+            expires_at: "2026-05-22T10:10:00.000Z",
+          }),
+          profileRun({
+            id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            provider: "dataforseo",
+            profile_id: "dataforseo_serp_opportunity_v1",
+            run_status: "cost_gated",
+            freshness_status: "WATCH",
+            quality_status: "watch",
+            evidence_fingerprint: "sha256:dataforseo-cost-gated",
+            source_refs: [],
+            payload: {
+              summary: { health_probe: "pass", paid_extraction: "blocked_by_cost_gate" },
+              no_go_reasons: ["costed_profile_requires_approval_reference"],
+            },
+            expires_at: "2026-05-22T10:10:00.000Z",
+          }),
+        ],
+      }),
+      ["gsc_daily_complete_web_v1", "ga4_daily_web_traffic_v1", "dataforseo_serp_opportunity_v1"],
+    );
+
+    expect(packet.status).toBe("watch");
+    expect(packet.freshness_map.dataforseo_serp_opportunity_v1).toMatchObject({
+      provider: "dataforseo",
+      status: "cost_gated",
+      quality_status: "watch",
+      no_go_reasons: ["profile_cost_gated:dataforseo_serp_opportunity_v1"],
+    });
+    expect(packet.source_profiles.map((profile) => profile.profile_id)).toContain("dataforseo_serp_opportunity_v1");
+    expect(packet.facts.market_terms.no_go_reasons).toContain("profile_cost_gated:dataforseo_serp_opportunity_v1");
+    expect(packet.dedupe_verdict.verdict).toBe("request_refresh");
   });
 
   it("ignores rows from other tenants and does not silently pass missing scoped evidence", async () => {

@@ -18,6 +18,12 @@
 import type { GrowthLocale } from '@bukeer/website-contract';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { refreshGoogleToken } from '@/lib/seo/google-client';
+import {
+  hydrateGoogleCredential,
+  mergeRefreshedGoogleSecret,
+  storeGoogleProviderCredentialSecret,
+  type GoogleProviderCredentialSecret,
+} from '@/lib/growth/provider-credentials/vault';
 
 const GA4_DATA_ENDPOINT = 'https://analyticsdata.googleapis.com/v1beta';
 const GA4_ADMIN_ENDPOINT = 'https://analyticsadmin.googleapis.com/v1beta';
@@ -213,6 +219,10 @@ interface Ga4IntegrationRow {
   refresh_token: string | null;
   access_token: string | null;
   access_token_expires_at: string | null;
+  credential_ref: string | null;
+  scopes?: string[] | null;
+  credential_source?: 'vault' | 'legacy';
+  credential_secret?: GoogleProviderCredentialSecret | null;
 }
 
 function buildCacheKey(input: Ga4ReportInput): string {
@@ -242,7 +252,7 @@ async function loadGa4Integration(scope: Ga4TenantScope): Promise<Ga4Integration
   const admin = createSupabaseServiceRoleClient();
   const { data, error } = await admin
     .from('seo_integrations')
-    .select('account_id,website_id,property_id,refresh_token,access_token,access_token_expires_at')
+    .select('account_id,website_id,property_id,refresh_token,access_token,access_token_expires_at,credential_ref,scopes')
     .eq('account_id', scope.account_id)
     .eq('website_id', scope.website_id)
     .eq('provider', 'ga4')
@@ -251,7 +261,18 @@ async function loadGa4Integration(scope: Ga4TenantScope): Promise<Ga4Integration
   if (error) {
     throw new Ga4ClientError('INTEGRATION_READ_FAILED', 'Unable to load GA4 integration', 500, error.message);
   }
-  return (data as Ga4IntegrationRow | null) ?? null;
+  const integration = (data as Ga4IntegrationRow | null) ?? null;
+  if (!integration) return null;
+  const hydrated = await hydrateGoogleCredential({
+    supabase: admin,
+    provider: 'ga4',
+    integration,
+  });
+  return {
+    ...hydrated.integration,
+    credential_source: hydrated.credentialSource,
+    credential_secret: hydrated.secret,
+  };
 }
 
 async function ensureFreshAccessToken(integration: Ga4IntegrationRow): Promise<string> {
@@ -268,6 +289,37 @@ async function ensureFreshAccessToken(integration: Ga4IntegrationRow): Promise<s
   try {
     const admin = createSupabaseServiceRoleClient();
     const newExpiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+    if (integration.credential_ref) {
+      const refreshToken = refreshed.refresh_token ?? integration.refresh_token;
+      const credentialRef = await storeGoogleProviderCredentialSecret({
+        supabase: admin,
+        websiteId: integration.website_id,
+        provider: 'ga4',
+        secret: mergeRefreshedGoogleSecret({
+          provider: 'ga4',
+          integration,
+          secret: integration.credential_secret ?? null,
+          accessToken: refreshed.access_token,
+          refreshToken,
+          expiresAt: newExpiresAt,
+        }),
+      });
+      await admin
+        .from('seo_integrations')
+        .update({
+          status: 'connected',
+          credential_ref: credentialRef,
+          access_token: null,
+          refresh_token: null,
+          access_token_expires_at: newExpiresAt,
+          last_error: null,
+        })
+        .eq('account_id', integration.account_id)
+        .eq('website_id', integration.website_id)
+        .eq('provider', 'ga4');
+      return refreshed.access_token;
+    }
+
     await admin
       .from('seo_integrations')
       .update({
