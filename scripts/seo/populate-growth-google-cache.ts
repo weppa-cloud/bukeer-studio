@@ -12,6 +12,12 @@ import {
   type SearchConsoleRow,
 } from "../../lib/seo/google-client";
 import { runGa4Report } from "../../lib/growth/ga4-client";
+import {
+  hydrateGoogleCredential,
+  mergeRefreshedGoogleSecret,
+  storeGoogleProviderCredentialSecret,
+  type GoogleProviderCredentialSecret,
+} from "../../lib/growth/provider-credentials/vault";
 
 dotenv.config({ path: ".env.local" });
 
@@ -86,6 +92,10 @@ interface GscIntegrationRow {
   access_token: string | null;
   access_token_expires_at: string | null;
   site_url: string | null;
+  credential_ref: string | null;
+  scopes?: string[] | null;
+  credential_source?: "vault" | "legacy";
+  credential_secret?: GoogleProviderCredentialSecret | null;
 }
 
 const GSC_PULLS = [
@@ -119,12 +129,6 @@ const GSC_PULLS = [
     dimensions: ["searchAppearance"] as const,
     rowLimit: 1000,
   },
-  {
-    name: "page_search_appearance",
-    priority: "P1" as const,
-    dimensions: ["page", "searchAppearance"] as const,
-    rowLimit: 25000,
-  },
 ];
 
 type Ga4Pull = {
@@ -153,7 +157,6 @@ const GA4_PULLS: Ga4Pull[] = [
       "screenPageViews",
       "engagementRate",
       "keyEvents",
-      "conversions",
     ],
     limit: 25000,
   },
@@ -181,7 +184,6 @@ const GA4_PULLS: Ga4Pull[] = [
       "screenPageViews",
       "engagementRate",
       "keyEvents",
-      "conversions",
     ],
     limit: 25000,
   },
@@ -189,14 +191,14 @@ const GA4_PULLS: Ga4Pull[] = [
     name: "ga4_event_page_28d_v1",
     priority: "P0" as const,
     dimensions: ["eventName", "pagePath"],
-    metrics: ["eventCount", "keyEvents", "conversions"],
+    metrics: ["eventCount", "keyEvents"],
     limit: 25000,
   },
   {
     name: "ga4_campaign_source_medium_28d_v1",
     priority: "P0" as const,
     dimensions: ["sessionCampaignName", "sessionSource", "sessionMedium"],
-    metrics: ["sessions", "totalUsers", "keyEvents", "conversions"],
+    metrics: ["sessions", "totalUsers", "keyEvents"],
     limit: 25000,
   },
   {
@@ -208,7 +210,6 @@ const GA4_PULLS: Ga4Pull[] = [
       "totalUsers",
       "engagementRate",
       "keyEvents",
-      "conversions",
     ],
     limit: 25000,
   },
@@ -847,7 +848,7 @@ async function loadGscIntegration(): Promise<GscIntegrationRow | null> {
   const { data, error } = await admin
     .from("seo_integrations")
     .select(
-      "account_id,website_id,refresh_token,access_token,access_token_expires_at,site_url",
+      "account_id,website_id,refresh_token,access_token,access_token_expires_at,site_url,credential_ref,scopes",
     )
     .eq("account_id", ACCOUNT_ID)
     .eq("website_id", WEBSITE_ID)
@@ -856,7 +857,18 @@ async function loadGscIntegration(): Promise<GscIntegrationRow | null> {
 
   if (error)
     throw new Error(`Unable to load GSC integration: ${error.message}`);
-  return (data as GscIntegrationRow | null) ?? null;
+  const integration = (data as GscIntegrationRow | null) ?? null;
+  if (!integration) return null;
+  const hydrated = await hydrateGoogleCredential({
+    supabase: admin,
+    provider: "gsc",
+    integration,
+  });
+  return {
+    ...hydrated.integration,
+    credential_source: hydrated.credentialSource,
+    credential_secret: hydrated.secret,
+  };
 }
 
 async function ensureFreshAccessToken(
@@ -873,14 +885,45 @@ async function ensureFreshAccessToken(
   const refreshed = await refreshGoogleToken(integration.refresh_token);
   try {
     const admin = createSupabaseServiceRoleClient();
+    const expiresAt = new Date(
+      Date.now() + refreshed.expires_in * 1000,
+    ).toISOString();
+    if (integration.credential_ref) {
+      const credentialRef = await storeGoogleProviderCredentialSecret({
+        supabase: admin,
+        websiteId: integration.website_id,
+        provider: "gsc",
+        secret: mergeRefreshedGoogleSecret({
+          provider: "gsc",
+          integration,
+          secret: integration.credential_secret ?? null,
+          accessToken: refreshed.access_token,
+          refreshToken: refreshed.refresh_token ?? integration.refresh_token,
+          expiresAt,
+        }),
+      });
+      await admin
+        .from("seo_integrations")
+        .update({
+          status: "connected",
+          credential_ref: credentialRef,
+          access_token: null,
+          refresh_token: null,
+          access_token_expires_at: expiresAt,
+          last_error: null,
+        })
+        .eq("account_id", ACCOUNT_ID)
+        .eq("website_id", WEBSITE_ID)
+        .eq("provider", "gsc");
+      return refreshed.access_token;
+    }
+
     await admin
       .from("seo_integrations")
       .update({
         status: "connected",
         access_token: refreshed.access_token,
-        access_token_expires_at: new Date(
-          Date.now() + refreshed.expires_in * 1000,
-        ).toISOString(),
+        access_token_expires_at: expiresAt,
         last_error: null,
       })
       .eq("account_id", ACCOUNT_ID)

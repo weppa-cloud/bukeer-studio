@@ -194,7 +194,7 @@ function landingLowActivationCandidates(report, funnelByUrl) {
     const metrics = metricsByName(report, row);
     const sessions = intMetric(metrics.sessions);
     const engagement = rateMetric(metrics.engagementRate);
-    const conversions = numberOrZero(metrics.conversions);
+    const conversions = conversionMetric(metrics);
     if (sessions < 10) return [];
 
     const url = toPublicUrl(page);
@@ -230,7 +230,7 @@ function sourceMediumPageCandidates(report, funnelByUrl) {
     const metrics = metricsByName(report, row);
     const sessions = intMetric(metrics.sessions);
     const engagement = rateMetric(metrics.engagementRate);
-    const conversions = numberOrZero(metrics.conversions);
+    const conversions = conversionMetric(metrics);
     if (sessions < 8) return [];
     if (engagement >= 0.5 && conversions > 0) return [];
 
@@ -262,7 +262,7 @@ function eventPageDropOffCandidates(report, funnelByUrl) {
     const page = normalizePagePath(row.dimensions[1]);
     const metrics = metricsByName(report, row);
     const eventCount = intMetric(metrics.eventCount);
-    const conversions = numberOrZero(metrics.conversions);
+    const conversions = conversionMetric(metrics);
     if (eventCount < 3) continue;
     const url = toPublicUrl(page);
     const current = byUrl.get(url) ?? { url, events: 0, conversions: 0, eventNames: new Set() };
@@ -302,7 +302,7 @@ function campaignTrafficWatchCandidates(report, metaSummary) {
     if (!campaign || campaign === '(not set)') return [];
     const metrics = metricsByName(report, row);
     const sessions = intMetric(metrics.sessions);
-    const conversions = numberOrZero(metrics.conversions);
+    const conversions = conversionMetric(metrics);
     if (sessions < 5 || conversions > 0) return [];
 
     const url = `${origin}/__growth/campaign/${slugify(campaign)}?source=${encodeURIComponent(source)}&medium=${encodeURIComponent(medium)}`;
@@ -636,6 +636,10 @@ function cleanText(value) {
 function numberOrZero(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
+}
+
+function conversionMetric(metrics) {
+  return numberOrZero(metrics.keyEvents ?? metrics.conversions);
 }
 
 function intMetric(value) {
