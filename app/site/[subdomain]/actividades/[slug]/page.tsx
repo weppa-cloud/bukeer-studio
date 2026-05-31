@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { ProductLandingPage } from "@/components/pages/product-landing-page";
+import { StaticPage } from "@/components/pages/static-page";
 import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
 import type { EditorialActivityDetailPayload } from "@/components/site/themes/editorial-v1/pages/activity-detail";
 import { ACTIVITY_FAQS_DEFAULT } from "@/lib/products/activity-faqs-default";
@@ -13,7 +14,9 @@ import { sanitizeProductCopy } from "@/lib/products/normalize-product";
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import {
   getCategoryProducts,
+  getDestinations,
   getLocalizedProductOverlay,
+  getPageBySlug,
   getProductPage,
   getProductSlugRedirect,
 } from "@/lib/supabase/get-pages";
@@ -75,6 +78,54 @@ export async function generateMetadata({
   });
 
   if (!productPage?.product) {
+    const fallbackLanding = await getPageBySlug(subdomain, `actividades/${slug}`);
+    if (fallbackLanding?.is_published) {
+      const title = normalizePublicMetadataTitle(
+        fallbackLanding.seo_title || fallbackLanding.title,
+        siteName,
+      );
+      const description =
+        fallbackLanding.seo_description ||
+        `${siteName} - Actividades y experiencias en Colombia con información clara, soporte local y opciones de reserva.`;
+      const ogImage = resolveOgImage(
+        website,
+        fallbackLanding.hero_config?.backgroundImage || null,
+      );
+      const metadata: Metadata = {
+        title,
+        description,
+        alternates: {
+          canonical: `${baseUrl}/actividades/${slug}`,
+          languages: buildLocaleAwareAlternateLanguages(
+            baseUrl,
+            `/actividades/${slug}`,
+            localeContext,
+          ),
+        },
+        openGraph: {
+          title,
+          description,
+          type: "website",
+          url: `${baseUrl}/actividades/${slug}`,
+          siteName,
+          locale: localeToOgLocale(localeContext.resolvedLocale),
+          ...(ogImage && { images: [{ url: ogImage }] }),
+        },
+        twitter: {
+          card: "summary_large_image",
+          title,
+          description,
+          ...(ogImage && { images: [ogImage] }),
+        },
+      };
+
+      if (fallbackLanding.robots_noindex) {
+        metadata.robots = { index: false, follow: true };
+      }
+
+      return metadata;
+    }
+
     return {
       title: "Actividad no encontrada",
       description: fallbackDescription,
@@ -210,6 +261,30 @@ export default async function ActivitySlugPage({ params }: ActivityPageProps) {
     if (redirectedSlug) {
       permanentRedirect(`/site/${subdomain}/actividades/${redirectedSlug}`);
     }
+
+    const fallbackLanding = await getPageBySlug(
+      subdomain,
+      `actividades/${slug}`,
+    );
+    if (fallbackLanding?.is_published) {
+      const isCustomDomain = inferIsCustomDomainWebsite(website);
+      const websiteForRender = {
+        ...website,
+        resolvedLocale,
+        defaultLocale: localeContext.defaultLocale ?? "es-CO",
+        isCustomDomain,
+      };
+      const dynamicDestinations = await getDestinations(subdomain);
+
+      return (
+        <StaticPage
+          website={websiteForRender}
+          page={fallbackLanding}
+          dynamicDestinations={dynamicDestinations}
+        />
+      );
+    }
+
     notFound();
   }
 

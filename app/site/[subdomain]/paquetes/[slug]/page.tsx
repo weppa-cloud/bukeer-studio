@@ -59,9 +59,13 @@ function looksLikeLegacyId(value: string): boolean {
   );
 }
 
-function localizedStaticPackageSlug(slug: string, localizedPathname: string): string | null {
+function localizedStaticPackageSlug(
+  slug: string,
+  localizedPathname?: string | null,
+): string | null {
+  if (!localizedPathname) return `paquetes/${slug}`;
   const path = localizedPathname.replace(/^\/+|\/+$/g, "");
-  if (!path || path === `paquetes/${slug}`) return null;
+  if (!path || path === `paquetes/${slug}`) return `paquetes/${slug}`;
   const parts = path.split("/");
   if (parts.length < 2 || parts[parts.length - 1] !== slug) return null;
   return path;
@@ -126,6 +130,8 @@ export async function generateMetadata({
         )
       : null;
     if (staticPage?.is_published) {
+      const canonicalPathname =
+        localeContext.localizedPathname || `/${staticSlug}`;
       const pageTitle = normalizePublicMetadataTitle(
         staticPage.seo_title || staticPage.title,
         siteName,
@@ -135,7 +141,7 @@ export async function generateMetadata({
         title: pageTitle,
         description,
         alternates: {
-          canonical: `${baseUrl}${localeContext.localizedPathname}`,
+          canonical: `${baseUrl}${canonicalPathname}`,
           languages: buildLocaleAwareAlternateLanguages(
             baseUrl,
             `/paquetes/${slug}`,

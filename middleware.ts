@@ -65,6 +65,27 @@ function isLocalizedSystemPageAliasPath(
   );
 }
 
+async function shouldBypassLegacyRedirectForProductRoute(
+  website: WebsiteLookup | null,
+  route: { categorySlug: string; productType: string; productSlug: string } | null,
+): Promise<boolean> {
+  if (!website?.id || !website.subdomain || !route) {
+    return false;
+  }
+
+  const exists = await productExists(
+    website.subdomain,
+    route.productType,
+    route.productSlug,
+  );
+  if (exists) return true;
+
+  return publishedWebsitePageExistsBySlug(
+    website.id,
+    `${route.categorySlug}/${route.productSlug}`,
+  );
+}
+
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: "destination",
   destinations: "destination",
@@ -424,6 +445,28 @@ async function productExists(
   return product === undefined || Boolean(product);
 }
 
+async function publishedWebsitePageExistsBySlug(
+  websiteId: string,
+  slug: string,
+): Promise<boolean> {
+  const normalizedSlug = slug
+    .split("/")
+    .filter(Boolean)
+    .join("/");
+  if (!normalizedSlug) return false;
+
+  const cacheKey = `page-slug:${websiteId}:${normalizedSlug}`;
+  const cached = getCached<boolean>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const data = await supabaseFetch<Array<{ id: string }>>(
+    `/rest/v1/website_pages?select=id&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(normalizedSlug)}&is_published=eq.true&limit=1`,
+  );
+  const result = Boolean(data && data.length > 0);
+  setCached(cacheKey, result);
+  return result;
+}
+
 async function localizedProductOverlayExists(
   websiteId: string,
   productType: string,
@@ -748,6 +791,14 @@ async function trySlugRedirect(
     route.productSlug,
   );
   if (exists) {
+    return null;
+  }
+
+  const publishedFallbackPageExists = await publishedWebsitePageExistsBySlug(
+    website.id,
+    `${route.categorySlug}/${route.productSlug}`,
+  );
+  if (publishedFallbackPageExists) {
     return null;
   }
 
@@ -1409,7 +1460,13 @@ export async function middleware(request: NextRequest) {
         !isLegalPathname(localeResolution.pathnameWithoutLang) &&
         !isLocalizedSystemPageAliasPath(localeResolution);
 
-      if (allowLegacyRedirects) {
+      if (
+        allowLegacyRedirects &&
+        !(await shouldBypassLegacyRedirectForProductRoute(
+          website,
+          potentialProductRoute,
+        ))
+      ) {
         const legacyRedirectResponse = await tryLegacyRedirect(
           request,
           website,
@@ -1518,7 +1575,13 @@ export async function middleware(request: NextRequest) {
       !isLegalPathname(localeResolution.pathnameWithoutLang) &&
       !isLocalizedSystemPageAliasPath(localeResolution);
 
-    if (allowLegacyRedirects) {
+    if (
+      allowLegacyRedirects &&
+      !(await shouldBypassLegacyRedirectForProductRoute(
+        website,
+        potentialProductRoute,
+      ))
+    ) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,
@@ -1614,7 +1677,13 @@ export async function middleware(request: NextRequest) {
       !isLegalPathname(localeResolution.pathnameWithoutLang) &&
       !isLocalizedSystemPageAliasPath(localeResolution);
 
-    if (allowLegacyRedirects) {
+    if (
+      allowLegacyRedirects &&
+      !(await shouldBypassLegacyRedirectForProductRoute(
+        website,
+        potentialProductRoute,
+      ))
+    ) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,
