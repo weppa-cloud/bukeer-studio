@@ -65,6 +65,27 @@ function isLocalizedSystemPageAliasPath(
   );
 }
 
+async function shouldBypassLegacyRedirectForProductRoute(
+  website: WebsiteLookup | null,
+  route: { categorySlug: string; productType: string; productSlug: string } | null,
+): Promise<boolean> {
+  if (!website?.id || !website.subdomain || !route) {
+    return false;
+  }
+
+  const exists = await productExists(
+    website.subdomain,
+    route.productType,
+    route.productSlug,
+  );
+  if (exists) return true;
+
+  return publishedWebsitePageExistsBySlug(
+    website.id,
+    `${route.categorySlug}/${route.productSlug}`,
+  );
+}
+
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: "destination",
   destinations: "destination",
@@ -627,6 +648,14 @@ async function trySlugRedirect(
     route.productSlug,
   );
   if (exists) {
+    return null;
+  }
+
+  const publishedFallbackPageExists = await publishedWebsitePageExistsBySlug(
+    website.id,
+    `${route.categorySlug}/${route.productSlug}`,
+  );
+  if (publishedFallbackPageExists) {
     return null;
   }
 
@@ -1360,7 +1389,13 @@ export async function middleware(request: NextRequest) {
         !isLegalPathname(localeResolution.pathnameWithoutLang) &&
         !isLocalizedSystemPageAliasPath(localeResolution);
 
-      if (allowLegacyRedirects) {
+      if (
+        allowLegacyRedirects &&
+        !(await shouldBypassLegacyRedirectForProductRoute(
+          website,
+          potentialProductRoute,
+        ))
+      ) {
         const legacyRedirectResponse = await tryLegacyRedirect(
           request,
           website,
@@ -1468,7 +1503,13 @@ export async function middleware(request: NextRequest) {
       !isLegalPathname(routePathnameWithoutLang) &&
       !isLocalizedSystemPageAliasPath(localeResolution);
 
-    if (allowLegacyRedirects) {
+    if (
+      allowLegacyRedirects &&
+      !(await shouldBypassLegacyRedirectForProductRoute(
+        website,
+        potentialProductRoute,
+      ))
+    ) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,
@@ -1564,7 +1605,13 @@ export async function middleware(request: NextRequest) {
       !isLegalPathname(routePathnameWithoutLang) &&
       !isLocalizedSystemPageAliasPath(localeResolution);
 
-    if (allowLegacyRedirects) {
+    if (
+      allowLegacyRedirects &&
+      !(await shouldBypassLegacyRedirectForProductRoute(
+        website,
+        potentialProductRoute,
+      ))
+    ) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,

@@ -65,6 +65,11 @@ const CATEGORY_SLUG_MAP: Record<string, string> = {
   packages: "paquetes",
 };
 
+const DEFAULT_CATEGORY_ALIAS_MAP: Record<string, string> = {
+  ...CATEGORY_SLUG_MAP,
+  destinations: "destinos",
+};
+
 /**
  * Build all sitemap URLs for a tenant website.
  *
@@ -98,6 +103,10 @@ export async function buildSitemapUrls(
   const allPageSlugSet = new Set(allPageSlugs);
 
   for (const slug of pageSlugs) {
+    if (isShadowedDefaultLocaleAlias(slug, allPageSlugSet)) {
+      continue;
+    }
+
     urls.push({
       loc: `${baseUrl}/${slug}`,
       changefreq: "weekly",
@@ -205,6 +214,21 @@ export async function buildSitemapUrls(
   }
 
   return urls;
+}
+
+function isShadowedDefaultLocaleAlias(
+  slug: string,
+  allPageSlugSet: Set<string>,
+): boolean {
+  const [firstSegment, ...rest] = slug.split("/").filter(Boolean);
+  if (!firstSegment) return false;
+
+  const canonicalSegment = DEFAULT_CATEGORY_ALIAS_MAP[firstSegment];
+  if (!canonicalSegment || canonicalSegment === firstSegment) return false;
+  if (!allPageSlugSet.has(canonicalSegment)) return false;
+
+  const canonicalSlug = [canonicalSegment, ...rest].join("/");
+  return allPageSlugSet.has(canonicalSlug) || rest.length === 0;
 }
 
 /**
