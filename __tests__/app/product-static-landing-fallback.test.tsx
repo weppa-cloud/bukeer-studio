@@ -73,8 +73,7 @@ jest.mock("@/lib/seo/public-metadata", () => ({
   buildLocaleAwareAlternateLanguages: (baseUrl: string, pathname: string) => ({
     "es-CO": `${baseUrl}${pathname}`,
   }),
-  resolvePublicMetadataLocale: (...args: unknown[]) =>
-    mockResolvePublicMetadataLocale(...args),
+  resolvePublicMetadataLocale: () => mockResolvePublicMetadataLocale(),
 }));
 
 jest.mock("@/lib/seo/locale-routing", () => ({
