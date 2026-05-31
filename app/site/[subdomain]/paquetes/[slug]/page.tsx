@@ -66,9 +66,12 @@ function localizedStaticPackageSlug(
   if (!localizedPathname) return `paquetes/${slug}`;
   const path = localizedPathname.replace(/^\/+|\/+$/g, "");
   if (!path || path === `paquetes/${slug}`) return `paquetes/${slug}`;
-  const parts = path.split("/");
+  const rawParts = path.split("/");
+  const parts = /^[a-z]{2}(?:-[a-z]{2})?$/i.test(rawParts[0] || "")
+    ? rawParts.slice(1)
+    : rawParts;
   if (parts.length < 2 || parts[parts.length - 1] !== slug) return null;
-  return path;
+  return parts.join("/");
 }
 
 async function resolveLegacyPackageSlug(
