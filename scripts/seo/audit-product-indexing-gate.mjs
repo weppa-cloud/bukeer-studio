@@ -13,6 +13,16 @@ const PRODUCT_PREFIXES = [
   "/packages/",
   "/activities/",
 ];
+const LOCALIZED_LISTING_PATHS = [
+  "/en/packages",
+  "/en/activities",
+  "/fr/forfaits",
+  "/fr/activites",
+  "/de/pakete",
+  "/de/aktivitaten",
+  "/pt-br/pacotes",
+  "/pt-br/atividades",
+];
 
 const args = parseArgs(process.argv.slice(2));
 const baseUrl = normalizeBaseUrl(args.baseUrl ?? DEFAULT_BASE_URL);
@@ -34,7 +44,13 @@ async function main() {
   const sitemapUrls = await readSitemapProductUrls(baseUrl);
   for (const url of sitemapUrls) addSource(urls, url, "sitemap");
 
-  for (const listingPath of ["/paquetes", "/actividades", "/packages", "/activities"]) {
+  for (const listingPath of [
+    "/paquetes",
+    "/actividades",
+    "/packages",
+    "/activities",
+    ...LOCALIZED_LISTING_PATHS,
+  ]) {
     const listingUrls = await readListingProductUrls(`${baseUrl}${listingPath}`);
     for (const url of listingUrls) addSource(urls, url, `listing:${listingPath}`);
   }
@@ -42,9 +58,8 @@ async function main() {
   if (includeDb) {
     const dbUrls = await readDbProductLikeUrls(baseUrl);
     for (const row of dbUrls) {
-      addSource(urls, row.url, row.source);
-      const current = urls.get(row.url);
-      current.db = row.db;
+      const current = addSource(urls, row.url, row.source);
+      if (current) current.db = row.db;
     }
   }
 
@@ -124,12 +139,13 @@ function normalizeBaseUrl(input) {
 }
 
 function addSource(map, url, source) {
-  if (!isProductLikeUrl(url)) return;
+  if (!isProductLikeUrl(url)) return null;
   const normalized = normalizeUrl(url);
-  if (!normalized) return;
+  if (!normalized) return null;
   const row = map.get(normalized) ?? { url: normalized, sources: [] };
   if (!row.sources.includes(source)) row.sources.push(source);
   map.set(normalized, row);
+  return row;
 }
 
 async function readSitemapProductUrls(siteBaseUrl) {
@@ -468,10 +484,20 @@ function normalizeUrl(value, origin = baseUrl) {
 function isProductLikeUrl(value) {
   try {
     const pathname = new URL(value, baseUrl).pathname;
-    return PRODUCT_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    return PRODUCT_PREFIXES.some((prefix) =>
+      stripLocalePrefix(pathname).startsWith(prefix),
+    );
   } catch {
     return false;
   }
+}
+
+function stripLocalePrefix(pathname) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (/^[a-z]{2}(?:-[a-z]{2})?$/i.test(segments[0] || "")) {
+    return `/${segments.slice(1).join("/")}`;
+  }
+  return pathname;
 }
 
 function matchFirst(value, pattern) {

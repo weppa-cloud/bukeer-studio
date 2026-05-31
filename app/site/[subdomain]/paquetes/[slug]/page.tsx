@@ -10,7 +10,7 @@ import {
   getCategoryProducts,
   getDestinations,
   getLocalizedProductOverlay,
-  getPageBySlug,
+  getPageBySlugForLocale,
   getProductPage,
   getProductSlugRedirect,
 } from "@/lib/supabase/get-pages";
@@ -57,6 +57,21 @@ function looksLikeLegacyId(value: string): boolean {
       value,
     )
   );
+}
+
+function localizedStaticPackageSlug(
+  slug: string,
+  localizedPathname?: string | null,
+): string | null {
+  if (!localizedPathname) return `paquetes/${slug}`;
+  const path = localizedPathname.replace(/^\/+|\/+$/g, "");
+  if (!path || path === `paquetes/${slug}`) return `paquetes/${slug}`;
+  const rawParts = path.split("/");
+  const parts = /^[a-z]{2}(?:-[a-z]{2})?$/i.test(rawParts[0] || "")
+    ? rawParts.slice(1)
+    : rawParts;
+  if (parts.length < 2 || parts[parts.length - 1] !== slug) return null;
+  return parts.join("/");
 }
 
 async function resolveLegacyPackageSlug(
@@ -106,8 +121,20 @@ export async function generateMetadata({
     locale: localeContext.resolvedLocale,
   });
   if (!productPage?.product) {
-    const fallbackLanding = await getPageBySlug(subdomain, `paquetes/${slug}`);
+    const staticSlug = localizedStaticPackageSlug(
+      slug,
+      localeContext.localizedPathname,
+    );
+    const fallbackLanding = staticSlug
+      ? await getPageBySlugForLocale(
+          String(website.id),
+          staticSlug,
+          localeContext.resolvedLocale,
+        )
+      : null;
     if (fallbackLanding?.is_published) {
+      const canonicalPathname =
+        localeContext.localizedPathname || `/${staticSlug}`;
       const title = normalizePublicMetadataTitle(
         fallbackLanding.seo_title || fallbackLanding.title,
         siteName,
@@ -136,7 +163,7 @@ export async function generateMetadata({
           ...(ogImage && { images: [ogImage] }),
         },
         alternates: {
-          canonical: `${baseUrl}/paquetes/${slug}`,
+          canonical: `${baseUrl}${canonicalPathname}`,
           languages: buildLocaleAwareAlternateLanguages(
             baseUrl,
             `/paquetes/${slug}`,
@@ -299,18 +326,13 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     locale: resolvedLocale,
   });
   if (!productPage?.product) {
-    const redirectedSlug = website.account_id
-      ? await getProductSlugRedirect(
-          String(website.account_id),
-          "package",
-          slug,
-        )
+    const staticSlug = localizedStaticPackageSlug(
+      slug,
+      localeContext.localizedPathname,
+    );
+    const fallbackLanding = staticSlug
+      ? await getPageBySlugForLocale(String(website.id), staticSlug, resolvedLocale)
       : null;
-    if (redirectedSlug) {
-      permanentRedirect(`/site/${subdomain}/paquetes/${redirectedSlug}`);
-    }
-
-    const fallbackLanding = await getPageBySlug(subdomain, `paquetes/${slug}`);
     if (fallbackLanding?.is_published) {
       const isCustomDomain = inferIsCustomDomainWebsite(website);
       const websiteForRender = {
@@ -330,6 +352,16 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       );
     }
 
+    const redirectedSlug = website.account_id
+      ? await getProductSlugRedirect(
+          String(website.account_id),
+          "package",
+          slug,
+        )
+      : null;
+    if (redirectedSlug) {
+      permanentRedirect(`/site/${subdomain}/paquetes/${redirectedSlug}`);
+    }
     notFound();
   }
 

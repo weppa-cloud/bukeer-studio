@@ -15,6 +15,12 @@ const mockGetProductPage = jest.fn();
 const mockGetPageBySlug = jest.fn();
 const mockGetProductSlugRedirect = jest.fn();
 const mockGetDestinations = jest.fn();
+const mockResolvePublicMetadataLocale = jest.fn(async () => ({
+  resolvedLocale: "es-CO",
+  defaultLocale: "es-CO",
+  resolvedLanguage: "es",
+  localizedPathname: "/paquetes/cartagena-medellin",
+}));
 const mockStaticPage = jest.fn((props: unknown) =>
   React.createElement("div", { "data-testid": "static-page", props }),
 );
@@ -66,11 +72,8 @@ jest.mock("@/lib/seo/public-metadata", () => ({
   buildLocaleAwareAlternateLanguages: (baseUrl: string, pathname: string) => ({
     "es-CO": `${baseUrl}${pathname}`,
   }),
-  resolvePublicMetadataLocale: jest.fn(async () => ({
-    resolvedLocale: "es-CO",
-    defaultLocale: "es-CO",
-    resolvedLanguage: "es",
-  })),
+  resolvePublicMetadataLocale: (...args: unknown[]) =>
+    mockResolvePublicMetadataLocale(...args),
 }));
 
 jest.mock("@/lib/seo/locale-routing", () => ({
@@ -134,6 +137,12 @@ describe("product static landing fallback", () => {
     mockGetProductPage.mockResolvedValue(null);
     mockGetProductSlugRedirect.mockResolvedValue(null);
     mockGetDestinations.mockResolvedValue([]);
+    mockResolvePublicMetadataLocale.mockResolvedValue({
+      resolvedLocale: "es-CO",
+      defaultLocale: "es-CO",
+      resolvedLanguage: "es",
+      localizedPathname: "/paquetes/cartagena-medellin",
+    });
   });
 
   it("serves a published package landing as indexable metadata when the product RPC misses", async () => {
@@ -172,6 +181,48 @@ describe("product static landing fallback", () => {
         }),
       }),
     );
+  });
+
+  it("serves a localized package landing from its DB slug without preserving the locale prefix", async () => {
+    mockResolvePublicMetadataLocale.mockResolvedValue({
+      resolvedLocale: "en-US",
+      defaultLocale: "es-CO",
+      resolvedLanguage: "en",
+      localizedPathname: "/en/packages/cartagena-medellin",
+    });
+    mockGetPageBySlug.mockResolvedValue(
+      makePublishedLanding("packages/cartagena-medellin"),
+    );
+
+    const metadata = await generatePackageMetadata({
+      params: Promise.resolve({
+        subdomain: "colombiatours",
+        slug: "cartagena-medellin",
+      }),
+    });
+    const element = await PackageSlugPage({
+      params: Promise.resolve({
+        subdomain: "colombiatours",
+        slug: "cartagena-medellin",
+      }),
+    });
+
+    expect(metadata.robots).toBeUndefined();
+    expect(metadata.alternates?.canonical).toBe(
+      "https://colombiatours.travel/en/packages/cartagena-medellin",
+    );
+    expect(mockGetPageBySlug).toHaveBeenCalledWith(
+      "web-colombiatours",
+      "packages/cartagena-medellin",
+      "en-US",
+    );
+    expect(mockGetPageBySlug).not.toHaveBeenCalledWith(
+      "web-colombiatours",
+      "en/packages/cartagena-medellin",
+      "en-US",
+    );
+    expect(mockNotFound).not.toHaveBeenCalled();
+    expect(React.isValidElement(element)).toBe(true);
   });
 
   it("serves a published activity landing as indexable metadata when the product RPC misses", async () => {
