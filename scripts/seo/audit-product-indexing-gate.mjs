@@ -13,6 +13,16 @@ const PRODUCT_PREFIXES = [
   "/packages/",
   "/activities/",
 ];
+const LOCALIZED_LISTING_PATHS = [
+  "/en/packages",
+  "/en/activities",
+  "/fr/forfaits",
+  "/fr/activites",
+  "/de/pakete",
+  "/de/aktivitaten",
+  "/pt-br/pacotes",
+  "/pt-br/atividades",
+];
 
 const args = parseArgs(process.argv.slice(2));
 const baseUrl = normalizeBaseUrl(args.baseUrl ?? DEFAULT_BASE_URL);
@@ -34,7 +44,13 @@ async function main() {
   const sitemapUrls = await readSitemapProductUrls(baseUrl);
   for (const url of sitemapUrls) addSource(urls, url, "sitemap");
 
-  for (const listingPath of ["/paquetes", "/actividades", "/packages", "/activities"]) {
+  for (const listingPath of [
+    "/paquetes",
+    "/actividades",
+    "/packages",
+    "/activities",
+    ...LOCALIZED_LISTING_PATHS,
+  ]) {
     const listingUrls = await readListingProductUrls(`${baseUrl}${listingPath}`);
     for (const url of listingUrls) addSource(urls, url, `listing:${listingPath}`);
   }
@@ -42,9 +58,8 @@ async function main() {
   if (includeDb) {
     const dbUrls = await readDbProductLikeUrls(baseUrl);
     for (const row of dbUrls) {
-      addSource(urls, row.url, row.source);
-      const current = urls.get(row.url);
-      current.db = row.db;
+      const current = addSource(urls, row.url, row.source);
+      if (current) current.db = row.db;
     }
   }
 
@@ -124,12 +139,13 @@ function normalizeBaseUrl(input) {
 }
 
 function addSource(map, url, source) {
-  if (!isProductLikeUrl(url)) return;
+  if (!isProductLikeUrl(url)) return null;
   const normalized = normalizeUrl(url);
-  if (!normalized) return;
+  if (!normalized) return null;
   const row = map.get(normalized) ?? { url: normalized, sources: [] };
   if (!row.sources.includes(source)) row.sources.push(source);
   map.set(normalized, row);
+  return row;
 }
 
 async function readSitemapProductUrls(siteBaseUrl) {
@@ -167,7 +183,7 @@ async function readDbProductLikeUrls(siteBaseUrl) {
   const host = new URL(siteBaseUrl).hostname;
   const { data: website } = await client
     .from("websites")
-    .select("id, subdomain, custom_domain")
+    .select("id, subdomain, custom_domain, default_locale")
     .or(`custom_domain.eq.${host},subdomain.eq.${host.split(".")[0]}`)
     .maybeSingle();
 
@@ -175,7 +191,7 @@ async function readDbProductLikeUrls(siteBaseUrl) {
 
   const { data: pages } = await client
     .from("website_pages")
-    .select("id, slug, is_published, robots_noindex, page_type, category_type, updated_at")
+    .select("id, slug, locale, is_published, robots_noindex, page_type, category_type, updated_at")
     .eq("website_id", website.id)
     .eq("is_published", true)
     .or(
@@ -185,11 +201,12 @@ async function readDbProductLikeUrls(siteBaseUrl) {
   return (pages ?? [])
     .filter((page) => typeof page.slug === "string" && page.slug.length > 0)
     .map((page) => ({
-      url: `${siteBaseUrl}/${page.slug.replace(/^\/+/, "")}`,
+      url: `${siteBaseUrl}${publicPathForPageSlug(page, website)}`,
       source: "db:website_pages",
       db: {
         table: "website_pages",
         id: page.id,
+        locale: page.locale,
         is_published: page.is_published,
         robots_noindex: page.robots_noindex,
         page_type: page.page_type,
@@ -197,6 +214,19 @@ async function readDbProductLikeUrls(siteBaseUrl) {
         updated_at: page.updated_at,
       },
     }));
+}
+
+function publicPathForPageSlug(page, website) {
+  const slug = page.slug.replace(/^\/+/, "");
+  const locale = typeof page.locale === "string" ? page.locale : "";
+  const defaultLocale = website.default_locale || "es-CO";
+  if (!locale || locale === defaultLocale) return `/${slug}`;
+
+  const localeLanguage = locale.split("-")[0]?.toLowerCase();
+  const defaultLanguage = defaultLocale.split("-")[0]?.toLowerCase();
+  if (!localeLanguage || localeLanguage === defaultLanguage) return `/${slug}`;
+
+  return `/${localeLanguage}/${slug}`;
 }
 
 async function auditUrl(candidate) {
@@ -454,10 +484,20 @@ function normalizeUrl(value, origin = baseUrl) {
 function isProductLikeUrl(value) {
   try {
     const pathname = new URL(value, baseUrl).pathname;
-    return PRODUCT_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    return PRODUCT_PREFIXES.some((prefix) =>
+      stripLocalePrefix(pathname).startsWith(prefix),
+    );
   } catch {
     return false;
   }
+}
+
+function stripLocalePrefix(pathname) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (/^[a-z]{2}(?:-[a-z]{2})?$/i.test(segments[0] || "")) {
+    return `/${segments.slice(1).join("/")}`;
+  }
+  return pathname;
 }
 
 function matchFirst(value, pattern) {
