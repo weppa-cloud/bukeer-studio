@@ -13,12 +13,43 @@ jest.mock("@/lib/supabase/get-pages", () => ({
 
 import { groupBlogRowsForSitemap } from "@/lib/seo/blog-sitemap-groups";
 import {
+  buildSitemapUrls,
   generateSitemapXml,
   localizeSitemapUrlsForLocale,
   type SitemapUrl,
 } from "@/lib/seo/sitemap";
+import {
+  getAllPageSlugs,
+  getCategoryProducts,
+  getDestinations,
+  getIndexablePageSlugs,
+  getNoindexDestinationSlugs,
+  getNoindexProductSlugs,
+} from "@/lib/supabase/get-pages";
+import { getPublishedBlogPostSitemapRows } from "@/lib/supabase/get-website";
+
+const mockedGetAllPageSlugs = jest.mocked(getAllPageSlugs);
+const mockedGetCategoryProducts = jest.mocked(getCategoryProducts);
+const mockedGetDestinations = jest.mocked(getDestinations);
+const mockedGetIndexablePageSlugs = jest.mocked(getIndexablePageSlugs);
+const mockedGetNoindexDestinationSlugs = jest.mocked(getNoindexDestinationSlugs);
+const mockedGetNoindexProductSlugs = jest.mocked(getNoindexProductSlugs);
+const mockedGetPublishedBlogPostSitemapRows = jest.mocked(
+  getPublishedBlogPostSitemapRows,
+);
 
 describe("sitemap blog quality gates", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedGetPublishedBlogPostSitemapRows.mockResolvedValue([]);
+    mockedGetAllPageSlugs.mockResolvedValue([]);
+    mockedGetIndexablePageSlugs.mockResolvedValue([]);
+    mockedGetNoindexProductSlugs.mockResolvedValue(new Set());
+    mockedGetNoindexDestinationSlugs.mockResolvedValue(new Set());
+    mockedGetDestinations.mockResolvedValue([]);
+    mockedGetCategoryProducts.mockResolvedValue({ items: [], total: 0 });
+  });
+
   it("removes EN quality-blocked blog rows from translated sitemap alternates", () => {
     const groups = groupBlogRowsForSitemap([
       {
@@ -184,5 +215,63 @@ describe("sitemap blog quality gates", () => {
     });
 
     expect(localized).toEqual([]);
+  });
+});
+
+describe("sitemap product indexability gates", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedGetPublishedBlogPostSitemapRows.mockResolvedValue([]);
+    mockedGetNoindexProductSlugs.mockResolvedValue(new Set());
+    mockedGetNoindexDestinationSlugs.mockResolvedValue(new Set());
+    mockedGetDestinations.mockResolvedValue([]);
+    mockedGetCategoryProducts.mockResolvedValue({ items: [], total: 0 });
+  });
+
+  it("does not emit shadowed default-locale aliases like /packages/* when /paquetes/* exists", async () => {
+    mockedGetAllPageSlugs.mockResolvedValue([
+      "paquetes",
+      "packages",
+      "paquetes/cartagena-medellin",
+      "packages/cartagena-medellin",
+      "actividades",
+      "activities",
+      "actividades/city-tour-full-day",
+      "activities/city-tour-full-day",
+    ]);
+    mockedGetIndexablePageSlugs.mockResolvedValue([
+      "paquetes",
+      "packages",
+      "paquetes/cartagena-medellin",
+      "packages/cartagena-medellin",
+      "actividades",
+      "activities",
+      "actividades/city-tour-full-day",
+      "activities/city-tour-full-day",
+    ]);
+
+    const urls = await buildSitemapUrls(
+      "colombiatours",
+      "website-colombiatours",
+      "https://colombiatours.travel",
+    );
+    const locs = urls.map((url) => url.loc);
+
+    expect(locs).toContain("https://colombiatours.travel/paquetes");
+    expect(locs).toContain(
+      "https://colombiatours.travel/paquetes/cartagena-medellin",
+    );
+    expect(locs).toContain("https://colombiatours.travel/actividades");
+    expect(locs).toContain(
+      "https://colombiatours.travel/actividades/city-tour-full-day",
+    );
+    expect(locs).not.toContain("https://colombiatours.travel/packages");
+    expect(locs).not.toContain(
+      "https://colombiatours.travel/packages/cartagena-medellin",
+    );
+    expect(locs).not.toContain("https://colombiatours.travel/activities");
+    expect(locs).not.toContain(
+      "https://colombiatours.travel/activities/city-tour-full-day",
+    );
   });
 });
