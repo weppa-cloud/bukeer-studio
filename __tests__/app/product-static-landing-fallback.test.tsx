@@ -55,6 +55,7 @@ jest.mock("@/lib/supabase/get-pages", () => ({
   getDestinations: (...args: unknown[]) => mockGetDestinations(...args),
   getLocalizedProductOverlay: jest.fn(),
   getPageBySlug: (...args: unknown[]) => mockGetPageBySlug(...args),
+  getPageBySlugForLocale: (...args: unknown[]) => mockGetPageBySlug(...args),
   getProductPage: (...args: unknown[]) => mockGetProductPage(...args),
   getProductSlugRedirect: (...args: unknown[]) =>
     mockGetProductSlugRedirect(...args),
@@ -72,8 +73,7 @@ jest.mock("@/lib/seo/public-metadata", () => ({
   buildLocaleAwareAlternateLanguages: (baseUrl: string, pathname: string) => ({
     "es-CO": `${baseUrl}${pathname}`,
   }),
-  resolvePublicMetadataLocale: (...args: unknown[]) =>
-    mockResolvePublicMetadataLocale(...args),
+  resolvePublicMetadataLocale: () => mockResolvePublicMetadataLocale(),
 }));
 
 jest.mock("@/lib/seo/locale-routing", () => ({
@@ -168,8 +168,9 @@ describe("product static landing fallback", () => {
       "https://colombiatours.travel/paquetes/cartagena-medellin",
     );
     expect(mockGetPageBySlug).toHaveBeenCalledWith(
-      "colombiatours",
+      "web-colombiatours",
       "paquetes/cartagena-medellin",
+      "es-CO",
     );
     expect(mockNotFound).not.toHaveBeenCalled();
     expect(React.isValidElement(element)).toBe(true);
