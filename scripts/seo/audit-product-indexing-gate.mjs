@@ -167,7 +167,7 @@ async function readDbProductLikeUrls(siteBaseUrl) {
   const host = new URL(siteBaseUrl).hostname;
   const { data: website } = await client
     .from("websites")
-    .select("id, subdomain, custom_domain")
+    .select("id, subdomain, custom_domain, default_locale")
     .or(`custom_domain.eq.${host},subdomain.eq.${host.split(".")[0]}`)
     .maybeSingle();
 
@@ -175,7 +175,7 @@ async function readDbProductLikeUrls(siteBaseUrl) {
 
   const { data: pages } = await client
     .from("website_pages")
-    .select("id, slug, is_published, robots_noindex, page_type, category_type, updated_at")
+    .select("id, slug, locale, is_published, robots_noindex, page_type, category_type, updated_at")
     .eq("website_id", website.id)
     .eq("is_published", true)
     .or(
@@ -185,11 +185,12 @@ async function readDbProductLikeUrls(siteBaseUrl) {
   return (pages ?? [])
     .filter((page) => typeof page.slug === "string" && page.slug.length > 0)
     .map((page) => ({
-      url: `${siteBaseUrl}/${page.slug.replace(/^\/+/, "")}`,
+      url: `${siteBaseUrl}${publicPathForPageSlug(page, website)}`,
       source: "db:website_pages",
       db: {
         table: "website_pages",
         id: page.id,
+        locale: page.locale,
         is_published: page.is_published,
         robots_noindex: page.robots_noindex,
         page_type: page.page_type,
@@ -197,6 +198,19 @@ async function readDbProductLikeUrls(siteBaseUrl) {
         updated_at: page.updated_at,
       },
     }));
+}
+
+function publicPathForPageSlug(page, website) {
+  const slug = page.slug.replace(/^\/+/, "");
+  const locale = typeof page.locale === "string" ? page.locale : "";
+  const defaultLocale = website.default_locale || "es-CO";
+  if (!locale || locale === defaultLocale) return `/${slug}`;
+
+  const localeLanguage = locale.split("-")[0]?.toLowerCase();
+  const defaultLanguage = defaultLocale.split("-")[0]?.toLowerCase();
+  if (!localeLanguage || localeLanguage === defaultLanguage) return `/${slug}`;
+
+  return `/${localeLanguage}/${slug}`;
 }
 
 async function auditUrl(candidate) {
