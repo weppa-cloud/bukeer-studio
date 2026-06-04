@@ -14,3 +14,21 @@ artifacts
 *.log
 Dockerfile*
 docker-compose*.yml
+
+# Large local/audit assets are not needed for a Node runtime image.
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.html
+qa-screenshots
+eval-screenshots
+evidence
+output
+memory
+reports
+docs/audits
+docs/growth-sessions
+themes/references
+_elementor-research
+growth-os-infografias
