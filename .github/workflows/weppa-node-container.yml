@@ -1,0 +1,74 @@
+name: Build Weppa Node container
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: GHCR image tag to publish
+        required: true
+        default: staging
+      source_ref:
+        description: Git ref to build
+        required: true
+        default: dev
+
+concurrency:
+  group: weppa-node-container-${{ github.event.inputs.image_tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve image revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/weppa-cloud/booker-studio:${{ github.event.inputs.image_tag }}
+            ghcr.io/weppa-cloud/booker-studio:${{ steps.revision.outputs.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.revision.outputs.sha }}
+            weppa.cloud/runtime=node-nextjs
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+            NEXT_PUBLIC_API_BASE_URL=https://insforge.weppa.co
+            NEXT_PUBLIC_BASE_URL=https://booker-studio-staging.bukeer.k8s.weppa.co
+            NEXT_PUBLIC_URL=https://booker-studio-staging.bukeer.k8s.weppa.co
+            NEXT_PUBLIC_MAIN_DOMAIN=bukeer.com
+
+      - name: Summary
+        run: |
+          {
+            echo "Published:"
+            echo "- ghcr.io/weppa-cloud/booker-studio:${{ github.event.inputs.image_tag }}"
+            echo "- ghcr.io/weppa-cloud/booker-studio:${{ steps.revision.outputs.sha }}"
+          } >> "$GITHUB_STEP_SUMMARY"
