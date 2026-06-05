@@ -24,6 +24,12 @@ import {
   refreshGoogleToken,
   type SearchConsoleRow,
 } from '@/lib/seo/google-client';
+import {
+  hydrateGoogleCredential,
+  mergeRefreshedGoogleSecret,
+  storeGoogleProviderCredentialSecret,
+  type GoogleProviderCredentialSecret,
+} from '@/lib/growth/provider-credentials/vault';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const DEFAULT_ROW_LIMIT = 25_000;
@@ -215,13 +221,17 @@ interface GscIntegrationRow {
   access_token: string | null;
   access_token_expires_at: string | null;
   site_url: string | null;
+  credential_ref: string | null;
+  scopes?: string[] | null;
+  credential_source?: 'vault' | 'legacy';
+  credential_secret?: GoogleProviderCredentialSecret | null;
 }
 
 async function loadGscIntegration(scope: GscTenantScope): Promise<GscIntegrationRow | null> {
   const admin = createSupabaseServiceRoleClient();
   const { data, error } = await admin
     .from('seo_integrations')
-    .select('account_id,website_id,refresh_token,access_token,access_token_expires_at,site_url')
+    .select('account_id,website_id,refresh_token,access_token,access_token_expires_at,site_url,credential_ref,scopes')
     .eq('account_id', scope.account_id)
     .eq('website_id', scope.website_id)
     .eq('provider', 'gsc')
@@ -230,7 +240,18 @@ async function loadGscIntegration(scope: GscTenantScope): Promise<GscIntegration
   if (error) {
     throw new GscClientError('INTEGRATION_READ_FAILED', 'Unable to load GSC integration', 500, error.message);
   }
-  return (data as GscIntegrationRow | null) ?? null;
+  const integration = (data as GscIntegrationRow | null) ?? null;
+  if (!integration) return null;
+  const hydrated = await hydrateGoogleCredential({
+    supabase: admin,
+    provider: 'gsc',
+    integration,
+  });
+  return {
+    ...hydrated.integration,
+    credential_source: hydrated.credentialSource,
+    credential_secret: hydrated.secret,
+  };
 }
 
 async function ensureFreshAccessToken(integration: GscIntegrationRow): Promise<string> {
@@ -249,6 +270,37 @@ async function ensureFreshAccessToken(integration: GscIntegrationRow): Promise<s
   try {
     const admin = createSupabaseServiceRoleClient();
     const newExpiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+    if (integration.credential_ref) {
+      const refreshToken = refreshed.refresh_token ?? integration.refresh_token;
+      const credentialRef = await storeGoogleProviderCredentialSecret({
+        supabase: admin,
+        websiteId: integration.website_id,
+        provider: 'gsc',
+        secret: mergeRefreshedGoogleSecret({
+          provider: 'gsc',
+          integration,
+          secret: integration.credential_secret ?? null,
+          accessToken: refreshed.access_token,
+          refreshToken,
+          expiresAt: newExpiresAt,
+        }),
+      });
+      await admin
+        .from('seo_integrations')
+        .update({
+          status: 'connected',
+          credential_ref: credentialRef,
+          access_token: null,
+          refresh_token: null,
+          access_token_expires_at: newExpiresAt,
+          last_error: null,
+        })
+        .eq('account_id', integration.account_id)
+        .eq('website_id', integration.website_id)
+        .eq('provider', 'gsc');
+      return refreshed.access_token;
+    }
+
     await admin
       .from('seo_integrations')
       .update({

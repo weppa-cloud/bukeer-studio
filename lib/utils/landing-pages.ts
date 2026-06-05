@@ -7,6 +7,8 @@ export const LANDING_PAGE_SLUGS = [
   'paquetes-a-colombia-todo-incluido-en-9-dias',
   'agencia-de-viajes-a-colombia-para-mexicanos',
   'agencia-de-viajes-a-colombia-para-espanoles',
+  'viajes-a-colombia-desde-chile',
+  'pacotes-colombia',
   'los-mejores-paquetes-de-viajes-a-colombia',
   'colombia-travel-packages',
 ];

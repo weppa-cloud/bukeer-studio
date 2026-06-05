@@ -1,7 +1,13 @@
 import { notFound, redirect } from 'next/navigation';
 import { PlannerWorkbenchPrototype } from '@/components/admin-next';
-import { plannerWorkbenchFixture } from '@/lib/admin-next/fixtures/planner-workbench';
+import { createPlannerAgentLedgerSnapshot } from '@/lib/admin-next/agent-ledger-source';
+import { getAdminNextDataSourceMode } from '@/lib/admin-next/flags';
+import {
+  createPlannerWorkbenchAdapter,
+  type AdminNextReadonlySupabaseClient,
+} from '@/lib/admin-next/planner-workbench-adapter';
 import { getAdminSessionContext } from '@/lib/admin-next/session/get-admin-session-context';
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +30,31 @@ export default async function PlannerWorkbenchPrototypePage() {
     notFound();
   }
 
+  const requestedDataSourceMode = getAdminNextDataSourceMode();
+  const dataSourceMode =
+    requestedDataSourceMode === 'readonly' && session.flags.adminNextBetaReadonly
+      ? 'readonly'
+      : 'fixture';
+  const adapter =
+    dataSourceMode === 'readonly'
+      ? createPlannerWorkbenchAdapter({
+          mode: 'readonly',
+          supabase:
+            (await createSupabaseServerClient()) as unknown as AdminNextReadonlySupabaseClient,
+          accountId: session.accountId,
+        })
+      : createPlannerWorkbenchAdapter(dataSourceMode);
+  const fixture = await adapter.getWorkbench();
+  const agentLedger = createPlannerAgentLedgerSnapshot(fixture, {
+    sourceMode: dataSourceMode,
+  });
+
   return (
     <PlannerWorkbenchPrototype
       session={session}
-      fixture={plannerWorkbenchFixture}
+      fixture={fixture}
+      agentLedger={agentLedger}
+      dataSourceMode={dataSourceMode}
     />
   );
 }

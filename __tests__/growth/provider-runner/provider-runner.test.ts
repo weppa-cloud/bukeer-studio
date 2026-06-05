@@ -125,6 +125,96 @@ describe('provider runner beta', () => {
     expect(providerExecutor).not.toHaveBeenCalled();
   });
 
+  it('blocks paid DataForSEO when approval scope lacks a provider cost cap', async () => {
+    const store = createMemoryProviderRunnerStore();
+    const providerExecutor = executor();
+
+    const result = await runProviderProfile(
+      baseInput({
+        profileId: 'dataforseo_serp_opportunity_v1',
+        mode: 'apply',
+        allowLiveProviderCall: true,
+        ownerIssue: '#600',
+        approvalIssue: '#600',
+        approvedBy: 'growth-owner',
+        approvedAt: '2026-05-28T12:00:00.000Z',
+        estimatedCostUsd: 1.25,
+        approvalScope: {
+          account_id: ACCOUNT_ID,
+          website_id: WEBSITE_ID,
+          profile_id: 'dataforseo_serp_opportunity_v1',
+        },
+      }),
+      { store, executor: providerExecutor },
+    );
+
+    expect(result.decision.run_status).toBe('blocked');
+    expect(result.decision.freshness_status).toBe('approval_required');
+    expect(result.decision.payload.no_go_reasons).toContain('approval_scope_provider_mismatch');
+    expect(result.decision.payload.no_go_reasons).toContain('approval_scope_cost_cap_usd_required');
+    expect(providerExecutor).not.toHaveBeenCalled();
+  });
+
+  it('allows paid DataForSEO provider calls only with scoped approval and cost cap', async () => {
+    const store = createMemoryProviderRunnerStore();
+    const providerExecutor = executor();
+
+    const result = await runProviderProfile(
+      baseInput({
+        profileId: 'dataforseo_serp_opportunity_v1',
+        mode: 'apply',
+        allowLiveProviderCall: true,
+        ownerIssue: '#600',
+        approvalIssue: '#600',
+        approvedBy: 'growth-owner',
+        approvedAt: '2026-05-28T12:00:00.000Z',
+        estimatedCostUsd: 1.25,
+        approvalScope: {
+          account_id: ACCOUNT_ID,
+          website_id: WEBSITE_ID,
+          profile_id: 'dataforseo_serp_opportunity_v1',
+          provider: 'dataforseo',
+          cost_cap_usd: 2,
+        },
+      }),
+      { store, executor: providerExecutor },
+    );
+
+    expect(result.decision.run_status).toBe('completed');
+    expect(result.decision.cost_usd).toBe(1.25);
+    expect(providerExecutor).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks paid DataForSEO when estimated cost exceeds approved cap', async () => {
+    const store = createMemoryProviderRunnerStore();
+    const providerExecutor = executor();
+
+    const result = await runProviderProfile(
+      baseInput({
+        profileId: 'dataforseo_serp_opportunity_v1',
+        mode: 'apply',
+        allowLiveProviderCall: true,
+        ownerIssue: '#600',
+        approvalIssue: '#600',
+        approvedBy: 'growth-owner',
+        approvedAt: '2026-05-28T12:00:00.000Z',
+        estimatedCostUsd: 3,
+        approvalScope: {
+          account_id: ACCOUNT_ID,
+          website_id: WEBSITE_ID,
+          profile_id: 'dataforseo_serp_opportunity_v1',
+          provider: 'dataforseo',
+          cost_cap_usd: 2,
+        },
+      }),
+      { store, executor: providerExecutor },
+    );
+
+    expect(result.decision.run_status).toBe('blocked');
+    expect(result.decision.payload.no_go_reasons).toContain('approval_scope_cost_cap_exceeded');
+    expect(providerExecutor).not.toHaveBeenCalled();
+  });
+
   it('opens the circuit breaker after repeated provider failures', async () => {
     const failures = [0, 1, 2].map((index) => ({
       id: `failed-${index}`,

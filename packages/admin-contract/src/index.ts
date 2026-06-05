@@ -47,6 +47,9 @@ export type AgentAutonomyLevel = z.infer<typeof AgentAutonomyLevelSchema>;
 export const RiskLevelSchema = z.enum(['low', 'medium', 'high', 'critical']);
 export type RiskLevel = z.infer<typeof RiskLevelSchema>;
 
+export const AdminDataSourceModeSchema = z.enum(['fixture', 'readonly']);
+export type AdminDataSourceMode = z.infer<typeof AdminDataSourceModeSchema>;
+
 export const AdminPermissionSchema = z.enum([
   'admin_next.view',
   'planner.view',
@@ -108,6 +111,116 @@ export const TravelerProfileSchema = z.object({
 
 export type TravelerProfile = z.infer<typeof TravelerProfileSchema>;
 
+export const TravelOntologyVersionSchema = z.literal('travel_ontology_v1');
+export type TravelOntologyVersion = z.infer<typeof TravelOntologyVersionSchema>;
+
+export const TravelOntologyEntityKindSchema = z.enum([
+  'opportunity',
+  'traveler',
+  'itinerary',
+  'itinerary_segment',
+  'supplier',
+  'product',
+  'policy',
+  'missing_data',
+  'trace',
+]);
+
+export type TravelOntologyEntityKind = z.infer<
+  typeof TravelOntologyEntityKindSchema
+>;
+
+export const TravelOntologyEntityRefSchema = z.object({
+  kind: TravelOntologyEntityKindSchema,
+  id: z.string().min(1),
+  label: z.string().min(1).optional(),
+});
+
+export type TravelOntologyEntityRef = z.infer<
+  typeof TravelOntologyEntityRefSchema
+>;
+
+export const TravelOntologyMoneySchema = z.object({
+  amount: z.number().finite().nonnegative(),
+  currency: z.string().length(3),
+});
+
+export type TravelOntologyMoney = z.infer<typeof TravelOntologyMoneySchema>;
+
+export const TravelOntologyDateRangeSchema = z.object({
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+});
+
+export type TravelOntologyDateRange = z.infer<
+  typeof TravelOntologyDateRangeSchema
+>;
+
+export const TravelOntologyPaxSchema = z.object({
+  adults: z.number().int().nonnegative(),
+  children: z.number().int().nonnegative(),
+});
+
+export type TravelOntologyPax = z.infer<typeof TravelOntologyPaxSchema>;
+
+export const TravelOntologyOpportunitySchema = z.object({
+  ref: TravelOntologyEntityRefSchema.extend({
+    kind: z.literal('opportunity'),
+  }),
+  traveler: TravelOntologyEntityRefSchema.extend({
+    kind: z.literal('traveler'),
+  }),
+  destination: z.string().min(1),
+  tripWindow: TravelOntologyDateRangeSchema.optional(),
+  pax: TravelOntologyPaxSchema,
+  budget: TravelOntologyMoneySchema.optional(),
+  sourceChannel: z.string().min(1).optional(),
+  readonlyReason: z.string().min(1).optional(),
+});
+
+export type TravelOntologyOpportunity = z.infer<
+  typeof TravelOntologyOpportunitySchema
+>;
+
+export const TravelOntologyItinerarySegmentSchema = z.object({
+  ref: TravelOntologyEntityRefSchema.extend({
+    kind: z.literal('itinerary_segment'),
+  }),
+  opportunity: TravelOntologyEntityRefSchema.extend({
+    kind: z.literal('opportunity'),
+  }),
+  supplier: TravelOntologyEntityRefSchema.extend({
+    kind: z.literal('supplier'),
+  }).optional(),
+  product: TravelOntologyEntityRefSchema.extend({
+    kind: z.literal('product'),
+  }).optional(),
+  serviceDate: z.string().min(1).optional(),
+  status: AgenticActionStateSchema,
+  price: TravelOntologyMoneySchema.optional(),
+  trace: TravelOntologyEntityRefSchema.extend({
+    kind: z.literal('trace'),
+  }).optional(),
+});
+
+export type TravelOntologyItinerarySegment = z.infer<
+  typeof TravelOntologyItinerarySegmentSchema
+>;
+
+export const TravelOntologySnapshotSchema = z.object({
+  version: TravelOntologyVersionSchema,
+  sourceMode: AdminDataSourceModeSchema,
+  generatedAt: z.string().min(1),
+  accountId: z.string().min(1).optional(),
+  opportunities: z.array(TravelOntologyOpportunitySchema),
+  itinerarySegments: z.array(TravelOntologyItinerarySegmentSchema),
+  missingData: z.array(z.string()),
+});
+
+export type TravelOntologySnapshot = z.infer<
+  typeof TravelOntologySnapshotSchema
+>;
+
 export const PlannerOpportunitySchema = z.object({
   id: z.string().min(1),
   leadName: z.string(),
@@ -142,6 +255,62 @@ export const AgentSuggestionSchema = z.object({
 
 export type AgentSuggestion = z.infer<typeof AgentSuggestionSchema>;
 
+export const DraftActionKindSchema = z.enum([
+  'customer_reply',
+  'missing_data_request',
+  'manual_whatsapp_handoff',
+  'itinerary_outline',
+  'approval_packet',
+  'supplier_comparison',
+  'quote_readiness_checklist',
+  'internal_follow_up_task',
+  'audit_summary',
+]);
+
+export type DraftActionKind = z.infer<typeof DraftActionKindSchema>;
+
+export const DraftActionStatusSchema = z.enum([
+  'suggested',
+  'draft_created',
+  'edited',
+  'discarded',
+  'blocked',
+  'approval_required',
+]);
+
+export type DraftActionStatus = z.infer<typeof DraftActionStatusSchema>;
+
+export const DraftActionSafetyBoundarySchema = z.object({
+  publicSendEnabled: z.literal(false),
+  supplierHoldEnabled: z.literal(false),
+  paymentEnabled: z.literal(false),
+  bookingWriteEnabled: z.literal(false),
+  productionWriteEnabled: z.literal(false),
+});
+
+export type DraftActionSafetyBoundary = z.infer<
+  typeof DraftActionSafetyBoundarySchema
+>;
+
+export const DraftActionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  kind: DraftActionKindSchema,
+  status: DraftActionStatusSchema,
+  autonomyLevel: z.literal('A2_draft'),
+  traceId: z.string().min(1),
+  sourceSuggestionId: z.string().min(1).optional(),
+  body: z.string(),
+  editableFields: z.array(z.string().min(1)),
+  requiredHumanAction: z.string().min(1),
+  safetyBoundary: DraftActionSafetyBoundarySchema,
+  riskLevel: RiskLevelSchema,
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1).optional(),
+});
+
+export type DraftAction = z.infer<typeof DraftActionSchema>;
+
 export const AgentBlockedStateSchema = z.object({
   id: z.string().min(1),
   state: z.enum(['blocked_missing_data', 'blocked_policy']),
@@ -175,6 +344,90 @@ export const ApprovalRequestSchema = z.object({
 });
 
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
+
+export const AgentRunSchema = z.object({
+  id: z.string().min(1),
+  traceId: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().optional(),
+  uiState: HumanAgentUiStateSchema,
+  actionState: AgenticActionStateSchema,
+  autonomyLevel: AgentAutonomyLevelSchema,
+  startedAt: z.string().min(1),
+  completedAt: z.string().min(1).optional(),
+});
+
+export type AgentRun = z.infer<typeof AgentRunSchema>;
+
+export const ToolInvocationStatusSchema = z.enum([
+  'requested',
+  'running',
+  'completed',
+  'blocked',
+  'failed',
+]);
+
+export type ToolInvocationStatus = z.infer<
+  typeof ToolInvocationStatusSchema
+>;
+
+export const ToolInvocationSchema = z.object({
+  id: z.string().min(1),
+  agentRunId: z.string().min(1),
+  traceId: z.string().min(1),
+  toolName: z.string().min(1),
+  status: ToolInvocationStatusSchema,
+  autonomyLevel: AgentAutonomyLevelSchema,
+  riskLevel: RiskLevelSchema.optional(),
+  requestedAt: z.string().min(1),
+  completedAt: z.string().min(1).optional(),
+  inputSummary: z.string().optional(),
+  resultSummary: z.string().optional(),
+});
+
+export type ToolInvocation = z.infer<typeof ToolInvocationSchema>;
+
+export const ApprovalDecisionSchema = z.enum([
+  'approved',
+  'approved_with_edits',
+  'rejected',
+  'escalated',
+]);
+
+export type ApprovalDecision = z.infer<typeof ApprovalDecisionSchema>;
+
+export const ApprovalLedgerEntrySchema = z.object({
+  id: z.string().min(1),
+  approvalRequestId: z.string().min(1),
+  agentRunId: z.string().min(1),
+  traceId: z.string().min(1),
+  state: z.enum(['approval_required', 'approved', 'rejected', 'expired']),
+  decision: ApprovalDecisionSchema.optional(),
+  decidedBy: z.string().min(1).optional(),
+  decidedAt: z.string().min(1).optional(),
+  requiredPermission: z.string().min(1),
+  autonomyLevel: AgentAutonomyLevelSchema,
+  summary: z.string().optional(),
+});
+
+export type ApprovalLedgerEntry = z.infer<
+  typeof ApprovalLedgerEntrySchema
+>;
+
+export const ApprovalLedgerSchema = z.array(ApprovalLedgerEntrySchema);
+export type ApprovalLedger = z.infer<typeof ApprovalLedgerSchema>;
+
+export const AgentLedgerSnapshotSchema = z.object({
+  sourceMode: AdminDataSourceModeSchema,
+  generatedAt: z.string().min(1),
+  agentRuns: z.array(AgentRunSchema),
+  toolInvocations: z.array(ToolInvocationSchema),
+  approvalLedger: ApprovalLedgerSchema,
+});
+
+export type AgentLedgerSnapshot = z.infer<
+  typeof AgentLedgerSnapshotSchema
+>;
 
 export const TraceEventSchema = z.object({
   id: z.string().min(1),
@@ -244,6 +497,7 @@ export const PlannerWorkbenchFixtureSchema = z.object({
   itinerarySegments: z.array(ItinerarySegmentSchema),
   liveFeed: z.array(LiveFeedItemSchema),
   suggestions: z.array(AgentSuggestionSchema),
+  draftActions: z.array(DraftActionSchema).default([]),
   blockedStates: z.array(AgentBlockedStateSchema),
   approvals: z.array(ApprovalRequestSchema),
   traceSummary: TraceDrawerSummarySchema,

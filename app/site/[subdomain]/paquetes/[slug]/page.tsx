@@ -2,12 +2,15 @@ import { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { ProductLandingPage } from "@/components/pages/product-landing-page";
+import { StaticPage } from "@/components/pages/static-page";
 import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
 import type { EditorialPackageDetailPayload } from "@/components/site/themes/editorial-v1/pages/package-detail";
 import { getBasePath, inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 import {
   getCategoryProducts,
+  getDestinations,
   getLocalizedProductOverlay,
+  getPageBySlugForLocale,
   getProductPage,
   getProductSlugRedirect,
 } from "@/lib/supabase/get-pages";
@@ -54,6 +57,21 @@ function looksLikeLegacyId(value: string): boolean {
       value,
     )
   );
+}
+
+function localizedStaticPackageSlug(
+  slug: string,
+  localizedPathname?: string | null,
+): string | null {
+  if (!localizedPathname) return `paquetes/${slug}`;
+  const path = localizedPathname.replace(/^\/+|\/+$/g, "");
+  if (!path || path === `paquetes/${slug}`) return `paquetes/${slug}`;
+  const rawParts = path.split("/");
+  const parts = /^[a-z]{2}(?:-[a-z]{2})?$/i.test(rawParts[0] || "")
+    ? rawParts.slice(1)
+    : rawParts;
+  if (parts.length < 2 || parts[parts.length - 1] !== slug) return null;
+  return parts.join("/");
 }
 
 async function resolveLegacyPackageSlug(
@@ -103,6 +121,64 @@ export async function generateMetadata({
     locale: localeContext.resolvedLocale,
   });
   if (!productPage?.product) {
+    const staticSlug = localizedStaticPackageSlug(
+      slug,
+      localeContext.localizedPathname,
+    );
+    const fallbackLanding = staticSlug
+      ? await getPageBySlugForLocale(
+          String(website.id),
+          staticSlug,
+          localeContext.resolvedLocale,
+        )
+      : null;
+    if (fallbackLanding?.is_published) {
+      const canonicalPathname =
+        localeContext.localizedPathname || `/${staticSlug}`;
+      const title = normalizePublicMetadataTitle(
+        fallbackLanding.seo_title || fallbackLanding.title,
+        siteName,
+      );
+      const description =
+        fallbackLanding.seo_description ||
+        `${siteName} - Viajes a Colombia con itinerarios completos, planner local y soporte por WhatsApp.`;
+      const ogImage = resolveOgImage(
+        website,
+        fallbackLanding.hero_config?.backgroundImage || null,
+      );
+      const metadata: Metadata = {
+        title,
+        description,
+        openGraph: {
+          title,
+          description,
+          type: "website",
+          locale: localeToOgLocale(localeContext.resolvedLocale),
+          ...(ogImage && { images: [{ url: ogImage }] }),
+        },
+        twitter: {
+          card: "summary_large_image",
+          title,
+          description,
+          ...(ogImage && { images: [ogImage] }),
+        },
+        alternates: {
+          canonical: `${baseUrl}${canonicalPathname}`,
+          languages: buildLocaleAwareAlternateLanguages(
+            baseUrl,
+            `/paquetes/${slug}`,
+            localeContext,
+          ),
+        },
+      };
+
+      if (fallbackLanding.robots_noindex) {
+        metadata.robots = { index: false, follow: true };
+      }
+
+      return metadata;
+    }
+
     return {
       title: "Paquete no encontrado",
       description: fallbackDescription,
@@ -250,6 +326,32 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     locale: resolvedLocale,
   });
   if (!productPage?.product) {
+    const staticSlug = localizedStaticPackageSlug(
+      slug,
+      localeContext.localizedPathname,
+    );
+    const fallbackLanding = staticSlug
+      ? await getPageBySlugForLocale(String(website.id), staticSlug, resolvedLocale)
+      : null;
+    if (fallbackLanding?.is_published) {
+      const isCustomDomain = inferIsCustomDomainWebsite(website);
+      const websiteForRender = {
+        ...website,
+        resolvedLocale,
+        defaultLocale: localeContext.defaultLocale ?? "es-CO",
+        isCustomDomain,
+      };
+      const dynamicDestinations = await getDestinations(subdomain);
+
+      return (
+        <StaticPage
+          website={websiteForRender}
+          page={fallbackLanding}
+          dynamicDestinations={dynamicDestinations}
+        />
+      );
+    }
+
     const redirectedSlug = website.account_id
       ? await getProductSlugRedirect(
           String(website.account_id),

@@ -1890,7 +1890,7 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
     // Get website first
     const { data: websiteData, error: websiteError } = await supabase
       .from("websites")
-      .select("id")
+      .select("id, default_locale")
       .eq("subdomain", subdomain)
       .eq("status", "published")
       .is("deleted_at", null)
@@ -1903,7 +1903,7 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
     // Get all published pages
     const { data, error } = await supabase
       .from("website_pages")
-      .select("slug")
+      .select("slug, locale")
       .eq("website_id", websiteData.id)
       .eq("is_published", true);
 
@@ -1912,7 +1912,10 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
       return [];
     }
 
-    return data.map((p) => p.slug);
+    const defaultLocale = websiteData.default_locale || "es-CO";
+    return data
+      .filter((p) => isDefaultLocalePage(p.locale, defaultLocale))
+      .map((p) => p.slug);
   } catch (e) {
     console.error("[getAllPageSlugs] Exception:", e);
     return [];
@@ -1929,7 +1932,7 @@ export async function getIndexablePageSlugs(
   try {
     const { data: websiteData, error: websiteError } = await supabase
       .from("websites")
-      .select("id")
+      .select("id, default_locale")
       .eq("subdomain", subdomain)
       .eq("status", "published")
       .is("deleted_at", null)
@@ -1941,7 +1944,7 @@ export async function getIndexablePageSlugs(
 
     const { data, error } = await supabase
       .from("website_pages")
-      .select("slug, robots_noindex")
+      .select("slug, robots_noindex, locale")
       .eq("website_id", websiteData.id)
       .eq("is_published", true);
 
@@ -1950,11 +1953,24 @@ export async function getIndexablePageSlugs(
       return [];
     }
 
-    return data.filter((p) => !p.robots_noindex).map((p) => p.slug);
+    const defaultLocale = websiteData.default_locale || "es-CO";
+    return data
+      .filter((p) => !p.robots_noindex)
+      .filter((p) => isDefaultLocalePage(p.locale, defaultLocale))
+      .map((p) => p.slug);
   } catch (e) {
     console.error("[getIndexablePageSlugs] Exception:", e);
     return [];
   }
+}
+
+function isDefaultLocalePage(
+  locale: string | null | undefined,
+  defaultLocale: string,
+): boolean {
+  if (!locale) return true;
+  if (locale === defaultLocale) return true;
+  return locale.split("-")[0]?.toLowerCase() === defaultLocale.split("-")[0]?.toLowerCase();
 }
 
 /**

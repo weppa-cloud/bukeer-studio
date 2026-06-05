@@ -1,10 +1,12 @@
 "use client";
 
 import type {
+  AdminDataSourceMode,
   AgentSuggestion,
   AgenticActionState,
   ApprovalRequest,
   AuthenticatedAdminSessionContext,
+  HumanAgentUiState,
   ItinerarySegment,
   LiveFeedItem,
   PlannerOpportunity,
@@ -14,16 +16,23 @@ import {
   AlertTriangle,
   CheckCircle2,
   CircleDot,
+  ClipboardCheck,
   Clock3,
+  FilePenLine,
+  FileX2,
   Lock,
   MessageSquareText,
+  Pencil,
   Plane,
+  RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserCheck,
+  XCircle,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 export type SignatureTone =
   | 'structural'
@@ -45,6 +54,139 @@ export const signatureStatusLabels: Record<AgenticActionState, string> = {
   executed: 'Executed',
   rejected: 'Rejected',
   expired: 'Expiring',
+};
+
+export type SignatureUiVariantState = Extract<
+  HumanAgentUiState,
+  | 'loading'
+  | 'empty'
+  | 'error'
+  | 'no_permission'
+  | 'approved'
+  | 'rejected'
+  | 'executing'
+  | 'executed'
+>;
+
+export type SignatureUiVariant = {
+  state: SignatureUiVariantState;
+  title: string;
+  description: string;
+  badge: string;
+  tone: SignatureTone;
+  actionLabel?: string;
+};
+
+export type BukeerDraftEditableField =
+  | string
+  | {
+      id?: string;
+      label: string;
+      value?: string;
+      currentValue?: string;
+      proposedValue?: string;
+      required?: boolean;
+      status?: string;
+    };
+
+export type BukeerDraftAction = {
+  id: string;
+  type?: string;
+  draftType?: string;
+  kind?: string;
+  draftKind?: string;
+  title?: string;
+  status?: string;
+  state?: string;
+  editableFields?: BukeerDraftEditableField[];
+  fields?: BukeerDraftEditableField[];
+  requiredHumanAction?: string;
+  humanAction?: string;
+  traceId: string;
+  body?: string;
+  proposedDraft?: string;
+  description?: string;
+  rationale?: string;
+  riskFlags?: string[];
+  missingData?: string[];
+  requiresHumanReview?: boolean;
+  noProductionWrite?: boolean;
+};
+
+export type SignatureWhatsAppHandoffResult = {
+  referenceCode: string;
+  waMeUrl: string;
+  expiresAt: string | null;
+};
+
+export type SignatureWhatsAppHandoffHandler = (
+  action: BukeerDraftAction
+) => Promise<SignatureWhatsAppHandoffResult>;
+
+type SignatureWhatsAppHandoffLocalState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; result: SignatureWhatsAppHandoffResult }
+  | { status: 'error'; message: string };
+
+export const signatureUiVariantDefaults: Record<SignatureUiVariantState, SignatureUiVariant> = {
+  loading: {
+    state: 'loading',
+    title: 'Loading signature workspace',
+    description: 'Fetching fixture context and preparing the human-agent controls.',
+    badge: 'Loading',
+    tone: 'live',
+  },
+  empty: {
+    state: 'empty',
+    title: 'No signature work queued',
+    description: 'There are no planner opportunities ready for signature review.',
+    badge: 'Empty',
+    tone: 'structural',
+  },
+  error: {
+    state: 'error',
+    title: 'Signature state unavailable',
+    description: 'The local prototype state could not be resolved.',
+    badge: 'Error',
+    tone: 'danger',
+    actionLabel: 'Retry',
+  },
+  no_permission: {
+    state: 'no_permission',
+    title: 'Permission required',
+    description: 'This user cannot approve or execute this signature workflow.',
+    badge: 'No permission',
+    tone: 'danger',
+  },
+  approved: {
+    state: 'approved',
+    title: 'Approved for execution',
+    description: 'The human approval gate has been cleared.',
+    badge: 'Approved',
+    tone: 'success',
+  },
+  rejected: {
+    state: 'rejected',
+    title: 'Rejected by reviewer',
+    description: 'The proposal remains blocked and requires revision before execution.',
+    badge: 'Rejected',
+    tone: 'danger',
+  },
+  executing: {
+    state: 'executing',
+    title: 'Executing approved action',
+    description: 'The local prototype is showing execution-in-progress state only.',
+    badge: 'Executing',
+    tone: 'live',
+  },
+  executed: {
+    state: 'executed',
+    title: 'Execution complete',
+    description: 'The approved workflow has completed in prototype state.',
+    badge: 'Executed',
+    tone: 'success',
+  },
 };
 
 const toneClasses: Record<SignatureTone, string> = {
@@ -79,6 +221,10 @@ export function signatureToneForStatus(status: AgenticActionState): SignatureTon
   return 'structural';
 }
 
+export function signatureToneForUiState(state: SignatureUiVariantState): SignatureTone {
+  return signatureUiVariantDefaults[state].tone;
+}
+
 function dotClass(tone: SignatureTone) {
   if (tone === 'live') return 'bg-[hsl(var(--bukeer-live))]';
   if (tone === 'humanLoop') return 'bg-[hsl(var(--bukeer-human-loop))]';
@@ -86,6 +232,212 @@ function dotClass(tone: SignatureTone) {
   if (tone === 'warning') return 'bg-[hsl(var(--bukeer-warning))]';
   if (tone === 'danger') return 'bg-destructive';
   return 'bg-[hsl(var(--bukeer-structural))]';
+}
+
+function isAgenticActionState(status: string): status is AgenticActionState {
+  return status in signatureStatusLabels;
+}
+
+export function signatureToneForDraftActionStatus(status?: string): SignatureTone {
+  const normalizedStatus = status?.trim().toLowerCase();
+
+  if (!normalizedStatus) return 'live';
+  if (isAgenticActionState(normalizedStatus)) return signatureToneForStatus(normalizedStatus);
+  if (normalizedStatus.includes('blocked') || normalizedStatus.includes('rejected')) {
+    return 'danger';
+  }
+  if (
+    normalizedStatus.includes('approval') ||
+    normalizedStatus.includes('review') ||
+    normalizedStatus.includes('required')
+  ) {
+    return 'humanLoop';
+  }
+  if (normalizedStatus.includes('approved') || normalizedStatus.includes('complete')) {
+    return 'success';
+  }
+  if (normalizedStatus.includes('draft') || normalizedStatus.includes('edit')) return 'live';
+  return 'structural';
+}
+
+function draftActionStatusLabel(status?: string) {
+  if (!status) return 'Drafted';
+  if (isAgenticActionState(status)) return signatureStatusLabels[status];
+  return status
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function draftActionTypeLabel(action: BukeerDraftAction) {
+  const draftType =
+    action.draftType ?? action.type ?? action.kind ?? action.draftKind ?? 'travel draft';
+  return draftType
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function draftActionFields(action: BukeerDraftAction) {
+  const fields = action.editableFields ?? action.fields ?? [];
+  if (fields.length > 0) return fields;
+  if (action.body || action.proposedDraft) {
+    return [
+      {
+        id: `${action.id}-body`,
+        label: 'Draft body',
+        proposedValue: action.proposedDraft ?? action.body,
+        required: true,
+      },
+    ];
+  }
+  return [];
+}
+
+function draftActionFieldLabel(field: BukeerDraftEditableField) {
+  if (typeof field !== 'string') return field.label;
+  return field
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function draftActionFieldValue(action: BukeerDraftAction, field: BukeerDraftEditableField) {
+  if (typeof field === 'string') {
+    if (field === 'body') return action.body ?? action.proposedDraft ?? 'Needs review';
+    if (field === 'title') return action.title ?? 'Needs review';
+    return 'Editable in local review';
+  }
+  return field.proposedValue ?? field.value ?? field.currentValue ?? 'Needs review';
+}
+
+function draftActionFieldId(field: BukeerDraftEditableField, index: number) {
+  if (typeof field === 'string') return `${field}-${index}`;
+  return field.id ?? `${field.label}-${index}`;
+}
+
+function draftActionFieldRequired(field: BukeerDraftEditableField) {
+  return typeof field === 'string' ? true : field.required;
+}
+
+function draftActionFieldStatus(field: BukeerDraftEditableField) {
+  return typeof field === 'string' ? undefined : field.status;
+}
+
+function isManualWhatsAppHandoffAction(action: BukeerDraftAction) {
+  const kind = action.kind ?? action.draftKind ?? action.type ?? action.draftType;
+  return kind === 'manual_whatsapp_handoff';
+}
+
+function handoffErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return 'Could not create WhatsApp handoff. Try again from local review.';
+}
+
+function displayWaMeUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+export function SignatureWhatsAppHandoffStatus({
+  state,
+}: {
+  state: Exclude<SignatureWhatsAppHandoffLocalState, { status: 'idle' }>;
+}) {
+  if (state.status === 'loading') {
+    return (
+      <div
+        className="mt-3 rounded-md border border-[hsl(var(--bukeer-live)/0.32)] bg-[hsl(var(--bukeer-live)/0.09)] p-3 text-xs text-muted-foreground"
+        data-testid="whatsapp-handoff-loading"
+      >
+        <div className="flex items-center gap-2 font-medium text-[hsl(var(--bukeer-live))]">
+          <RefreshCw className="size-3.5 animate-spin" />
+          Creating WhatsApp handoff
+        </div>
+        <p className="mt-1">Not sent. Human must open and send manually.</p>
+      </div>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <div
+        className="mt-3 rounded-md border border-destructive/35 bg-destructive/10 p-3 text-xs text-destructive"
+        data-testid="whatsapp-handoff-error"
+      >
+        <div className="flex items-center gap-2 font-medium">
+          <XCircle className="size-3.5" />
+          WhatsApp handoff was not created
+        </div>
+        <p className="mt-1">{state.message}</p>
+        <p className="mt-1 text-muted-foreground">
+          Not sent, not reserved, not paid, not confirmed.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mt-3 rounded-md border border-[hsl(var(--bukeer-success)/0.34)] bg-[hsl(var(--bukeer-success)/0.10)] p-3 text-xs"
+      data-testid="whatsapp-handoff-success"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <CheckCircle2 className="size-4 text-[hsl(var(--bukeer-success))]" />
+        <span className="font-semibold text-[hsl(var(--bukeer-success))]">
+          WhatsApp handoff created
+        </span>
+        <SignatureStatePill tone="humanLoop">Not sent</SignatureStatePill>
+      </div>
+      <p className="mt-2 text-muted-foreground">
+        Human must open and send manually. This is not reserved, not paid, not confirmed.
+      </p>
+      <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="rounded border border-border bg-background px-2 py-1.5">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Reference
+          </dt>
+          <dd className="mt-0.5 break-words font-medium text-foreground">
+            {state.result.referenceCode}
+          </dd>
+        </div>
+        <div className="rounded border border-border bg-background px-2 py-1.5">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            wa.me
+          </dt>
+          <dd className="mt-0.5 break-words font-medium text-foreground">
+            <a
+              className="underline-offset-2 hover:underline"
+              href={state.result.waMeUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {displayWaMeUrl(state.result.waMeUrl)}
+            </a>
+          </dd>
+        </div>
+        <div className="rounded border border-border bg-background px-2 py-1.5">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Expires at
+          </dt>
+          <dd className="mt-0.5 break-words font-medium text-foreground">
+            {state.result.expiresAt ? (
+              <time dateTime={state.result.expiresAt}>{state.result.expiresAt}</time>
+            ) : (
+              'No expiry returned'
+            )}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
 }
 
 export function SignatureStatePill({
@@ -106,6 +458,327 @@ export function SignatureStatePill({
       {tone === 'humanLoop' ? <Clock3 className="size-3" /> : null}
       <span className="truncate">{children}</span>
     </span>
+  );
+}
+
+export function SignatureDraftActionCard({
+  action,
+  onInspectTrace,
+  onSimulate,
+  onCreateWhatsAppHandoff,
+}: {
+  action: BukeerDraftAction;
+  onInspectTrace: (traceId: string) => void;
+  onSimulate?: (message: string) => void;
+  onCreateWhatsAppHandoff?: SignatureWhatsAppHandoffHandler;
+}) {
+  const [whatsAppHandoffState, setWhatsAppHandoffState] =
+    useState<SignatureWhatsAppHandoffLocalState>({ status: 'idle' });
+  const status = action.status ?? action.state ?? 'drafted';
+  const tone = signatureToneForDraftActionStatus(status);
+  const fields = draftActionFields(action);
+  const requiredHumanAction =
+    action.requiredHumanAction ??
+    action.humanAction ??
+    (action.requiresHumanReview
+      ? 'Human review is required before this draft can leave local review.'
+      : 'Review draft fields before any customer or supplier action.');
+  const canCreateWhatsAppHandoff = Boolean(onCreateWhatsAppHandoff);
+  const handoffButtonDisabled =
+    whatsAppHandoffState.status === 'loading' || whatsAppHandoffState.status === 'success';
+
+  async function createWhatsAppHandoff() {
+    if (!onCreateWhatsAppHandoff) return;
+
+    setWhatsAppHandoffState({ status: 'loading' });
+    try {
+      const result = await onCreateWhatsAppHandoff(action);
+      setWhatsAppHandoffState({ status: 'success', result });
+      onSimulate?.(
+        `WhatsApp handoff created for draft ${action.id}. Not sent. Human must open and send manually.`
+      );
+    } catch (error) {
+      setWhatsAppHandoffState({ status: 'error', message: handoffErrorMessage(error) });
+    }
+  }
+
+  return (
+    <article
+      className={cx(
+        'rounded-lg border bg-card p-4 shadow-sm',
+        tone === 'live' && 'border-[hsl(var(--bukeer-live)/0.34)]',
+        tone === 'humanLoop' && 'border-[hsl(var(--bukeer-human-loop)/0.42)]',
+        tone === 'danger' && 'border-destructive/35',
+        tone === 'success' && 'border-[hsl(var(--bukeer-success)/0.34)]',
+        tone === 'warning' && 'border-[hsl(var(--bukeer-warning)/0.48)]',
+        tone === 'structural' && 'border-border'
+      )}
+      data-draft-action-id={action.id}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            <FilePenLine className="size-3.5" />
+            {draftActionTypeLabel(action)}
+            <SignatureStatePill tone={tone}>{draftActionStatusLabel(status)}</SignatureStatePill>
+          </div>
+          <h3 className="mt-2 text-base font-semibold">
+            {action.title ?? 'Draft action awaiting planner review'}
+          </h3>
+          {action.description ?? action.rationale ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {action.description ?? action.rationale}
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+          onClick={() => onInspectTrace(action.traceId)}
+        >
+          <ShieldCheck className="size-3.5" />
+          Inspect trace
+        </button>
+      </div>
+
+      <section className="mt-4 rounded-md border border-[hsl(var(--bukeer-human-loop)/0.34)] bg-[hsl(var(--bukeer-human-loop)/0.09)] p-3">
+        <div className="flex items-start gap-2">
+          <UserCheck className="mt-0.5 size-4 shrink-0 text-[hsl(var(--bukeer-human-loop))]" />
+          <div>
+            <div className="text-sm font-semibold">Required human action</div>
+            <p className="mt-1 text-xs text-muted-foreground">{requiredHumanAction}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-4">
+        <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Editable fields
+        </div>
+        <div className="mt-2 grid gap-2">
+          {fields.length > 0 ? (
+            fields.map((field, index) => (
+              <div
+                key={draftActionFieldId(field, index)}
+                className="rounded-md border border-border bg-background px-3 py-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{draftActionFieldLabel(field)}</span>
+                  {draftActionFieldRequired(field) ? (
+                    <SignatureStatePill tone="humanLoop">Required</SignatureStatePill>
+                  ) : null}
+                </div>
+                <div className="mt-1 break-words text-sm text-muted-foreground">
+                  {draftActionFieldValue(action, field)}
+                </div>
+                {draftActionFieldStatus(field) ? (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Status: {draftActionStatusLabel(draftActionFieldStatus(field))}
+                  </div>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+              No editable fields were included in this draft payload.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="mt-4 rounded-md border border-border bg-background p-3 text-xs text-muted-foreground">
+        Safety boundary: not sent, not reserved, not paid, not confirmed.
+      </div>
+
+      {canCreateWhatsAppHandoff ? (
+        <section className="mt-4 rounded-md border border-[hsl(var(--bukeer-human-loop)/0.34)] bg-[hsl(var(--bukeer-surface-panel))] p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <MessageSquareText className="size-3.5" />
+                WhatsApp handoff
+                <SignatureStatePill tone="humanLoop">Manual send only</SignatureStatePill>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Not sent. Human must open and send manually.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-[hsl(var(--bukeer-human-loop)/0.38)] bg-[hsl(var(--bukeer-human-loop)/0.11)] px-2.5 text-xs font-medium text-[hsl(var(--bukeer-human-loop))] transition hover:bg-[hsl(var(--bukeer-human-loop)/0.17)] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={handoffButtonDisabled}
+              onClick={createWhatsAppHandoff}
+            >
+              {whatsAppHandoffState.status === 'loading' ? (
+                <RefreshCw className="size-3.5 animate-spin" />
+              ) : (
+                <MessageSquareText className="size-3.5" />
+              )}
+              {whatsAppHandoffState.status === 'loading'
+                ? 'Creating handoff'
+                : whatsAppHandoffState.status === 'success'
+                  ? 'WhatsApp handoff created'
+                  : 'Create WhatsApp handoff'}
+            </button>
+          </div>
+          {whatsAppHandoffState.status !== 'idle' ? (
+            <SignatureWhatsAppHandoffStatus state={whatsAppHandoffState} />
+          ) : null}
+        </section>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-[hsl(var(--bukeer-live)/0.34)] bg-[hsl(var(--bukeer-live)/0.10)] px-2.5 text-xs font-medium text-[hsl(var(--bukeer-live))] transition hover:bg-[hsl(var(--bukeer-live)/0.16)]"
+          onClick={() =>
+            onSimulate?.(
+              `Reviewed draft ${action.id} locally. No send, reservation, payment or confirmation ran.`
+            )
+          }
+        >
+          <ClipboardCheck className="size-3.5" />
+          Review locally
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+          onClick={() =>
+            onSimulate?.(
+              `Opened local edit state for draft ${action.id}. No production write was executed.`
+            )
+          }
+        >
+          <Pencil className="size-3.5" />
+          Edit locally
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 text-xs font-medium text-destructive transition hover:bg-destructive/15"
+          onClick={() =>
+            onSimulate?.(`Discarded draft ${action.id} locally. No production record was deleted.`)
+          }
+        >
+          <Trash2 className="size-3.5" />
+          Discard locally
+        </button>
+      </div>
+    </article>
+  );
+}
+
+export function SignatureDraftActionPanel({
+  draftActions,
+  onInspectTrace,
+  onSimulate,
+  whatsappHandoffEnabled = false,
+  onCreateWhatsAppHandoff,
+}: {
+  draftActions: BukeerDraftAction[];
+  onInspectTrace: (traceId: string) => void;
+  onSimulate?: (message: string) => void;
+  whatsappHandoffEnabled?: boolean;
+  onCreateWhatsAppHandoff?: SignatureWhatsAppHandoffHandler;
+}) {
+  if (draftActions.length === 0) return null;
+
+  return (
+    <section
+      aria-labelledby="draft-actions-heading"
+      className="space-y-3"
+      data-testid="draft-action-panel"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Draft-only actions
+          </div>
+          <h2 id="draft-actions-heading" className="mt-1 text-xl font-semibold">
+            Bukeer DraftAction review
+          </h2>
+        </div>
+        <SignatureStatePill tone="humanLoop">Local simulation only</SignatureStatePill>
+      </div>
+      <div className="space-y-3">
+        {draftActions.map((action) => (
+          <SignatureDraftActionCard
+            key={action.id}
+            action={action}
+            onInspectTrace={onInspectTrace}
+            onSimulate={onSimulate}
+            onCreateWhatsAppHandoff={
+              whatsappHandoffEnabled && isManualWhatsAppHandoffAction(action)
+                ? onCreateWhatsAppHandoff
+                : undefined
+            }
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SignatureUiVariantIcon({ state }: { state: SignatureUiVariantState }) {
+  const className = 'size-4';
+
+  if (state === 'loading' || state === 'executing') {
+    return <RefreshCw className={cx(className, 'animate-spin')} />;
+  }
+  if (state === 'empty') return <FileX2 className={className} />;
+  if (state === 'error' || state === 'rejected') return <XCircle className={className} />;
+  if (state === 'no_permission') return <Lock className={className} />;
+  return <CheckCircle2 className={className} />;
+}
+
+export function SignatureUiStatePanel({
+  variant,
+  onAction,
+}: {
+  variant: SignatureUiVariant;
+  onAction?: () => void;
+}) {
+  return (
+    <section
+      data-signature-ui-state={variant.state}
+      className={cx(
+        'rounded-lg border bg-card p-4 shadow-sm',
+        variant.tone === 'live' && 'border-[hsl(var(--bukeer-live)/0.34)]',
+        variant.tone === 'humanLoop' && 'border-[hsl(var(--bukeer-human-loop)/0.38)]',
+        variant.tone === 'success' && 'border-[hsl(var(--bukeer-success)/0.34)]',
+        variant.tone === 'warning' && 'border-[hsl(var(--bukeer-warning)/0.48)]',
+        variant.tone === 'danger' && 'border-destructive/35',
+        variant.tone === 'structural' && 'border-border'
+      )}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <span
+            className={cx(
+              'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border',
+              toneClasses[variant.tone]
+            )}
+          >
+            <SignatureUiVariantIcon state={variant.state} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-semibold">{variant.title}</h2>
+              <SignatureStatePill tone={variant.tone}>{variant.badge}</SignatureStatePill>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{variant.description}</p>
+          </div>
+        </div>
+        {variant.actionLabel ? (
+          <button
+            type="button"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border px-3 text-sm font-medium transition hover:bg-muted"
+            onClick={onAction}
+          >
+            {variant.actionLabel}
+          </button>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -137,7 +810,13 @@ export function SignatureMetric({
   );
 }
 
-export function SignaturePlannerHeader({ opportunity }: { opportunity: PlannerOpportunity }) {
+export function SignaturePlannerHeader({
+  opportunity,
+  actions,
+}: {
+  opportunity: PlannerOpportunity;
+  actions?: ReactNode;
+}) {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 py-4 backdrop-blur md:px-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -155,10 +834,13 @@ export function SignaturePlannerHeader({ opportunity }: { opportunity: PlannerOp
             {opportunity.valueLabel}
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-sm sm:w-[420px]">
-          <SignatureMetric label="Quoted" value={opportunity.valueLabel} tone="live" />
-          <SignatureMetric label="Margin" value={opportunity.marginLabel} tone="humanLoop" />
-          <SignatureMetric label="SLA" value={opportunity.slaLabel} tone="warning" />
+        <div className="flex flex-col gap-3 sm:items-end">
+          {actions ? <div>{actions}</div> : null}
+          <div className="grid grid-cols-3 gap-2 text-sm sm:w-[420px]">
+            <SignatureMetric label="Quoted" value={opportunity.valueLabel} tone="live" />
+            <SignatureMetric label="Margin" value={opportunity.marginLabel} tone="humanLoop" />
+            <SignatureMetric label="SLA" value={opportunity.slaLabel} tone="warning" />
+          </div>
         </div>
       </div>
     </header>
@@ -556,16 +1238,25 @@ export function SignatureMissingDataChecklist({ items }: { items: string[] }) {
   );
 }
 
-export function SignatureSafetyBoundary({ simulationMessage }: { simulationMessage: string | null }) {
+export function SignatureSafetyBoundary({
+  dataSourceMode = 'fixture',
+  simulationMessage,
+}: {
+  dataSourceMode?: AdminDataSourceMode;
+  simulationMessage: string | null;
+}) {
+  const isReadonly = dataSourceMode === 'readonly';
+
   return (
     <section className="rounded-lg border border-border bg-card p-4 text-sm">
       <div className="flex items-center gap-2 font-semibold">
         <ShieldCheck className="size-4 text-[hsl(var(--bukeer-live))]" />
-        Fixture data only
+        {isReadonly ? 'Read-only real data' : 'Fixture data only'}
       </div>
       <p className="mt-2 text-muted-foreground">
-        Approval controls update this prototype locally. They do not call Supabase, tools, or
-        public-send workflows.
+        {isReadonly
+          ? 'This beta view can read scoped admin data, but approval controls remain local and no writes, tools, supplier holds or public-send workflows run.'
+          : 'Approval controls update this prototype locally. They do not call Supabase, tools, or public-send workflows.'}
       </p>
       {simulationMessage ? (
         <div className="mt-3 rounded-md border border-[hsl(var(--bukeer-live)/0.34)] bg-[hsl(var(--bukeer-live)/0.08)] p-3 text-xs">
