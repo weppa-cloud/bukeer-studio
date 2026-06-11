@@ -8,6 +8,7 @@ describe('adminNextCopy', () => {
       'conversations',
       'contacts',
       'products',
+      'reports',
       'agenda',
       'account',
       'settings',
@@ -88,6 +89,13 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.products.importCsvPreviewRows).toHaveLength(3);
     expect(adminNextCopy.products.rateRequiredGateTitle).toBe('Tarifa obligatoria pendiente');
     expect(adminNextCopy.products.rateReadyGateTitle).toBe('Tarifa activa lista');
+  });
+
+  it('keeps reports module copy centralized', () => {
+    expect(adminNextCopy.reports.title).toBe('Reportes');
+    expect(adminNextCopy.reports.exportAction).toBe('Exportar CSV');
+    expect(adminNextCopy.reports.urlStateLabel).toBe('URL-as-state');
+    expect(adminNextCopy.reports.aiPanelTitle).toBe('Riesgos y gates');
   });
 
   it('keeps account module copy centralized', () => {

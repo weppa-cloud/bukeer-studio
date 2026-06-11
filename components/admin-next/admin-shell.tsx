@@ -3,6 +3,7 @@
 import type { AuthenticatedAdminSessionContext } from '@bukeer/admin-contract';
 import {
   Bell,
+  BarChart3,
   Blocks,
   CalendarDays,
   CheckCircle2,
@@ -25,6 +26,7 @@ type AdminShellNavKey =
   | 'conversations'
   | 'contacts'
   | 'products'
+  | 'reports'
   | 'agenda'
   | 'account'
   | 'settings';
@@ -35,6 +37,7 @@ const NAV_ICONS = {
   conversations: Blocks,
   contacts: Users,
   products: Package,
+  reports: BarChart3,
   agenda: CalendarDays,
   account: CircleHelp,
   settings: Map,

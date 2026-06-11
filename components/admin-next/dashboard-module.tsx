@@ -3,6 +3,7 @@
 import type { AuthenticatedAdminSessionContext } from '@bukeer/admin-contract';
 import {
   Activity,
+  BarChart3,
   CalendarDays,
   CreditCard,
   PlaneTakeoff,
@@ -150,6 +151,14 @@ function SalesChart({
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <LegendDot label={adminNextCopy.dashboard.salesLegend} tone="primary" />
           <LegendDot label={adminNextCopy.dashboard.costLegend} tone="live" />
+          <a
+            className="inline-flex items-center gap-1 font-semibold text-primary"
+            data-testid="admin-next-dashboard-sales-report"
+            href="/admin/reports?report=sales&range=30d"
+          >
+            <BarChart3 className="size-3.5" />
+            {adminNextCopy.dashboard.viewReportAction}
+          </a>
         </div>
       </div>
       <div className="mt-6 grid flex-1 grid-cols-6 items-end gap-3">
@@ -185,7 +194,11 @@ function ReceivablesPanel({ receivables }: { receivables: DashboardReceivable[] 
       className="rounded-lg border bg-card p-4 text-card-foreground"
       data-testid="admin-next-dashboard-receivables"
     >
-      <PanelHeader title={adminNextCopy.dashboard.receivablesTitle} testId="admin-next-dashboard-receivables-report" />
+      <PanelHeader
+        title={adminNextCopy.dashboard.receivablesTitle}
+        testId="admin-next-dashboard-receivables-report"
+        href="/admin/reports?report=receivables&range=30d&min=500000&max=15000000"
+      />
       <div className="mt-3 divide-y">
         {receivables.map((item) => (
           <div className="flex items-center gap-3 py-3" key={item.id}>
@@ -212,7 +225,11 @@ function SellersPanel({ sellers }: { sellers: DashboardSeller[] }) {
       className="rounded-lg border bg-card p-4 text-card-foreground"
       data-testid="admin-next-dashboard-sellers"
     >
-      <PanelHeader title={adminNextCopy.dashboard.sellersTitle} testId="admin-next-dashboard-sellers-report" />
+      <PanelHeader
+        title={adminNextCopy.dashboard.sellersTitle}
+        testId="admin-next-dashboard-sellers-report"
+        href="/admin/reports?report=sales-intelligence&range=90d"
+      />
       <div className="mt-3 divide-y">
         {sellers.map((seller) => (
           <div className="flex items-center gap-3 py-3" key={seller.id}>
@@ -303,17 +320,17 @@ function DashboardAiPanel({ signals }: { signals: DashboardSignal[] }) {
   );
 }
 
-function PanelHeader({ title, testId }: { title: string; testId: string }) {
+function PanelHeader({ title, testId, href }: { title: string; testId: string; href: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-lg font-semibold tracking-normal">{title}</h2>
-      <button
+      <a
         className="text-sm font-semibold text-primary"
         data-testid={testId}
-        type="button"
+        href={href}
       >
         {adminNextCopy.dashboard.viewReportAction}
-      </button>
+      </a>
     </div>
   );
 }

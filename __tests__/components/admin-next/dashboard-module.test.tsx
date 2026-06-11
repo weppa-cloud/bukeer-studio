@@ -36,6 +36,11 @@ describe('DashboardModule', () => {
     expect(markup).toContain('data-theme-preset="evolucion"');
     expect(markup).toContain('data-testid="admin-next-dashboard-sales-chart"');
     expect(markup).toContain('data-testid="admin-next-dashboard-ai-panel"');
+    expect(markup).toContain(
+      'href="/admin/reports?report=receivables&amp;range=30d&amp;min=500000&amp;max=15000000"',
+    );
+    expect(markup).toContain('href="/admin/reports?report=sales-intelligence&amp;range=90d"');
+    expect(markup).toContain('href="/admin/reports?report=sales&amp;range=30d"');
     expect(markup).toContain('Ventas del mes');
     expect(markup).toContain('Cuentas por cobrar proximas');
   });

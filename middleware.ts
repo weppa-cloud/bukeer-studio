@@ -1707,6 +1707,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    "/((?!api|admin/prototype|admin/dashboard|admin/contacts|admin/conversations|admin/products|admin/agenda|admin/account|admin/settings|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
+    "/((?!api|admin/prototype|admin/dashboard|admin/contacts|admin/conversations|admin/products|admin/reports|admin/agenda|admin/account|admin/settings|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
   ],
 };

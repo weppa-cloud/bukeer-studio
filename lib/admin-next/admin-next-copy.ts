@@ -13,6 +13,7 @@ export const adminNextCopy = {
       { key: 'conversations', label: 'Conversaciones' },
       { key: 'contacts', label: 'Contactos' },
       { key: 'products', label: 'Productos' },
+      { key: 'reports', label: 'Reportes' },
       { key: 'agenda', label: 'Agenda' },
       { key: 'account', label: 'Mi cuenta' },
       { key: 'settings', label: 'Configuracion' },
@@ -305,6 +306,22 @@ export const adminNextCopy = {
       { name: 'Tour manglares Baru', type: 'Actividad', city: 'Cartagena', status: 'Listo para importar' },
       { name: 'Traslado aeropuerto hotel', type: 'Traslado', city: 'Cartagena', status: 'Requiere tarifa' },
     ],
+  },
+  reports: {
+    eyebrow: 'Bukeer Intelligence',
+    title: 'Reportes',
+    subtitle: 'Hub operativo · ventas, rentabilidad, CxC, SLA y tesoreria',
+    exportAction: 'Exportar CSV',
+    filtersTitle: 'Filtros reproducibles',
+    urlStateLabel: 'URL-as-state',
+    urlStateDescription:
+      'Reporte, rango y precio viajan en la URL para agentes, deep-links y auditoria.',
+    insightsTitle: 'Lecturas accionables',
+    tableTitle: 'Detalle operativo',
+    aiPanelEyebrow: 'Panel contextual IA',
+    aiPanelTitle: 'Riesgos y gates',
+    aiPanelDescription:
+      'Lectura grounded del reporte actual. SLA y Stripe fee quedan visibles como watches antes de corte.',
   },
   account: {
     title: 'Mi cuenta',

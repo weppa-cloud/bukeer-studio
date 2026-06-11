@@ -59,6 +59,11 @@ async function main() {
     ADMIN_NEXT_CONVERSATIONS_SMOKE_OUTPUT_DIR:
       'output/playwright/admin-next/conversations-worker',
   });
+  const reportsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-reports.mjs', {
+    ADMIN_NEXT_REPORTS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_REPORTS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/reports-worker',
+  });
 
   console.log(
     JSON.stringify(
@@ -75,6 +80,7 @@ async function main() {
         dashboardSmoke,
         contactsSmoke,
         conversationsSmoke,
+        reportsSmoke,
       },
       null,
       2,
