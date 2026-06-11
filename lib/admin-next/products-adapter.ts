@@ -111,20 +111,33 @@ interface ReadonlyProviderContactRow {
 
 interface ReadonlyAccountRateRow {
   id?: string | null;
+  display_name?: string | null;
+  room_type_code?: string | null;
+  meal_plan?: string | null;
   price?: NumericValue;
+  unit_cost?: NumericValue;
+  profit_amount?: NumericValue;
+  profit_pct?: NumericValue;
   currency?: string | null;
   is_active?: boolean | null;
 }
 
 interface ReadonlyActivityOptionRow {
   id?: string | null;
+  name?: string | null;
+  pricing_per?: string | null;
   is_active?: boolean | null;
   activity_prices?: ReadonlyActivityPriceRow[] | null;
 }
 
 interface ReadonlyActivityPriceRow {
   id?: string | null;
+  unit_type_code?: string | null;
+  season?: string | null;
   price?: NumericValue;
+  unit_cost?: NumericValue;
+  profit_amount?: NumericValue;
+  profit_pct?: NumericValue;
   currency?: string | null;
   is_active?: boolean | null;
 }
@@ -135,6 +148,7 @@ interface RateSummary {
 }
 
 const READONLY_PRODUCT_LIMIT = 25;
+const READONLY_DETAIL_RATE_LIMIT = 6;
 const DEFAULT_CURRENCY = '$';
 const CATEGORY_KEYS = {
   all: 'all',
@@ -200,7 +214,7 @@ function readAccountHotels(
     .from('account_hotels')
     .select<
       ReadonlyHotelRow[]
-    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_hotels(id, name, city, country, description, photos, star_rating, user_rating, reviews_count)', 'contacts!account_hotels_provider_contact_id_fkey(id, name, last_name, email)', 'account_rates(id, price, currency, is_active)'].join(', '))
+    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_hotels(id, name, city, country, description, photos, star_rating, user_rating, reviews_count)', 'contacts!account_hotels_provider_contact_id_fkey(id, name, last_name, email)', 'account_rates(id, display_name, room_type_code, meal_plan, unit_cost, price, profit_amount, profit_pct, currency, is_active)'].join(', '))
     .eq('account_id', accountId)
     .eq('is_active', true)
     .limit(READONLY_PRODUCT_LIMIT);
@@ -214,7 +228,7 @@ function readAccountActivities(
     .from('account_activities')
     .select<
       ReadonlyActivityRow[]
-    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_activities(id, name, city, country, description, description_short, photos, duration_minutes, experience_type)', 'contacts!account_activities_provider_contact_id_fkey(id, name, last_name, email)', 'activity_options(id, is_active, activity_prices(id, price, currency, is_active))'].join(', '))
+    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_activities(id, name, city, country, description, description_short, photos, duration_minutes, experience_type)', 'contacts!account_activities_provider_contact_id_fkey(id, name, last_name, email)', 'activity_options(id, name, pricing_per, is_active, activity_prices(id, unit_type_code, season, unit_cost, price, profit_amount, profit_pct, currency, is_active))'].join(', '))
     .eq('account_id', accountId)
     .eq('is_active', true)
     .limit(READONLY_PRODUCT_LIMIT);
@@ -227,10 +241,19 @@ function buildReadonlyProductsFixture(
   const hotelProducts = hotels.map(mapHotelRowToProduct);
   const activityProducts = activities.map(mapActivityRowToProduct);
   const products = [...hotelProducts, ...activityProducts];
+  const selectedSource = findDefaultSelectedSource(hotels, activities);
+  const selectedProduct =
+    products.find((product) => product.id === selectedSource?.id) ??
+    products[0] ??
+    productsFixture.selected;
   const selected = buildSelectedProduct(
-    products[0] ?? productsFixture.selected,
-    hotels[0],
-    activities[0],
+    selectedProduct,
+    selectedSource?.type === 'hotel' ? selectedSource.row : undefined,
+    selectedSource?.type === 'activity' ? selectedSource.row : undefined,
+  );
+  const rates = buildSelectedRates(
+    selectedSource?.type === 'hotel' ? selectedSource.row : undefined,
+    selectedSource?.type === 'activity' ? selectedSource.row : undefined,
   );
 
   return {
@@ -242,7 +265,39 @@ function buildReadonlyProductsFixture(
     }),
     products,
     selected,
+    rates,
   };
+}
+
+function findDefaultSelectedSource(
+  hotels: readonly ReadonlyHotelRow[],
+  activities: readonly ReadonlyActivityRow[],
+):
+  | { type: 'hotel'; id: string; row: ReadonlyHotelRow }
+  | { type: 'activity'; id: string; row: ReadonlyActivityRow }
+  | null {
+  const pricedHotel = hotels.find(
+    (hotel) => summarizeRates(hotel.account_rates ?? []).activePricedCount > 0,
+  );
+  if (pricedHotel) {
+    return { type: 'hotel', id: pricedHotel.id, row: pricedHotel };
+  }
+
+  const pricedActivity = activities.find(
+    (activity) =>
+      summarizeActivityOptions(activity.activity_options ?? [])
+        .activePricedCount > 0,
+  );
+  if (pricedActivity) {
+    return { type: 'activity', id: pricedActivity.id, row: pricedActivity };
+  }
+
+  if (hotels[0]) return { type: 'hotel', id: hotels[0].id, row: hotels[0] };
+  if (activities[0]) {
+    return { type: 'activity', id: activities[0].id, row: activities[0] };
+  }
+
+  return null;
 }
 
 function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
@@ -382,6 +437,64 @@ function buildSelectedProduct(
   };
 }
 
+function buildSelectedRates(
+  hotel?: ReadonlyHotelRow,
+  activity?: ReadonlyActivityRow,
+): ProductsFixture['rates'] {
+  if (hotel) return mapHotelRates(hotel.account_rates ?? []);
+  if (activity) return mapActivityRates(activity.activity_options ?? []);
+
+  return productsFixture.rates;
+}
+
+function mapHotelRates(
+  rates: readonly ReadonlyAccountRateRow[],
+): ProductsFixture['rates'] {
+  return rates
+    .filter((rate) => isActivePricedRow(rate))
+    .sort(comparePriceAsc)
+    .slice(0, READONLY_DETAIL_RATE_LIMIT)
+    .map((rate, index) => ({
+      id: firstNonEmpty(rate.id, `hotel-rate-${index + 1}`),
+      name: firstNonEmpty(
+        rate.display_name,
+        rate.room_type_code,
+        rate.meal_plan,
+        `Tarifa ${index + 1}`,
+      ),
+      detail: firstNonEmpty(rate.meal_plan, 'Por noche'),
+      cost: formatCopPrice(readNumber(rate.unit_cost) ?? 0),
+      margin: formatMargin(rate),
+      sale: formatCopPrice(readNumber(rate.price) ?? 0),
+    }));
+}
+
+function mapActivityRates(
+  options: readonly ReadonlyActivityOptionRow[],
+): ProductsFixture['rates'] {
+  return options
+    .filter((option) => option.is_active !== false)
+    .flatMap((option) =>
+      (option.activity_prices ?? []).map((price) => ({ option, price })),
+    )
+    .filter(({ price }) => isActivePricedRow(price))
+    .sort((left, right) => comparePriceAsc(left.price, right.price))
+    .slice(0, READONLY_DETAIL_RATE_LIMIT)
+    .map(({ option, price }, index) => ({
+      id: firstNonEmpty(price.id, option.id, `activity-rate-${index + 1}`),
+      name: firstNonEmpty(
+        option.name,
+        price.unit_type_code,
+        price.season,
+        `Tarifa ${index + 1}`,
+      ),
+      detail: firstNonEmpty(option.pricing_per, price.season, 'Por persona'),
+      cost: formatCopPrice(readNumber(price.unit_cost) ?? 0),
+      margin: formatMargin(price),
+      sale: formatCopPrice(readNumber(price.price) ?? 0),
+    }));
+}
+
 function buildCategories(counts: {
   all: number;
   hotels: number;
@@ -490,6 +603,36 @@ function summarizePricedRows(
     activePricedCount: prices.length,
     minPrice: prices.length > 0 ? Math.min(...prices) : null,
   };
+}
+
+function isActivePricedRow(
+  row: ReadonlyAccountRateRow | ReadonlyActivityPriceRow,
+): boolean {
+  const price = readNumber(row.price);
+
+  return row.is_active !== false && price != null && price > 0;
+}
+
+function comparePriceAsc(
+  left: ReadonlyAccountRateRow | ReadonlyActivityPriceRow,
+  right: ReadonlyAccountRateRow | ReadonlyActivityPriceRow,
+): number {
+  return (readNumber(left.price) ?? 0) - (readNumber(right.price) ?? 0);
+}
+
+function formatMargin(
+  row: ReadonlyAccountRateRow | ReadonlyActivityPriceRow,
+): string {
+  const profitPct = readNumber(row.profit_pct);
+  if (profitPct != null) return `${Math.round(profitPct)}%`;
+
+  const price = readNumber(row.price);
+  const profitAmount = readNumber(row.profit_amount);
+  if (price && profitAmount != null) {
+    return `${Math.round((profitAmount / price) * 100)}%`;
+  }
+
+  return productsFixture.rates[0]?.margin ?? '0%';
 }
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {

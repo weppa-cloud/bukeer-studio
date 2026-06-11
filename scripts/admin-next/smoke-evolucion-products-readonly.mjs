@@ -43,6 +43,7 @@ async function main() {
     password: readonlyContext.password,
     expectedProductCount: readonlyContext.expectedProductCount,
     expectedActiveProductCount: readonlyContext.expectedActiveProductCount,
+    expectedSelectedRateCount: readonlyContext.expectedSelectedRateCount,
     firstExpectedProductId: readonlyContext.firstExpectedProductId,
     expectedHotelCount: readonlyContext.expectedHotelCount,
     expectedActivityCount: readonlyContext.expectedActivityCount,
@@ -171,6 +172,22 @@ async function resolveReadonlyContext() {
   const expectedActiveActivityCount = activityRows.filter(
     hasActiveActivityPrice,
   ).length;
+  const pricedHotelRow = hotelRows.find(
+    (row) => countActiveHotelRates(row) > 0,
+  );
+  const pricedActivityRow = activityRows.find(
+    (row) => countActiveActivityPrices(row) > 0,
+  );
+  const expectedSelectedRateCount = Math.min(
+    pricedHotelRow
+      ? countActiveHotelRates(pricedHotelRow)
+      : pricedActivityRow
+        ? countActiveActivityPrices(pricedActivityRow)
+        : hotelRows[0]
+          ? countActiveHotelRates(hotelRows[0])
+          : countActiveActivityPrices(activityRows[0]),
+    6,
+  );
 
   return {
     email,
@@ -182,26 +199,35 @@ async function resolveReadonlyContext() {
     expectedProductCount: hotelRows.length + activityRows.length,
     expectedActiveProductCount:
       expectedActiveHotelCount + expectedActiveActivityCount,
+    expectedSelectedRateCount,
     firstExpectedProductId: hotelRows[0]?.id ?? activityRows[0]?.id ?? null,
   };
 }
 
 function hasActiveHotelRate(row) {
-  return Array.isArray(row.account_rates)
-    ? row.account_rates.some((rate) => isActivePricedRow(rate))
-    : false;
+  return countActiveHotelRates(row) > 0;
 }
 
 function hasActiveActivityPrice(row) {
-  if (!Array.isArray(row.activity_options)) return false;
+  return countActiveActivityPrices(row) > 0;
+}
+
+function countActiveHotelRates(row) {
+  return Array.isArray(row?.account_rates)
+    ? row.account_rates.filter((rate) => isActivePricedRow(rate)).length
+    : 0;
+}
+
+function countActiveActivityPrices(row) {
+  if (!Array.isArray(row?.activity_options)) return 0;
 
   return row.activity_options
     .filter((option) => option?.is_active !== false)
-    .some((option) =>
+    .flatMap((option) =>
       Array.isArray(option.activity_prices)
-        ? option.activity_prices.some((price) => isActivePricedRow(price))
-        : false,
-    );
+        ? option.activity_prices.filter((price) => isActivePricedRow(price))
+        : [],
+    ).length;
 }
 
 function isActivePricedRow(row) {
@@ -298,6 +324,7 @@ async function runReadonlyProductsSmoke({
   password,
   expectedProductCount,
   expectedActiveProductCount,
+  expectedSelectedRateCount,
   firstExpectedProductId,
   expectedHotelCount,
   expectedActivityCount,
@@ -349,6 +376,9 @@ async function runReadonlyProductsSmoke({
     const activeProductCount = await page
       .locator('[data-testid^="admin-next-product-card-"][data-rate-state="active"]')
       .count();
+    const selectedRateCount = await page
+      .locator('[data-testid^="admin-next-products-rate-menu-"]')
+      .count();
     const firstExpectedProductVisible = firstExpectedProductId
       ? await page
           .locator(
@@ -392,6 +422,11 @@ async function runReadonlyProductsSmoke({
         `Expected ${expectedActiveProductCount} active readonly products, got ${activeProductCount}`,
       );
     }
+    if (selectedRateCount !== expectedSelectedRateCount) {
+      throw new Error(
+        `Expected ${expectedSelectedRateCount} selected readonly rates, got ${selectedRateCount}`,
+      );
+    }
     if (!firstExpectedProductVisible) {
       throw new Error(
         'First readonly catalog row was not visible in Products UI.',
@@ -415,8 +450,10 @@ async function runReadonlyProductsSmoke({
       expectedActivityCount,
       expectedProductCount,
       expectedActiveProductCount,
+      expectedSelectedRateCount,
       productCount,
       activeProductCount,
+      selectedRateCount,
       firstExpectedProductVisible,
       hasToolbar,
       hasDetail,

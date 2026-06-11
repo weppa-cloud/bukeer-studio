@@ -49,13 +49,25 @@ describe('products adapter', () => {
             account_rates: [
               {
                 id: 'rate-hotel-1',
+                display_name: 'Suite vista mar',
+                room_type_code: 'suite',
+                meal_plan: 'Desayuno',
+                unit_cost: 700000,
                 price: 950000,
+                profit_amount: 250000,
+                profit_pct: 26.315,
                 currency: 'COP',
                 is_active: true,
               },
               {
                 id: 'rate-hotel-2',
+                display_name: 'Habitacion base',
+                room_type_code: 'standard',
+                meal_plan: 'Solo alojamiento',
+                unit_cost: 560000,
                 price: 720000,
+                profit_amount: 160000,
+                profit_pct: 22.222,
                 currency: 'COP',
                 is_active: true,
               },
@@ -187,6 +199,24 @@ describe('products adapter', () => {
         providerEmail: 'reservas@example.test',
       }),
     );
+    expect(fixture.rates).toEqual([
+      {
+        id: 'rate-hotel-2',
+        name: 'Habitacion base',
+        detail: 'Solo alojamiento',
+        cost: '$560.000',
+        margin: '22%',
+        sale: '$720.000',
+      },
+      {
+        id: 'rate-hotel-1',
+        name: 'Suite vista mar',
+        detail: 'Desayuno',
+        cost: '$700.000',
+        margin: '26%',
+        sale: '$950.000',
+      },
+    ]);
   });
 
   it('throws when readonly table reads return an error', async () => {
