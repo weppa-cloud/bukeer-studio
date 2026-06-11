@@ -7,8 +7,10 @@ import process from 'node:process';
 import { chromium } from '@playwright/test';
 
 const protectedRoute = '/admin/prototype/planner-workbench';
+const externalBaseUrl = process.env.ADMIN_NEXT_AUTH_SMOKE_BASE_URL;
 const outputDir =
   process.env.ADMIN_NEXT_AUTH_SMOKE_OUTPUT_DIR || 'output/playwright/admin-next';
+const shouldStartServer = !externalBaseUrl;
 const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID');
 
 let sessionName = null;
@@ -17,7 +19,7 @@ let server = null;
 async function main() {
   hydrateLocalEnv();
 
-  if (!existsSync(buildIdPath)) {
+  if (shouldStartServer && !existsSync(buildIdPath)) {
     throw new Error(
       'Missing .next production build. Run `npm run build -- --no-lint` before admin-next auth smoke.',
     );
@@ -28,7 +30,7 @@ async function main() {
 
   mkdirSync(outputDir, { recursive: true });
 
-  const baseUrl = await startLocalServer();
+  const baseUrl = externalBaseUrl || (await startLocalServer());
   await waitForHttp(new URL('/login', baseUrl).toString());
   const result = await runAuthSmoke({
     baseUrl,
