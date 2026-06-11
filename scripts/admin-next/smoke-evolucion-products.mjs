@@ -130,6 +130,7 @@ async function runPlaywrightSmoke(targetUrl) {
     const hasGallery = await page.getByTestId('admin-next-products-gallery').isVisible();
     const hasRates = await page.getByTestId('admin-next-products-rates').isVisible();
     const hasAiPanel = await page.getByTestId('admin-next-products-ai-panel').isVisible();
+    const hasCatalogContract = await page.getByTestId('admin-next-products-catalog-contract').isVisible();
     const screenshot = path.join(outputDir, 'products-evolucion-light.png');
     await page.screenshot({ path: screenshot, fullPage: false });
     await page.getByTestId('admin-next-products-search-input').fill('traslado');
@@ -159,6 +160,8 @@ async function runPlaywrightSmoke(targetUrl) {
     const hasImportDropzone = await page.getByTestId('admin-next-products-import-dropzone').isVisible();
     const importStepCount = await page.locator('[data-testid^="admin-next-products-import-step-"]').count();
     const importPreviewRowCount = await page.locator('[data-testid^="admin-next-products-import-row-"]').count();
+    const hasCatalogResolver = await page.getByTestId('admin-next-products-catalog-resolver').isVisible();
+    const catalogResolutionCount = await page.locator('[data-testid^="admin-next-products-catalog-resolution-"]').count();
     const importCsvScreenshot = path.join(outputDir, 'products-import-csv-modal-evolucion-light.png');
     await page.screenshot({ path: importCsvScreenshot, fullPage: false });
     await page.getByTestId('admin-next-products-modal-close').click();
@@ -194,7 +197,7 @@ async function runPlaywrightSmoke(targetUrl) {
     if (title?.trim() !== 'Productos') {
       throw new Error(`Unexpected products title: ${title}`);
     }
-    if (productCount < 3 || !hasToolbar || !hasDetail || !hasGallery || !hasRates || !hasAiPanel) {
+    if (productCount < 3 || !hasToolbar || !hasDetail || !hasGallery || !hasRates || !hasAiPanel || !hasCatalogContract) {
       throw new Error('Products required surfaces are not visible.');
     }
     if (filteredProductCount !== 1 || !hasFilterQuery || !filtersCleared) {
@@ -203,8 +206,10 @@ async function runPlaywrightSmoke(targetUrl) {
     if (
       !hasImportCsvModal ||
       !hasImportDropzone ||
+      !hasCatalogResolver ||
       importStepCount !== 3 ||
       importPreviewRowCount < 3 ||
+      catalogResolutionCount < 3 ||
       !hasNewProductModal ||
       !hasNewHotelModal ||
       !hasNewRateModal ||
@@ -229,13 +234,16 @@ async function runPlaywrightSmoke(targetUrl) {
       hasGallery,
       hasRates,
       hasAiPanel,
+      hasCatalogContract,
       filteredProductCount,
       hasFilterQuery,
       filtersCleared,
       hasImportCsvModal,
       hasImportDropzone,
+      hasCatalogResolver,
       importStepCount,
       importPreviewRowCount,
+      catalogResolutionCount,
       hasNewProductModal,
       hasNewHotelModal,
       hasNewRateModal,

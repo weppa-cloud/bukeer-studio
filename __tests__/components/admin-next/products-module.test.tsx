@@ -39,6 +39,7 @@ describe('ProductsModule', () => {
     expect(markup).toContain('data-testid="admin-next-products-detail"');
     expect(markup).toContain('data-testid="admin-next-products-gallery"');
     expect(markup).toContain('data-testid="admin-next-products-rates"');
+    expect(markup).toContain('data-testid="admin-next-products-catalog-contract"');
     expect(markup).toContain('data-testid="admin-next-products-ai-panel"');
     expect(markup).toContain('data-testid="admin-next-products-new"');
     expect(markup).toContain('data-testid="admin-next-products-edit"');

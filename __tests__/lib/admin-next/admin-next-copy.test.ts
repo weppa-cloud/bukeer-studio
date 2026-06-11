@@ -61,6 +61,8 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.products.manageImagesAction(6)).toBe('Gestionar imagenes · 6');
     expect(adminNextCopy.products.activeRatesLabel(3)).toBe('3 vigentes');
     expect(adminNextCopy.products.resultsLabel(2)).toBe('2 productos visibles');
+    expect(adminNextCopy.products.catalogContractLabel).toBe('Catalogo V2');
+    expect(adminNextCopy.products.resolverActionLabels.rate_required).toBe('Vincular + tarifa');
     expect(adminNextCopy.products.cityFilterOptions.map((option) => option.key)).toEqual([
       'cartagena',
       'san-andres',

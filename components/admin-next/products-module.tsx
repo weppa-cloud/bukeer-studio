@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import type {
+  ProductCatalogResolution,
   ProductRate,
   ProductRecord,
   ProductSignal,
@@ -45,6 +46,12 @@ const toneClasses: Record<ProductRecord['tone'], string> = {
   primary: 'border-primary/30 bg-primary/10 text-primary',
   live: 'border-secondary/30 bg-secondary/10 text-secondary',
   warning: 'border-[hsl(var(--bukeer-warning))]/30 bg-[hsl(var(--bukeer-warning)/0.12)] text-[hsl(var(--bukeer-warning))]',
+};
+
+const resolverActionClasses: Record<ProductCatalogResolution['action'], string> = {
+  link: 'border-secondary/30 bg-secondary/10 text-secondary',
+  create: 'border-primary/30 bg-primary/10 text-primary',
+  rate_required: 'border-[hsl(var(--bukeer-warning))]/30 bg-[hsl(var(--bukeer-warning)/0.12)] text-[hsl(var(--bukeer-warning))]',
 };
 
 type ProductModal = 'import-csv' | 'new-product' | 'new-hotel' | 'new-rate' | 'edit-product' | 'gallery' | null;
@@ -534,9 +541,18 @@ function ProductDetail({
               <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
                 {product.status}
               </span>
+              <span
+                className="rounded-md border border-secondary/30 bg-secondary/10 px-2 py-1 text-xs font-semibold text-secondary"
+                data-testid="admin-next-products-catalog-contract"
+              >
+                {adminNextCopy.products.catalogContractLabel}
+              </span>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {product.type} · {product.location} · {product.code}
+            </p>
+            <p className="mt-2 text-xs font-semibold text-muted-foreground">
+              {adminNextCopy.products.catalogContractValue}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -874,6 +890,30 @@ function ImportCsvModal({ fixture, onClose }: { fixture: ProductsFixture; onClos
             <p className="text-sm leading-6 text-muted-foreground">
               {adminNextCopy.products.importCsvResolverSubtitle}
             </p>
+            <div className="mt-3 overflow-hidden rounded-md border" data-testid="admin-next-products-catalog-resolver">
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px_116px] gap-2 border-b bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">
+                <span>{adminNextCopy.products.importCsvResolverSourceLabel}</span>
+                <span>{adminNextCopy.products.importCsvResolverMasterLabel}</span>
+                <span>{adminNextCopy.products.importCsvResolverConfidenceLabel}</span>
+                <span>{adminNextCopy.products.stateLabel}</span>
+              </div>
+              <div className="divide-y">
+                {fixture.catalogResolutions.map((resolution) => (
+                  <div
+                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px_116px] gap-2 px-3 py-2 text-xs"
+                    data-testid={`admin-next-products-catalog-resolution-${resolution.id}`}
+                    key={resolution.id}
+                  >
+                    <span className="truncate font-semibold">{resolution.sourceName}</span>
+                    <span className="truncate text-muted-foreground">{resolution.masterName}</span>
+                    <span className="font-semibold text-muted-foreground">{resolution.confidence}</span>
+                    <span className={cn('rounded-md border px-2 py-1 text-center font-semibold', resolverActionClasses[resolution.action])}>
+                      {adminNextCopy.products.resolverActionLabels[resolution.action]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </ModalSection>
         </div>
       </div>

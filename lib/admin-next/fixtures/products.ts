@@ -39,6 +39,14 @@ export type ProductSignal = {
   detail: string;
 };
 
+export type ProductCatalogResolution = {
+  id: string;
+  sourceName: string;
+  masterName: string;
+  confidence: string;
+  action: 'link' | 'create' | 'rate_required';
+};
+
 export type ProductsFixture = {
   categories: ProductCategory[];
   products: ProductRecord[];
@@ -54,6 +62,7 @@ export type ProductsFixture = {
   };
   rates: ProductRate[];
   signals: ProductSignal[];
+  catalogResolutions: ProductCatalogResolution[];
 };
 
 export const productsFixture: ProductsFixture = {
@@ -196,6 +205,29 @@ export const productsFixture: ProductsFixture = {
       label: 'Riesgo de tarifa',
       value: '1 traslado',
       detail: 'Marsol tiene margen por debajo del objetivo y requiere revision antes del corte.',
+    },
+  ],
+  catalogResolutions: [
+    {
+      id: 'hotel-las-islas',
+      sourceName: 'Hotel Las Islas',
+      masterName: 'Hotel Las Islas · master PRD-0148',
+      confidence: '96%',
+      action: 'link',
+    },
+    {
+      id: 'tour-manglares-baru',
+      sourceName: 'Tour manglares Baru',
+      masterName: 'Sin coincidencia segura',
+      confidence: '42%',
+      action: 'create',
+    },
+    {
+      id: 'traslado-aeropuerto-hotel',
+      sourceName: 'Traslado aeropuerto hotel',
+      masterName: 'Traslado aeropuerto privado · master PRD-0087',
+      confidence: '88%',
+      action: 'rate_required',
     },
   ],
 };
