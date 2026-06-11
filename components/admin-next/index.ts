@@ -3,6 +3,7 @@ export { AccountModule } from './account-module';
 export { AgendaModule } from './agenda-module';
 export { AgentBlockedCard, AgentSuggestionCard } from './agent-cards';
 export { ApprovalCommandBar } from './approval-command-bar';
+export { ConversationsModule } from './conversations-module';
 export { ContactsModule } from './contacts-module';
 export { DashboardModule } from './dashboard-module';
 export { LiveFeedColumn } from './live-feed-column';

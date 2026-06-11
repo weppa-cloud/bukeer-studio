@@ -42,6 +42,7 @@
     "admin-next:smoke:evolucion:agenda": "node scripts/admin-next/smoke-evolucion-agenda.mjs",
     "admin-next:smoke:evolucion:dashboard": "node scripts/admin-next/smoke-evolucion-dashboard.mjs",
     "admin-next:smoke:evolucion:contacts": "node scripts/admin-next/smoke-evolucion-contacts.mjs",
+    "admin-next:smoke:evolucion:conversations": "node scripts/admin-next/smoke-evolucion-conversations.mjs",
     "admin-next:smoke:evolucion:products": "node scripts/admin-next/smoke-evolucion-products.mjs",
     "admin-next:smoke:evolucion:products:readonly": "node scripts/admin-next/smoke-evolucion-products-readonly.mjs",
     "admin-next:smoke:evolucion:settings": "node scripts/admin-next/smoke-evolucion-settings.mjs",

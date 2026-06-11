@@ -44,6 +44,17 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.contacts.totalLabel(6)).toBe('6 visibles');
   });
 
+  it('keeps conversations module copy centralized', () => {
+    expect(adminNextCopy.conversations.title).toBe('Conversaciones');
+    expect(adminNextCopy.conversations.closeOutcomeLabels.no_purchase).toBe('No compro');
+    expect(adminNextCopy.conversations.reasonRequiredLabel).toBe(
+      'Motivo obligatorio para No compro',
+    );
+    expect(adminNextCopy.conversations.unreadLabel(3)).toBe('3 sin leer');
+    expect(adminNextCopy.conversations.channelLabels.whatsapp).toBe('WhatsApp');
+    expect(adminNextCopy.conversations.temperatureLabels.hot).toBe('Caliente');
+  });
+
   it('keeps agenda module copy centralized', () => {
     expect(adminNextCopy.agenda.title).toBe('Agenda de servicios');
     expect(adminNextCopy.agenda.filters.map((filter) => filter.key)).toEqual([
