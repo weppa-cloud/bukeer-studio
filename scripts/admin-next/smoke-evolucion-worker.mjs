@@ -4,6 +4,8 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
+import { adminNextSmokeToken } from './smoke-auth-headers.mjs';
 
 const repoRoot = process.cwd();
 const workerPath = path.join(repoRoot, '.open-next/worker.js');
@@ -33,6 +35,11 @@ async function main() {
     ADMIN_NEXT_SETTINGS_SMOKE_OUTPUT_DIR:
       'output/playwright/admin-next/settings-worker',
   });
+  const productsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-products.mjs', {
+    ADMIN_NEXT_PRODUCTS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_PRODUCTS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/products-worker',
+  });
   const agendaSmoke = runSmoke('scripts/admin-next/smoke-evolucion-agenda.mjs', {
     ADMIN_NEXT_AGENDA_SMOKE_BASE_URL: baseUrl,
     ADMIN_NEXT_AGENDA_SMOKE_OUTPUT_DIR:
@@ -43,10 +50,30 @@ async function main() {
     ADMIN_NEXT_DASHBOARD_SMOKE_OUTPUT_DIR:
       'output/playwright/admin-next/dashboard-worker',
   });
+  const itinerariesSmoke = runSmoke('scripts/admin-next/smoke-evolucion-itineraries.mjs', {
+    ADMIN_NEXT_ITINERARIES_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_ITINERARIES_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/itineraries-worker',
+  });
   const contactsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-contacts.mjs', {
     ADMIN_NEXT_CONTACTS_SMOKE_BASE_URL: baseUrl,
     ADMIN_NEXT_CONTACTS_SMOKE_OUTPUT_DIR:
       'output/playwright/admin-next/contacts-worker',
+  });
+  const conversationsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-conversations.mjs', {
+    ADMIN_NEXT_CONVERSATIONS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_CONVERSATIONS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/conversations-worker',
+  });
+  const reportsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-reports.mjs', {
+    ADMIN_NEXT_REPORTS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_REPORTS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/reports-worker',
+  });
+  const paymentsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-payments.mjs', {
+    ADMIN_NEXT_PAYMENTS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_PAYMENTS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/payments-worker',
   });
 
   console.log(
@@ -59,9 +86,14 @@ async function main() {
         plannerSmoke,
         accountSmoke,
         settingsSmoke,
+        productsSmoke,
         agendaSmoke,
         dashboardSmoke,
+        itinerariesSmoke,
         contactsSmoke,
+        conversationsSmoke,
+        reportsSmoke,
+        paymentsSmoke,
       },
       null,
       2,
@@ -94,15 +126,32 @@ function createSmokeWranglerConfig() {
   const requiredSmokeVars = [
     'ADMIN_NEXT_PROTOTYPE_ENABLED = "true"',
     'ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED = "true"',
+    `ADMIN_NEXT_PROTOTYPE_SMOKE_TOKEN = "${adminNextSmokeToken}"`,
     'ADMIN_NEXT_DATA_SOURCE_MODE = "fixture"',
   ];
-  const missingSmokeVars = requiredSmokeVars.filter((line) => !source.includes(line));
 
-  if (missingSmokeVars.length === 0) {
-    return source;
+  return upsertEnvVars(source, marker, requiredSmokeVars);
+}
+
+export function upsertEnvVars(source, marker, lines) {
+  const start = source.indexOf(marker) + marker.length;
+  const nextSection = source.slice(start).search(/\n\[/);
+  const end = nextSection === -1 ? source.length : start + nextSection + 1;
+  let section = source.slice(start, end);
+
+  for (const line of lines) {
+    const key = line.split('=')[0].trim();
+    const keyPattern = new RegExp(`^${escapeRegExp(key)}\\s*=.*$`, 'm');
+    section = keyPattern.test(section)
+      ? section.replace(keyPattern, line)
+      : `${line}\n${section}`;
   }
 
-  return source.replace(marker, `${marker}${missingSmokeVars.join('\n')}\n`);
+  return `${source.slice(0, start)}${section}${source.slice(end)}`;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function startPreview() {
@@ -113,7 +162,7 @@ function startPreview() {
       if (settled) return;
       settled = true;
       reject(new Error(`Timed out waiting for OpenNext preview:\n${output}`));
-    }, 45_000);
+    }, 90_000);
 
     preview = spawn(
       'npx',
@@ -184,9 +233,11 @@ async function cleanup() {
   }
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(cleanup);
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main()
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(cleanup);
+}

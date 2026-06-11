@@ -1,10 +1,9 @@
-import { notFound } from 'next/navigation';
 import { PlannerWorkbenchPrototype } from '@/components/admin-next';
 import { createPlannerAgentLedgerSnapshot } from '@/lib/admin-next/agent-ledger-source';
 import {
-  evolucionThemeMetadata,
-  getEvolucionThemeStyle,
-} from '@/lib/admin-next/evolucion-theme';
+  assertAdminNextSmokeAccess,
+  getAdminNextEvolucionTheme,
+} from '@/lib/admin-next/route-boundary';
 import { plannerWorkbenchFixture } from '@/lib/admin-next/fixtures/planner-workbench';
 import type { AdminNextSessionContext } from '@/lib/admin-next/session/get-admin-session-context';
 
@@ -39,13 +38,8 @@ const smokeSession: Extract<AdminNextSessionContext, { status: 'authenticated' }
   },
 };
 
-export default function PlannerWorkbenchSmokePage() {
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED !== 'true'
-  ) {
-    notFound();
-  }
+export default async function PlannerWorkbenchSmokePage() {
+  await assertAdminNextSmokeAccess();
 
   const agentLedger = createPlannerAgentLedgerSnapshot(plannerWorkbenchFixture, {
     sourceMode: 'fixture',
@@ -57,13 +51,7 @@ export default function PlannerWorkbenchSmokePage() {
       fixture={plannerWorkbenchFixture}
       agentLedger={agentLedger}
       dataSourceMode="fixture"
-      evolucionTheme={{
-        presetSlug: evolucionThemeMetadata.presetSlug,
-        styles: {
-          light: getEvolucionThemeStyle('light'),
-          dark: getEvolucionThemeStyle('dark'),
-        },
-      }}
+      evolucionTheme={getAdminNextEvolucionTheme()}
     />
   );
 }

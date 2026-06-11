@@ -43,6 +43,7 @@ const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
     'planner.view',
     'planner.suggest',
     'planner.approve',
+    'payments.manage',
     'trace.view',
     'manager.view',
   ],
@@ -51,6 +52,7 @@ const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
     'planner.view',
     'planner.suggest',
     'planner.approve',
+    'payments.manage',
     'trace.view',
     'manager.view',
   ],
@@ -59,11 +61,12 @@ const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
     'planner.view',
     'planner.suggest',
     'planner.approve',
+    'payments.manage',
     'trace.view',
     'manager.view',
   ],
   agent: ['admin_next.view', 'planner.view', 'planner.suggest', 'trace.view'],
-  accounting: ['admin_next.view', 'planner.view', 'trace.view'],
+  accounting: ['admin_next.view', 'planner.view', 'payments.manage', 'trace.view'],
 };
 
 export async function getAdminSessionContext(): Promise<AdminNextSessionContext> {
@@ -129,7 +132,7 @@ export function getAdminNextSessionFlags(input?: {
 }
 
 export function permissionsForRole(role: string): AdminPermission[] {
-  return ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS.agent;
+  return ROLE_PERMISSIONS[role] ?? [];
 }
 
 export function hasAdminPermission(

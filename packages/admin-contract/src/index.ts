@@ -55,6 +55,7 @@ export const AdminPermissionSchema = z.enum([
   'planner.view',
   'planner.suggest',
   'planner.approve',
+  'payments.manage',
   'trace.view',
   'manager.view',
 ]);

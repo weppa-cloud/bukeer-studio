@@ -2,7 +2,7 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,7 +20,6 @@ const JSX_FILE_EXTENSIONS = new Set(['.jsx', '.tsx']);
 const HARD_CODED_HEX = /(^|[^\w-])#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?![\w-])/g;
 const THEME_SDK_IMPORT = /from\s+['"]@bukeer\/theme-sdk['"]|require\(['"]@bukeer\/theme-sdk['"]\)/;
 const EVOLUCION_PRESET_REFERENCE = /\bEVOLUCION_PRESET\b/;
-const INTERACTIVE_TAG = /<(button|Button|a)\b[\s\S]*?>/g;
 const STATIC_JSX_COPY = />\s*([^<{}`\r\n][^<{}`\r\n]*[A-Za-zÁÉÍÓÚáéíóúÑñ][^<{}`\r\n]*)\s*</g;
 const COPY_ATTRIBUTE = /\b(?:aria-label|title|placeholder|alt)=("[^"]*[A-Za-zÁÉÍÓÚáéíóúÑñ][^"]*"|'[^']*[A-Za-zÁÉÍÓÚáéíóúÑñ][^']*')/g;
 
@@ -144,23 +143,76 @@ function findInteractiveWithoutTestId(file, content) {
     return;
   }
 
-  INTERACTIVE_TAG.lastIndex = 0;
-  let match;
+  for (const tag of findInteractiveOpeningTags(content)) {
+    const source = tag.source;
 
-  while ((match = INTERACTIVE_TAG.exec(content)) !== null) {
-    const tag = match[0];
-
-    if (tag.includes('data-testid=')) {
+    if (source.includes('data-testid=')) {
       continue;
     }
 
     addViolation(
       file,
-      lineForOffset(content, match.index),
+      lineForOffset(content, tag.index),
       'evolucion/interactive-data-testid',
       'Interactive Admin Next elements must expose data-testid for Playwright and agent verification.',
     );
   }
+}
+
+export function findInteractiveOpeningTags(content) {
+  const tags = [];
+  const tagStart = /<(button|Button|a)\b/g;
+  let match;
+
+  while ((match = tagStart.exec(content)) !== null) {
+    const index = match.index;
+    const source = readOpeningTag(content, index);
+
+    if (source) {
+      tags.push({ index, source });
+      tagStart.lastIndex = index + source.length;
+    }
+  }
+
+  return tags;
+}
+
+export function readOpeningTag(content, start) {
+  let quote = null;
+  let braceDepth = 0;
+
+  for (let index = start; index < content.length; index += 1) {
+    const char = content[index];
+    const prev = index > start ? content[index - 1] : '';
+
+    if (quote) {
+      if (char === quote && prev !== '\\') {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+
+    if (char === '{') {
+      braceDepth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      braceDepth = Math.max(0, braceDepth - 1);
+      continue;
+    }
+
+    if (char === '>' && braceDepth === 0) {
+      return content.slice(start, index + 1);
+    }
+  }
+
+  return null;
 }
 
 function countHardcodedCopy(content) {
@@ -252,7 +304,9 @@ async function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

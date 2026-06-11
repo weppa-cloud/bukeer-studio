@@ -30,6 +30,18 @@ describe('admin-next session helpers', () => {
       expect.arrayContaining(['admin_next.view', 'planner.view', 'planner.suggest', 'trace.view']),
     );
     expect(permissionsForRole('agent')).not.toContain('planner.approve');
+    expect(permissionsForRole('agent')).not.toContain('payments.manage');
+  });
+
+  it('maps accounting role to payment preparation permissions', () => {
+    expect(permissionsForRole('accounting')).toEqual(
+      expect.arrayContaining(['admin_next.view', 'payments.manage', 'trace.view']),
+    );
+  });
+
+  it('does not grant fallback permissions to unknown roles', () => {
+    expect(permissionsForRole('viewer')).toEqual([]);
+    expect(permissionsForRole('')).toEqual([]);
   });
 
   it('checks permissions only for authenticated contexts', () => {

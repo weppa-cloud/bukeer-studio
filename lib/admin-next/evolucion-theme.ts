@@ -24,6 +24,11 @@ const invariantVars = toCssVariableMap(webTheme.invariant);
 const lightVars = toCssVariableMap(webTheme.light);
 const darkVars = toCssVariableMap(webTheme.dark);
 
+export const evolucionFontImports = webTheme.fontImports;
+export const evolucionFontImportCss = webTheme.fontImports
+  .map((href) => `@import url("${href}");`)
+  .join('\n');
+
 export const evolucionThemeMetadata = {
   presetSlug: EVOLUCION_PRESET.metadata.slug,
   presetName: EVOLUCION_PRESET.profile.brand.name,
@@ -42,6 +47,12 @@ export function getEvolucionThemeStyle(
     ...toNextColorVars(modeVars),
     ...toAdminNextAliases(modeVars),
   };
+}
+
+export function getEvolucionThemeCss(appearance: EvolucionAppearance): string {
+  return Object.entries(getEvolucionThemeStyle(appearance))
+    .map(([name, value]) => `${name}: ${value};`)
+    .join('\n');
 }
 
 function toCssVariableMap(variables: CssVariable[]): CssVariableMap {

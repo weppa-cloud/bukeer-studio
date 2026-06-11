@@ -5,6 +5,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
+import { adminNextSmokeHeaders, adminNextSmokeToken, newAdminNextSmokePage } from './smoke-auth-headers.mjs';
 
 const route = '/admin/agenda/smoke';
 const externalBaseUrl = process.env.ADMIN_NEXT_AGENDA_SMOKE_BASE_URL;
@@ -46,6 +47,7 @@ async function startLocalServer() {
       ...process.env,
       ADMIN_NEXT_PROTOTYPE_ENABLED: 'true',
       ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED: 'true',
+      ADMIN_NEXT_PROTOTYPE_SMOKE_TOKEN: adminNextSmokeToken,
       ADMIN_NEXT_DATA_SOURCE_MODE: 'fixture',
       PORT: port,
     },
@@ -89,7 +91,7 @@ async function waitForHttp(url) {
 
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(url, { redirect: 'manual' });
+      const response = await fetch(url, { redirect: 'manual', headers: adminNextSmokeHeaders() });
       if (response.ok) return;
       lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
@@ -103,7 +105,7 @@ async function waitForHttp(url) {
 
 async function runPlaywrightSmoke(targetUrl) {
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+  const page = await newAdminNextSmokePage(browser, targetUrl, { width: 1440, height: 960 });
   const consoleMessages = [];
   const pageErrors = [];
 

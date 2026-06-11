@@ -3,6 +3,7 @@
 import type { AuthenticatedAdminSessionContext } from '@bukeer/admin-contract';
 import {
   Activity,
+  BarChart3,
   CalendarDays,
   CreditCard,
   PlaneTakeoff,
@@ -143,23 +144,31 @@ function SalesChart({
       className="flex min-h-[320px] flex-col rounded-lg border bg-card p-4 text-card-foreground"
       data-testid="admin-next-dashboard-sales-chart"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-normal">
           {adminNextCopy.dashboard.salesVsCostTitle}
         </h2>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <LegendDot label={adminNextCopy.dashboard.salesLegend} tone="primary" />
           <LegendDot label={adminNextCopy.dashboard.costLegend} tone="live" />
+          <a
+            className="inline-flex items-center gap-1 font-semibold text-primary"
+            data-testid="admin-next-dashboard-sales-report"
+            href="/admin/reports?report=sales&range=30d"
+          >
+            <BarChart3 className="size-3.5" />
+            {adminNextCopy.dashboard.viewReportAction}
+          </a>
         </div>
       </div>
-      <div className="mt-6 grid flex-1 grid-cols-6 items-end gap-3">
+      <div className="mt-6 grid flex-1 grid-cols-6 items-end gap-2 sm:gap-3">
         {chart.map((month) => (
           <div
             className="flex min-h-[220px] flex-col justify-end gap-2"
             data-testid={`admin-next-dashboard-chart-${month.month.toLowerCase()}`}
             key={month.month}
           >
-            <div className="flex flex-1 items-end justify-center gap-1.5 rounded-md bg-muted/50 px-2 py-2">
+            <div className="flex flex-1 items-end justify-center gap-1 rounded-md bg-muted/50 px-1.5 py-2 sm:gap-1.5 sm:px-2">
               <span
                 className="w-4 rounded-t-md bg-primary"
                 style={{ height: `${month.salesPct}%` }}
@@ -185,7 +194,11 @@ function ReceivablesPanel({ receivables }: { receivables: DashboardReceivable[] 
       className="rounded-lg border bg-card p-4 text-card-foreground"
       data-testid="admin-next-dashboard-receivables"
     >
-      <PanelHeader title={adminNextCopy.dashboard.receivablesTitle} testId="admin-next-dashboard-receivables-report" />
+      <PanelHeader
+        title={adminNextCopy.dashboard.receivablesTitle}
+        testId="admin-next-dashboard-receivables-report"
+        href="/admin/reports?report=receivables&range=30d&min=500000&max=15000000"
+      />
       <div className="mt-3 divide-y">
         {receivables.map((item) => (
           <div className="flex items-center gap-3 py-3" key={item.id}>
@@ -212,7 +225,11 @@ function SellersPanel({ sellers }: { sellers: DashboardSeller[] }) {
       className="rounded-lg border bg-card p-4 text-card-foreground"
       data-testid="admin-next-dashboard-sellers"
     >
-      <PanelHeader title={adminNextCopy.dashboard.sellersTitle} testId="admin-next-dashboard-sellers-report" />
+      <PanelHeader
+        title={adminNextCopy.dashboard.sellersTitle}
+        testId="admin-next-dashboard-sellers-report"
+        href="/admin/reports?report=sales-intelligence&range=90d"
+      />
       <div className="mt-3 divide-y">
         {sellers.map((seller) => (
           <div className="flex items-center gap-3 py-3" key={seller.id}>
@@ -303,17 +320,17 @@ function DashboardAiPanel({ signals }: { signals: DashboardSignal[] }) {
   );
 }
 
-function PanelHeader({ title, testId }: { title: string; testId: string }) {
+function PanelHeader({ title, testId, href }: { title: string; testId: string; href: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-lg font-semibold tracking-normal">{title}</h2>
-      <button
+      <a
         className="text-sm font-semibold text-primary"
         data-testid={testId}
-        type="button"
+        href={href}
       >
         {adminNextCopy.dashboard.viewReportAction}
-      </button>
+      </a>
     </div>
   );
 }
@@ -384,13 +401,13 @@ function initialsFor(name: string): string {
 function toneBadgeClass(tone: DashboardKpi['tone'] | DashboardReceivable['tone']) {
   switch (tone) {
     case 'success':
-      return 'border-[var(--bukeer-success)]/30 bg-[var(--bukeer-success)]/10 text-[var(--bukeer-success)]';
+      return 'border-[var(--bukeer-success)]/30 bg-[var(--bukeer-success)]/10 text-foreground';
     case 'warning':
-      return 'border-[var(--bukeer-human-loop)]/30 bg-[var(--bukeer-human-loop)]/10 text-[var(--bukeer-human-loop)]';
+      return 'border-[var(--bukeer-human-loop)]/30 bg-[var(--bukeer-human-loop)]/10 text-foreground';
     case 'danger':
-      return 'border-destructive/30 bg-destructive/10 text-destructive';
+      return 'border-destructive/30 bg-destructive/10 text-foreground';
     case 'live':
-      return 'border-[var(--bukeer-live)]/30 bg-[var(--bukeer-live)]/10 text-[var(--bukeer-live)]';
+      return 'border-[var(--bukeer-live)]/30 bg-[var(--bukeer-live)]/10 text-foreground';
     default:
       return 'border-border bg-muted text-muted-foreground';
   }
@@ -401,15 +418,15 @@ function avatarToneClass(
 ) {
   switch (tone) {
     case 'success':
-      return 'bg-[var(--bukeer-success)]/10 text-[var(--bukeer-success)]';
+      return 'border border-[var(--bukeer-success)]/30 bg-[var(--bukeer-success)]/10 text-foreground';
     case 'warning':
-      return 'bg-[var(--bukeer-human-loop)]/10 text-[var(--bukeer-human-loop)]';
+      return 'border border-[var(--bukeer-human-loop)]/30 bg-[var(--bukeer-human-loop)]/10 text-foreground';
     case 'danger':
-      return 'bg-destructive/10 text-destructive';
+      return 'border border-destructive/30 bg-destructive/10 text-foreground';
     case 'live':
-      return 'bg-[var(--bukeer-live)]/10 text-[var(--bukeer-live)]';
+      return 'border border-[var(--bukeer-live)]/30 bg-[var(--bukeer-live)]/10 text-foreground';
     case 'primary':
-      return 'bg-primary/10 text-primary';
+      return 'border border-primary/30 bg-primary/10 text-foreground';
     default:
       return 'bg-muted text-muted-foreground';
   }

@@ -1,9 +1,8 @@
-import { notFound } from 'next/navigation';
 import { AccountModule } from '@/components/admin-next';
 import {
-  evolucionThemeMetadata,
-  getEvolucionThemeStyle,
-} from '@/lib/admin-next/evolucion-theme';
+  assertAdminNextSmokeAccess,
+  getAdminNextEvolucionTheme,
+} from '@/lib/admin-next/route-boundary';
 import { accountFixture } from '@/lib/admin-next/fixtures/account';
 import type { AdminNextSessionContext } from '@/lib/admin-next/session/get-admin-session-context';
 
@@ -31,25 +30,14 @@ const smokeSession: Extract<AdminNextSessionContext, { status: 'authenticated' }
   },
 };
 
-export default function AdminNextAccountSmokePage() {
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED !== 'true'
-  ) {
-    notFound();
-  }
+export default async function AdminNextAccountSmokePage() {
+  await assertAdminNextSmokeAccess();
 
   return (
     <AccountModule
       session={smokeSession}
       fixture={accountFixture}
-      evolucionTheme={{
-        presetSlug: evolucionThemeMetadata.presetSlug,
-        styles: {
-          light: getEvolucionThemeStyle('light'),
-          dark: getEvolucionThemeStyle('dark'),
-        },
-      }}
+      evolucionTheme={getAdminNextEvolucionTheme()}
     />
   );
 }

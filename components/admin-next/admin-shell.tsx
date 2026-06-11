@@ -3,16 +3,20 @@
 import type { AuthenticatedAdminSessionContext } from '@bukeer/admin-contract';
 import {
   Bell,
+  BarChart3,
   Blocks,
   CalendarDays,
   CheckCircle2,
+  ClipboardList,
   CircleHelp,
   Command,
+  Package,
   LayoutDashboard,
   Map,
   PlaneTakeoff,
   Search,
   ShieldCheck,
+  WalletCards,
   Users,
 } from 'lucide-react';
 import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
@@ -20,18 +24,26 @@ import { cn } from '@/lib/utils';
 
 type AdminShellNavKey =
   | 'dashboard'
+  | 'itineraries'
   | 'planner'
   | 'conversations'
   | 'contacts'
+  | 'products'
+  | 'reports'
+  | 'payments'
   | 'agenda'
   | 'account'
   | 'settings';
 
 const NAV_ICONS = {
   dashboard: LayoutDashboard,
+  itineraries: ClipboardList,
   planner: PlaneTakeoff,
   conversations: Blocks,
   contacts: Users,
+  products: Package,
+  reports: BarChart3,
+  payments: WalletCards,
   agenda: CalendarDays,
   account: CircleHelp,
   settings: Map,
@@ -47,7 +59,7 @@ export function AdminShell({
   activeKey?: AdminShellNavKey;
 }) {
   return (
-    <main className="min-h-screen bg-muted/40 text-foreground">
+    <main className="min-h-screen overflow-x-hidden bg-muted/40 text-foreground">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[248px_minmax(0,1fr)]">
         <aside className="hidden border-r bg-background lg:flex lg:flex-col">
           <div className="border-b p-4">

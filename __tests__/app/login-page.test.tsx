@@ -38,4 +38,19 @@ describe('/login redirect handoff', () => {
       }),
     );
   });
+
+  it('rejects external next redirects', async () => {
+    const element = await LoginPage({
+      searchParams: Promise.resolve({
+        next: 'https://evil.example/phish',
+      }),
+    });
+
+    expect(element).toEqual(
+      expect.objectContaining({
+        type: LoginForm,
+        props: { redirect: '/dashboard' },
+      }),
+    );
+  });
 });
