@@ -19,56 +19,67 @@ describe('products adapter', () => {
     });
   });
 
-  it('maps readonly catalog RPC rows into the Products contract', async () => {
-    const rpc = jest.fn((fn: string) => {
-      if (fn === 'list_account_hotels') {
-        return Promise.resolve({
-          data: [
-            {
-              id: 'hotel-live-1',
-              custom_name: 'Casa Baru Preferred',
-              hotel_name: 'Casa Baru',
-              hotel_city: 'Baru',
-              hotel_country: 'Colombia',
-              hotel_description: 'Hotel frente al mar',
-              custom_description: null,
-              hotel_photos: [{ url: 'one.jpg' }, { url: 'two.jpg' }],
-              hotel_star_rating: 4.7,
-              min_price: 720000,
-              provider_name: 'Operador Caribe',
-              provider_email: 'reservas@example.test',
-              rates_count: 2,
+  it('maps readonly catalog table rows into the Products contract', async () => {
+    const supabase = createReadonlySupabaseMock({
+      account_hotels: {
+        data: [
+          {
+            id: 'hotel-live-1',
+            custom_name: 'Casa Baru Preferred',
+            custom_description: null,
+            is_active: true,
+            provider_contact_id: 'provider-1',
+            master_hotels: {
+              id: 'master-hotel-1',
+              name: 'Casa Baru',
+              city: 'Baru',
+              country: 'Colombia',
+              description: 'Hotel frente al mar',
+              photos: [{ url: 'one.jpg' }, { url: 'two.jpg' }],
+              star_rating: 4.5,
+              user_rating: 4.7,
+              reviews_count: 83,
             },
-          ],
-          error: null,
-        });
-      }
-
-      if (fn === 'list_account_activities') {
-        return Promise.resolve({
-          data: [
-            {
-              id: 'activity-live-1',
-              custom_name: null,
-              activity_name: 'Tour manglares',
-              activity_city: 'Cartagena',
-              custom_description: 'Recorrido natural',
-              master_photos: { images: [{ url: 'mangrove.jpg' }] },
-              min_price: '180000',
-              provider_name: 'Eco Tours',
-              provider_email: 'ops@example.test',
-              options_count: 0,
+            contacts: {
+              id: 'provider-1',
+              name: 'Operador',
+              last_name: 'Caribe',
+              email: 'reservas@example.test',
             },
-          ],
-          error: null,
-        });
-      }
-
-      throw new Error(`Unexpected RPC ${fn}`);
+          },
+        ],
+        error: null,
+      },
+      account_activities: {
+        data: [
+          {
+            id: 'activity-live-1',
+            custom_name: null,
+            custom_description: 'Recorrido natural',
+            is_active: true,
+            provider_contact_id: 'provider-2',
+            master_activities: {
+              id: 'master-activity-1',
+              name: 'Tour manglares',
+              city: 'Cartagena',
+              country: 'Colombia',
+              description: 'Recorrido por ecosistema',
+              description_short: 'Recorrido natural corto',
+              photos: { images: [{ url: 'mangrove.jpg' }] },
+              duration_minutes: 180,
+              experience_type: 'nature',
+            },
+            contacts: {
+              id: 'provider-2',
+              name: 'Eco',
+              last_name: 'Tours',
+              email: 'ops@example.test',
+            },
+          },
+        ],
+        error: null,
+      },
     });
-    const supabase = {
-      rpc,
-    } as unknown as AdminNextProductsReadonlySupabaseClient;
     const adapter = createProductsAdapter({
       mode: 'readonly',
       supabase,
@@ -77,20 +88,26 @@ describe('products adapter', () => {
 
     const fixture = await adapter.getProducts();
 
-    expect(Object.keys(supabase)).toEqual(['rpc']);
-    expect('from' in supabase).toBe(false);
-    expect(rpc).toHaveBeenCalledWith('list_account_hotels', {
-      p_account_id: 'acct-1',
-      p_active_only: true,
-      p_search: '',
-    });
-    expect(rpc).toHaveBeenCalledWith('list_account_activities', {
-      p_account_id: 'acct-1',
-      p_active_only: true,
-      p_limit: 25,
-      p_offset: 0,
-      p_search: '',
-    });
+    expect(typeof supabase.from).toBe('function');
+    expect('rpc' in supabase).toBe(false);
+    expect(supabase.calls).toEqual([
+      {
+        table: 'account_hotels',
+        filters: [
+          ['account_id', 'acct-1'],
+          ['is_active', true],
+        ],
+        limit: 25,
+      },
+      {
+        table: 'account_activities',
+        filters: [
+          ['account_id', 'acct-1'],
+          ['is_active', true],
+        ],
+        limit: 25,
+      },
+    ]);
     expect(fixture.categories).toEqual([
       expect.objectContaining({ key: 'all', count: 2 }),
       expect.objectContaining({ key: 'hotels', count: 1 }),
@@ -106,18 +123,16 @@ describe('products adapter', () => {
         location: 'Baru, Colombia',
         provider: 'Operador Caribe',
         providerKey: 'operador-caribe',
-        fromPrice: '$720.000',
-        priceAmount: 720000,
-        rateState: 'active',
+        reviews: 83,
+        rateState: 'review',
         imageCount: 2,
       }),
       expect.objectContaining({
         id: 'activity-live-1',
         name: 'Tour manglares',
         type: 'Actividades',
-        location: 'Cartagena',
+        location: 'Cartagena, Colombia',
         provider: 'Eco Tours',
-        fromPrice: '$180.000',
         rateState: 'review',
         tone: 'warning',
         imageCount: 1,
@@ -133,26 +148,81 @@ describe('products adapter', () => {
     );
   });
 
-  it('throws when readonly RPC returns an error', async () => {
-    const supabase = {
-      rpc: jest.fn((fn: string) =>
-        Promise.resolve({
-          data: fn === 'list_account_activities' ? [] : null,
-          error:
-            fn === 'list_account_hotels'
-              ? { message: 'permission denied' }
-              : null,
-        }),
-      ),
-    } as unknown as AdminNextProductsReadonlySupabaseClient;
+  it('throws when readonly table reads return an error', async () => {
     const adapter = createProductsAdapter({
       mode: 'readonly',
-      supabase,
+      supabase: createReadonlySupabaseMock({
+        account_hotels: { data: null, error: { message: 'permission denied' } },
+        account_activities: { data: [], error: null },
+      }),
       accountId: 'acct-1',
     });
 
     await expect(adapter.getProducts()).rejects.toThrow(
-      'list_account_hotels readonly query failed: permission denied',
+      'account_hotels readonly query failed: permission denied',
     );
   });
 });
+
+function createReadonlySupabaseMock(rows: {
+  account_hotels: {
+    data: unknown[] | null;
+    error: { message?: string } | null;
+  };
+  account_activities: {
+    data: unknown[] | null;
+    error: { message?: string } | null;
+  };
+}): AdminNextProductsReadonlySupabaseClient & {
+  calls: Array<{
+    table: string;
+    filters: Array<[string, unknown]>;
+    limit: number | null;
+  }>;
+} {
+  const calls: Array<{
+    table: string;
+    filters: Array<[string, unknown]>;
+    limit: number | null;
+  }> = [];
+
+  return {
+    calls,
+    from(table: 'account_hotels' | 'account_activities') {
+      return {
+        select() {
+          const call: {
+            table: string;
+            filters: Array<[string, unknown]>;
+            limit: number | null;
+          } = { table, filters: [], limit: null };
+          calls.push(call);
+          const query = {
+            eq(column: string, value: unknown) {
+              call.filters.push([column, value]);
+              return query;
+            },
+            limit(count: number) {
+              call.limit = count;
+              return query;
+            },
+            then(
+              resolve: (value: unknown) => unknown,
+              reject?: (reason: unknown) => unknown,
+            ) {
+              return Promise.resolve(rows[table]).then(resolve, reject);
+            },
+          };
+
+          return query;
+        },
+      };
+    },
+  } as unknown as AdminNextProductsReadonlySupabaseClient & {
+    calls: Array<{
+      table: string;
+      filters: Array<[string, unknown]>;
+      limit: number | null;
+    }>;
+  };
+}

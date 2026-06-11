@@ -78,7 +78,7 @@ describe('/admin/products auth boundary', () => {
     delete process.env.ADMIN_NEXT_DATA_SOURCE_MODE;
     mockCreateProductsAdapter.mockReturnValue(adapterWithFixture() as never);
     mockCreateSupabaseServerClient.mockResolvedValue({
-      rpc: jest.fn(),
+      from: jest.fn(),
     } as never);
   });
 
@@ -144,6 +144,7 @@ describe('/admin/products auth boundary', () => {
         props: expect.objectContaining({
           session,
           fixture,
+          dataSourceMode: 'fixture',
           evolucionTheme: expect.objectContaining({
             presetSlug: 'evolucion',
           }),
@@ -160,7 +161,7 @@ describe('/admin/products auth boundary', () => {
         adminNextBetaReadonly: true,
       },
     });
-    const supabase = { rpc: jest.fn() };
+    const supabase = { from: jest.fn() };
     mockGetAdminSessionContext.mockResolvedValue(session as never);
     mockCreateSupabaseServerClient.mockResolvedValue(supabase as never);
 
@@ -177,6 +178,7 @@ describe('/admin/products auth boundary', () => {
         type: mockProductsModule,
         props: expect.objectContaining({
           fixture,
+          dataSourceMode: 'readonly',
         }),
       }),
     );

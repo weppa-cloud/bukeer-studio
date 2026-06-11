@@ -61,6 +61,7 @@ export default async function AdminNextProductsPage() {
     <ProductsModule
       session={session}
       fixture={fixture}
+      dataSourceMode={dataSourceMode}
       evolucionTheme={{
         presetSlug: evolucionThemeMetadata.presetSlug,
         styles: {

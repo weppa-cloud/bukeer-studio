@@ -11,27 +11,19 @@ type SupabaseRpcResponse<T> = {
   error: { message?: string } | null;
 };
 
-type SupabaseRpcQuery<T> = PromiseLike<SupabaseRpcResponse<T>>;
+type SupabaseReadQuery<T> = PromiseLike<SupabaseRpcResponse<T>>;
+
+interface SupabaseReadFilter<T> extends SupabaseReadQuery<T> {
+  eq(column: string, value: unknown): SupabaseReadFilter<T>;
+  limit(count: number): SupabaseReadFilter<T>;
+}
+
+interface SupabaseReadBuilder {
+  select<T = unknown>(columns: string): SupabaseReadFilter<T>;
+}
 
 export interface AdminNextProductsReadonlySupabaseClient {
-  rpc(
-    fn: 'list_account_hotels',
-    args: {
-      p_account_id: string;
-      p_active_only?: boolean;
-      p_search?: string;
-    },
-  ): SupabaseRpcQuery<ReadonlyHotelRow[]>;
-  rpc(
-    fn: 'list_account_activities',
-    args: {
-      p_account_id: string;
-      p_active_only?: boolean;
-      p_limit?: number;
-      p_offset?: number;
-      p_search?: string;
-    },
-  ): SupabaseRpcQuery<ReadonlyActivityRow[]>;
+  from(table: 'account_hotels' | 'account_activities'): SupabaseReadBuilder;
 }
 
 export interface ProductsAdapter {
@@ -51,33 +43,71 @@ type JsonValue = unknown;
 interface ReadonlyHotelRow {
   id: string;
   custom_name: string | null;
-  hotel_name: string | null;
-  hotel_city: string | null;
-  hotel_country: string | null;
+  hotel_name?: string | null;
+  hotel_city?: string | null;
+  hotel_country?: string | null;
   hotel_description?: string | null;
   custom_description?: string | null;
   hotel_photos?: JsonValue;
-  hotel_star_rating: NumericValue;
+  hotel_star_rating?: NumericValue;
   min_price?: NumericValue;
-  provider_name: string | null;
+  provider_name?: string | null;
   provider_email?: string | null;
-  rates_count: NumericValue;
+  rates_count?: NumericValue;
+  master_hotels?: ReadonlyMasterHotelRow | ReadonlyMasterHotelRow[] | null;
+  contacts?: ReadonlyProviderContactRow | ReadonlyProviderContactRow[] | null;
 }
 
 interface ReadonlyActivityRow {
   id: string;
   custom_name: string | null;
-  activity_name: string | null;
-  activity_city: string | null;
+  activity_name?: string | null;
+  activity_city?: string | null;
   custom_description?: string | null;
   master_photos?: JsonValue;
   min_price?: NumericValue;
-  provider_name: string | null;
+  provider_name?: string | null;
   provider_email?: string | null;
-  options_count: NumericValue;
+  options_count?: NumericValue;
+  master_activities?:
+    | ReadonlyMasterActivityRow
+    | ReadonlyMasterActivityRow[]
+    | null;
+  contacts?: ReadonlyProviderContactRow | ReadonlyProviderContactRow[] | null;
 }
 
-const READONLY_ACTIVITY_LIMIT = 25;
+interface ReadonlyMasterHotelRow {
+  id?: string | null;
+  name?: string | null;
+  city?: string | null;
+  country?: string | null;
+  description?: string | null;
+  photos?: JsonValue;
+  star_rating?: NumericValue;
+  user_rating?: NumericValue;
+  reviews_count?: NumericValue;
+}
+
+interface ReadonlyMasterActivityRow {
+  id?: string | null;
+  name?: string | null;
+  city?: string | null;
+  country?: string | null;
+  description?: string | null;
+  description_short?: string | null;
+  photos?: JsonValue;
+  duration_minutes?: NumericValue;
+  experience_type?: string | null;
+}
+
+interface ReadonlyProviderContactRow {
+  id?: string | null;
+  name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+}
+
+const READONLY_PRODUCT_LIMIT = 25;
 const DEFAULT_CURRENCY = '$';
 const CATEGORY_KEYS = {
   all: 'all',
@@ -121,28 +151,46 @@ class ReadonlyProductsAdapter implements ProductsAdapter {
 
   async getProducts(): Promise<ProductsFixture> {
     const [hotelsResponse, activitiesResponse] = await Promise.all([
-      this.supabase.rpc('list_account_hotels', {
-        p_account_id: this.accountId,
-        p_active_only: true,
-        p_search: '',
-      }),
-      this.supabase.rpc('list_account_activities', {
-        p_account_id: this.accountId,
-        p_active_only: true,
-        p_limit: READONLY_ACTIVITY_LIMIT,
-        p_offset: 0,
-        p_search: '',
-      }),
+      readAccountHotels(this.supabase, this.accountId),
+      readAccountActivities(this.supabase, this.accountId),
     ]);
 
-    assertReadableResponse('list_account_hotels', hotelsResponse.error);
-    assertReadableResponse('list_account_activities', activitiesResponse.error);
+    assertReadableResponse('account_hotels', hotelsResponse.error);
+    assertReadableResponse('account_activities', activitiesResponse.error);
 
     return buildReadonlyProductsFixture(
       hotelsResponse.data ?? [],
       activitiesResponse.data ?? [],
     );
   }
+}
+
+function readAccountHotels(
+  supabase: AdminNextProductsReadonlySupabaseClient,
+  accountId: string,
+): SupabaseReadQuery<ReadonlyHotelRow[]> {
+  return supabase
+    .from('account_hotels')
+    .select<
+      ReadonlyHotelRow[]
+    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_hotels(id, name, city, country, description, photos, star_rating, user_rating, reviews_count)', 'contacts!account_hotels_provider_contact_id_fkey(id, name, last_name, email)'].join(', '))
+    .eq('account_id', accountId)
+    .eq('is_active', true)
+    .limit(READONLY_PRODUCT_LIMIT);
+}
+
+function readAccountActivities(
+  supabase: AdminNextProductsReadonlySupabaseClient,
+  accountId: string,
+): SupabaseReadQuery<ReadonlyActivityRow[]> {
+  return supabase
+    .from('account_activities')
+    .select<
+      ReadonlyActivityRow[]
+    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_activities(id, name, city, country, description, description_short, photos, duration_minutes, experience_type)', 'contacts!account_activities_provider_contact_id_fkey(id, name, last_name, email)'].join(', '))
+    .eq('account_id', accountId)
+    .eq('is_active', true)
+    .limit(READONLY_PRODUCT_LIMIT);
 }
 
 function buildReadonlyProductsFixture(
@@ -171,15 +219,27 @@ function buildReadonlyProductsFixture(
 }
 
 function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
+  const master = firstRelation(row.master_hotels);
+  const providerContact = firstRelation(row.contacts);
   const name = firstNonEmpty(
     row.custom_name,
     row.hotel_name,
+    master?.name,
     productsFixture.products[0].name,
   );
-  const provider = firstNonEmpty(row.provider_name, name);
+  const provider = firstNonEmpty(
+    row.provider_name,
+    fullContactName(providerContact),
+    providerContact?.email,
+    name,
+  );
   const priceAmount = readNumber(row.min_price) ?? 0;
   const rateCount = readNumber(row.rates_count) ?? 0;
-  const rating = readNumber(row.hotel_star_rating);
+  const rating =
+    readNumber(row.hotel_star_rating) ??
+    readNumber(master?.user_rating) ??
+    readNumber(master?.star_rating);
+  const reviewCount = readNumber(master?.reviews_count) ?? 0;
 
   return {
     id: row.id,
@@ -187,7 +247,10 @@ function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
     type:
       productsFixture.categories.find((category) => category.key === 'hotels')
         ?.label ?? productsFixture.products[0].type,
-    location: joinLocation(row.hotel_city, row.hotel_country),
+    location: joinLocation(
+      row.hotel_city ?? master?.city,
+      row.hotel_country ?? master?.country,
+    ),
     provider,
     providerKey: slugForEntity(provider, row.id),
     status:
@@ -196,24 +259,32 @@ function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
         : productsFixture.products[2].status,
     rating:
       rating == null ? productsFixture.products[0].rating : rating.toFixed(1),
-    reviews: 0,
+    reviews: reviewCount,
     fromPrice: formatCopPrice(priceAmount),
     priceAmount,
     priceUnit: productsFixture.products[0].priceUnit,
     rateState: rateCount > 0 ? 'active' : 'review',
     features: productsFixture.products[0].features.slice(0, 3),
-    imageCount: countMedia(row.hotel_photos),
+    imageCount: countMedia(row.hotel_photos ?? master?.photos),
     tone: rateCount > 0 ? 'primary' : 'warning',
   };
 }
 
 function mapActivityRowToProduct(row: ReadonlyActivityRow): ProductRecord {
+  const master = firstRelation(row.master_activities);
+  const providerContact = firstRelation(row.contacts);
   const name = firstNonEmpty(
     row.custom_name,
     row.activity_name,
+    master?.name,
     productsFixture.products[1].name,
   );
-  const provider = firstNonEmpty(row.provider_name, name);
+  const provider = firstNonEmpty(
+    row.provider_name,
+    fullContactName(providerContact),
+    providerContact?.email,
+    name,
+  );
   const priceAmount = readNumber(row.min_price) ?? 0;
   const optionCount = readNumber(row.options_count) ?? 0;
 
@@ -224,10 +295,7 @@ function mapActivityRowToProduct(row: ReadonlyActivityRow): ProductRecord {
       productsFixture.categories.find(
         (category) => category.key === 'activities',
       )?.label ?? productsFixture.products[1].type,
-    location: firstNonEmpty(
-      row.activity_city,
-      productsFixture.products[1].location,
-    ),
+    location: joinLocation(row.activity_city ?? master?.city, master?.country),
     provider,
     providerKey: slugForEntity(provider, row.id),
     status:
@@ -241,7 +309,7 @@ function mapActivityRowToProduct(row: ReadonlyActivityRow): ProductRecord {
     priceUnit: productsFixture.products[1].priceUnit,
     rateState: optionCount > 0 ? 'active' : 'review',
     features: productsFixture.products[1].features.slice(0, 3),
-    imageCount: countMedia(row.master_photos),
+    imageCount: countMedia(row.master_photos ?? master?.photos),
     tone: optionCount > 0 ? 'live' : 'warning',
   };
 }
@@ -254,12 +322,17 @@ function buildSelectedProduct(
   const sourceDescription = firstNonEmpty(
     hotel?.custom_description,
     hotel?.hotel_description,
+    firstRelation(hotel?.master_hotels)?.description,
     activity?.custom_description,
+    firstRelation(activity?.master_activities)?.description_short,
+    firstRelation(activity?.master_activities)?.description,
     productsFixture.selected.description,
   );
   const sourceEmail = firstNonEmpty(
     hotel?.provider_email,
+    firstRelation(hotel?.contacts)?.email,
     activity?.provider_email,
+    firstRelation(activity?.contacts)?.email,
     productsFixture.selected.providerEmail,
   );
 
@@ -352,6 +425,25 @@ function readNumber(value: NumericValue): number | null {
   }
 
   return null;
+}
+
+function firstRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function fullContactName(
+  contact: ReadonlyProviderContactRow | null,
+): string | null {
+  if (!contact) return null;
+
+  const name = [contact.name, contact.last_name]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(' ')
+    .trim();
+
+  return name || null;
 }
 
 function firstNonEmpty(...values: Array<string | null | undefined>): string {

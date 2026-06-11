@@ -19,6 +19,7 @@ describe('ProductsModule', () => {
           },
         }}
         fixture={productsFixture}
+        dataSourceMode="readonly"
         evolucionTheme={{
           presetSlug: 'evolucion',
           styles: {
@@ -31,15 +32,20 @@ describe('ProductsModule', () => {
 
     expect(markup).toContain('data-testid="admin-next-products-root"');
     expect(markup).toContain('data-theme-preset="evolucion"');
+    expect(markup).toContain('data-source-mode="readonly"');
     expect(markup).toContain('data-testid="admin-next-products-toolbar"');
     expect(markup).toContain('data-testid="admin-next-products-search-input"');
-    expect(markup).toContain('data-testid="admin-next-products-advanced-filters"');
+    expect(markup).toContain(
+      'data-testid="admin-next-products-advanced-filters"',
+    );
     expect(markup).toContain('data-testid="admin-next-products-result-count"');
     expect(markup).toContain('data-testid="admin-next-products-grid"');
     expect(markup).toContain('data-testid="admin-next-products-detail"');
     expect(markup).toContain('data-testid="admin-next-products-gallery"');
     expect(markup).toContain('data-testid="admin-next-products-rates"');
-    expect(markup).toContain('data-testid="admin-next-products-catalog-contract"');
+    expect(markup).toContain(
+      'data-testid="admin-next-products-catalog-contract"',
+    );
     expect(markup).toContain('data-testid="admin-next-products-ai-panel"');
     expect(markup).toContain('data-testid="admin-next-products-new"');
     expect(markup).toContain('data-testid="admin-next-products-edit"');

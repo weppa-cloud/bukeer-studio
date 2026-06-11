@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from 'react';
-import type { AuthenticatedAdminSessionContext } from '@bukeer/admin-contract';
+import type {
+  AdminDataSourceMode,
+  AuthenticatedAdminSessionContext,
+} from '@bukeer/admin-contract';
 import {
   ArrowLeft,
   BedDouble,
@@ -74,10 +77,12 @@ const emptyProductFilters: ProductFilters = {
 export function ProductsModule({
   session,
   fixture,
+  dataSourceMode = 'fixture',
   evolucionTheme,
 }: {
   session: AuthenticatedAdminSessionContext;
   fixture: ProductsFixture;
+  dataSourceMode?: AdminDataSourceMode;
   evolucionTheme: {
     presetSlug: string;
     styles: {
@@ -107,6 +112,7 @@ export function ProductsModule({
       <section
         className="min-h-full bg-[var(--bukeer-surface-rail)] p-4 text-foreground md:p-6"
         data-testid="admin-next-products-root"
+        data-source-mode={dataSourceMode}
         data-theme-preset={evolucionTheme.presetSlug}
         style={evolucionTheme.styles.light}
       >

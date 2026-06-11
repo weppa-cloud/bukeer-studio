@@ -147,6 +147,7 @@ async function runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary) {
     await root.waitFor({ timeout: 20_000 });
 
     const preset = await root.getAttribute('data-theme-preset');
+    const dataSourceMode = await root.getAttribute('data-source-mode');
     const title = await page.locator('h1').first().textContent();
     const productCount = await page.locator('[data-testid^="admin-next-product-card-"]').count();
     const hasToolbar = await page.getByTestId('admin-next-products-toolbar').isVisible();
@@ -218,6 +219,9 @@ async function runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary) {
     if (preset !== 'evolucion') {
       throw new Error(`Expected Evolucion preset, got ${preset}`);
     }
+    if (dataSourceMode !== 'fixture') {
+      throw new Error(`Expected fixture data source mode, got ${dataSourceMode}`);
+    }
     if (title?.trim() !== 'Productos') {
       throw new Error(`Unexpected products title: ${title}`);
     }
@@ -251,6 +255,7 @@ async function runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary) {
       status: response?.status() ?? null,
       url: targetUrl,
       preset,
+      dataSourceMode,
       title: title?.trim(),
       productCount,
       hasToolbar,
