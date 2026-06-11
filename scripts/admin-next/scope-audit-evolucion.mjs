@@ -23,6 +23,7 @@ const PHASE0_ALLOWLIST = [
   /^jest\.config\.js$/,
   /^lib\/admin-next\/admin-next-copy\.ts$/,
   /^lib\/admin-next\/evolucion-theme\.ts$/,
+  /^lib\/admin-next\/products-adapter\.ts$/,
   /^lib\/admin-next\/products-catalog-resolver\.ts$/,
   /^lib\/admin-next\/fixtures\/account\.ts$/,
   /^lib\/admin-next\/fixtures\/agenda\.ts$/,
@@ -52,6 +53,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/components\/admin-next\/settings-module\.test\.tsx$/,
   /^__tests__\/lib\/admin-next\/admin-next-copy\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/evolucion-theme\.test\.ts$/,
+  /^__tests__\/lib\/admin-next\/products-adapter\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/products-catalog-resolver\.test\.ts$/,
 ];
 

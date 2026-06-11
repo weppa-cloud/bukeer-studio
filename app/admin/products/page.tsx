@@ -4,11 +4,16 @@ import {
   evolucionThemeMetadata,
   getEvolucionThemeStyle,
 } from '@/lib/admin-next/evolucion-theme';
-import { productsFixture } from '@/lib/admin-next/fixtures/products';
+import { getAdminNextDataSourceMode } from '@/lib/admin-next/flags';
+import {
+  createProductsAdapter,
+  type AdminNextProductsReadonlySupabaseClient,
+} from '@/lib/admin-next/products-adapter';
 import {
   getAdminSessionContext,
   hasAdminPermission,
 } from '@/lib/admin-next/session/get-admin-session-context';
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +40,27 @@ export default async function AdminNextProductsPage() {
     notFound();
   }
 
+  const requestedDataSourceMode = getAdminNextDataSourceMode();
+  const dataSourceMode =
+    requestedDataSourceMode === 'readonly' &&
+    session.flags.adminNextBetaReadonly
+      ? 'readonly'
+      : 'fixture';
+  const adapter =
+    dataSourceMode === 'readonly'
+      ? createProductsAdapter({
+          mode: 'readonly',
+          supabase:
+            (await createSupabaseServerClient()) as unknown as AdminNextProductsReadonlySupabaseClient,
+          accountId: session.accountId,
+        })
+      : createProductsAdapter(dataSourceMode);
+  const fixture = await adapter.getProducts();
+
   return (
     <ProductsModule
       session={session}
-      fixture={productsFixture}
+      fixture={fixture}
       evolucionTheme={{
         presetSlug: evolucionThemeMetadata.presetSlug,
         styles: {

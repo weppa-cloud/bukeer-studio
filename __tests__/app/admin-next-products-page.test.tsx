@@ -1,6 +1,8 @@
 import AdminNextProductsPage from '@/app/admin/products/page';
 import { ProductsModule } from '@/components/admin-next';
+import { createProductsAdapter } from '@/lib/admin-next/products-adapter';
 import { getAdminSessionContext } from '@/lib/admin-next/session/get-admin-session-context';
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 
 jest.mock('next/navigation', () => ({
   notFound: jest.fn(() => {
@@ -22,8 +24,30 @@ jest.mock('@/lib/admin-next/session/get-admin-session-context', () => ({
   ).hasAdminPermission,
 }));
 
+jest.mock('@/lib/admin-next/products-adapter', () => ({
+  createProductsAdapter: jest.fn(),
+}));
+
+jest.mock('@/lib/supabase/server-client', () => ({
+  createSupabaseServerClient: jest.fn(),
+}));
+
 const mockProductsModule = jest.mocked(ProductsModule);
+const mockCreateProductsAdapter = jest.mocked(createProductsAdapter);
 const mockGetAdminSessionContext = jest.mocked(getAdminSessionContext);
+const mockCreateSupabaseServerClient = jest.mocked(createSupabaseServerClient);
+
+const fixture = {
+  selected: {
+    name: 'Hotel Las Islas',
+  },
+};
+
+function adapterWithFixture() {
+  return {
+    getProducts: jest.fn().mockResolvedValue(fixture),
+  };
+}
 
 function authenticatedSession(overrides: Record<string, unknown> = {}) {
   return {
@@ -47,8 +71,23 @@ function authenticatedSession(overrides: Record<string, unknown> = {}) {
 }
 
 describe('/admin/products auth boundary', () => {
+  const originalDataSourceMode = process.env.ADMIN_NEXT_DATA_SOURCE_MODE;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.ADMIN_NEXT_DATA_SOURCE_MODE;
+    mockCreateProductsAdapter.mockReturnValue(adapterWithFixture() as never);
+    mockCreateSupabaseServerClient.mockResolvedValue({
+      rpc: jest.fn(),
+    } as never);
+  });
+
+  afterEach(() => {
+    if (originalDataSourceMode === undefined) {
+      delete process.env.ADMIN_NEXT_DATA_SOURCE_MODE;
+    } else {
+      process.env.ADMIN_NEXT_DATA_SOURCE_MODE = originalDataSourceMode;
+    }
   });
 
   it('redirects unauthenticated users to shared login with next', async () => {
@@ -60,6 +99,7 @@ describe('/admin/products auth boundary', () => {
     await expect(AdminNextProductsPage()).rejects.toThrow(
       'NEXT_REDIRECT:/login?next=/admin/products',
     );
+    expect(mockCreateProductsAdapter).not.toHaveBeenCalled();
     expect(mockProductsModule).not.toHaveBeenCalled();
   });
 
@@ -74,6 +114,7 @@ describe('/admin/products auth boundary', () => {
     );
 
     await expect(AdminNextProductsPage()).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(mockCreateProductsAdapter).not.toHaveBeenCalled();
     expect(mockProductsModule).not.toHaveBeenCalled();
   });
 
@@ -85,6 +126,7 @@ describe('/admin/products auth boundary', () => {
     );
 
     await expect(AdminNextProductsPage()).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(mockCreateProductsAdapter).not.toHaveBeenCalled();
     expect(mockProductsModule).not.toHaveBeenCalled();
   });
 
@@ -94,19 +136,60 @@ describe('/admin/products auth boundary', () => {
 
     const element = await AdminNextProductsPage();
 
+    expect(mockCreateProductsAdapter).toHaveBeenCalledWith('fixture');
+    expect(mockCreateSupabaseServerClient).not.toHaveBeenCalled();
     expect(element).toEqual(
       expect.objectContaining({
         type: mockProductsModule,
         props: expect.objectContaining({
           session,
-          fixture: expect.objectContaining({
-            selected: expect.objectContaining({ name: 'Hotel Las Islas' }),
-          }),
+          fixture,
           evolucionTheme: expect.objectContaining({
             presetSlug: 'evolucion',
           }),
         }),
       }),
     );
+  });
+
+  it('uses readonly Supabase only for allowlisted beta sessions', async () => {
+    process.env.ADMIN_NEXT_DATA_SOURCE_MODE = 'readonly';
+    const session = authenticatedSession({
+      flags: {
+        ...authenticatedSession().flags,
+        adminNextBetaReadonly: true,
+      },
+    });
+    const supabase = { rpc: jest.fn() };
+    mockGetAdminSessionContext.mockResolvedValue(session as never);
+    mockCreateSupabaseServerClient.mockResolvedValue(supabase as never);
+
+    const element = await AdminNextProductsPage();
+
+    expect(mockCreateSupabaseServerClient).toHaveBeenCalledTimes(1);
+    expect(mockCreateProductsAdapter).toHaveBeenCalledWith({
+      mode: 'readonly',
+      supabase,
+      accountId: 'account-1',
+    });
+    expect(element).toEqual(
+      expect.objectContaining({
+        type: mockProductsModule,
+        props: expect.objectContaining({
+          fixture,
+        }),
+      }),
+    );
+  });
+
+  it('keeps fixture mode when readonly is requested without beta access', async () => {
+    process.env.ADMIN_NEXT_DATA_SOURCE_MODE = 'readonly';
+    const session = authenticatedSession();
+    mockGetAdminSessionContext.mockResolvedValue(session as never);
+
+    await AdminNextProductsPage();
+
+    expect(mockCreateSupabaseServerClient).not.toHaveBeenCalled();
+    expect(mockCreateProductsAdapter).toHaveBeenCalledWith('fixture');
   });
 });
