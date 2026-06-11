@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { validateRollbackEvidenceFromEnv } from './rollback-evidence-evolucion.mjs';
 
 const repoRoot = process.cwd();
 const phaseIssueNumber = '616';
@@ -30,6 +31,7 @@ const requiredScripts = [
   'admin-next:visual-qa:evolucion',
   'admin-next:lighthouse:evolucion',
   'admin-next:agent-evals:evolucion',
+  'admin-next:rollback:evolucion',
   'build:worker',
   'typecheck',
 ];
@@ -58,12 +60,6 @@ const requiredEvidenceEnv = [
     label: 'soak window',
     validate: (value) => Number(value) >= 24,
     expected: '>= 24',
-  },
-  {
-    key: 'ADMIN_NEXT_ROLLBACK_SECONDS',
-    label: 'rollback target',
-    validate: (value) => Number(value) > 0 && Number(value) <= 5,
-    expected: '<= 5',
   },
   {
     key: 'ADMIN_NEXT_FLUTTER_FREEZE_CONFIRMED',
@@ -112,6 +108,7 @@ function main() {
   checkGitClean();
   checkPhaseIssue();
   checkFlutterCutoverContract();
+  checkRollbackEvidence();
   checkCutoverEvidence();
 
   const failed = checks.filter((check) => check.status === 'fail');
@@ -312,6 +309,12 @@ function checkFlutterCutoverContract() {
         'This proves the Flutter policy surface exists; final cutover still requires actual freeze/read-only flags and PR checks/merge evidence.',
     },
   );
+}
+
+function checkRollbackEvidence() {
+  const evidence = validateRollbackEvidenceFromEnv();
+
+  addCheck('rollback drill evidence', evidence.status, evidence);
 }
 
 function checkCutoverEvidence() {
