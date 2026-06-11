@@ -31,6 +31,7 @@ export const FONT_ALLOWLIST = new Set([
   'Plus Jakarta Sans',
   'Figtree',
   'Geist',
+  'Readex Pro',
 
   // Serif (elegant, editorial)
   'Playfair Display',

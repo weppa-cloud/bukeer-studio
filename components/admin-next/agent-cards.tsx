@@ -3,6 +3,7 @@
 import type { AgentBlockedState, AgentSuggestion } from '@bukeer/admin-contract';
 import { AlertTriangle, Bot, Database, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { StatePill } from './state-pill';
 
 export function AgentSuggestionCard({
@@ -27,7 +28,7 @@ export function AgentSuggestionCard({
         <StatePill state={suggestion.state} />
       </div>
       <div className="mt-3 rounded-md border bg-muted/40 p-3 text-sm">
-        <div className="font-semibold">Reasoning summary</div>
+        <div className="font-semibold">{adminNextCopy.agentCards.reasoningSummaryTitle}</div>
         <p className="mt-1 text-muted-foreground">{suggestion.rationale}</p>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -39,22 +40,29 @@ export function AgentSuggestionCard({
         ))}
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <Button variant="outline" size="sm" onClick={() => onInspectTrace(suggestion.traceId)}>
-          Trace
+        <Button
+          variant="outline"
+          size="sm"
+          data-testid={`agent-suggestion-trace-${suggestion.id}`}
+          onClick={() => onInspectTrace(suggestion.traceId)}
+        >
+          {adminNextCopy.agentCards.traceAction}
         </Button>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onSimulate('Suggestion accepted locally. No backend write was executed.')}
+          data-testid={`agent-suggestion-accept-${suggestion.id}`}
+          onClick={() => onSimulate(adminNextCopy.agentCards.suggestionAcceptedMessage)}
         >
-          Accept draft
+          {adminNextCopy.agentCards.acceptDraftAction}
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onSimulate('Suggestion rejected locally. Feedback capture is not wired yet.')}
+          data-testid={`agent-suggestion-reject-${suggestion.id}`}
+          onClick={() => onSimulate(adminNextCopy.agentCards.suggestionRejectedMessage)}
         >
-          Reject
+          {adminNextCopy.agentCards.rejectAction}
         </Button>
       </div>
     </article>
@@ -91,11 +99,16 @@ export function AgentBlockedCard({
         </div>
       ) : null}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => onInspectTrace(blocked.traceId)}>
-          Inspect trace
+        <Button
+          variant="outline"
+          size="sm"
+          data-testid={`agent-blocked-trace-${blocked.id}`}
+          onClick={() => onInspectTrace(blocked.traceId)}
+        >
+          {adminNextCopy.agentCards.inspectTraceAction}
         </Button>
         <span className="text-xs text-muted-foreground">
-          Required: {blocked.requiredPermission ?? 'policy clearance'}
+          {adminNextCopy.agentCards.requiredPrefix}: {blocked.requiredPermission ?? adminNextCopy.agentCards.policyClearanceFallback}
         </span>
       </div>
     </article>

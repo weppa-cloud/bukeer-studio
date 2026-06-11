@@ -14,14 +14,15 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { cn } from '@/lib/utils';
 
-const NAV = [
-  { label: 'Planner', icon: PlaneTakeoff, active: true },
-  { label: 'Conversaciones', icon: Users },
-  { label: 'Itinerarios', icon: Map },
-  { label: 'Manager', icon: LayoutDashboard },
-  { label: 'Agent Control', icon: Blocks },
+const NAV_ITEMS = [
+  { ...adminNextCopy.shell.nav[0], icon: PlaneTakeoff, active: true },
+  { ...adminNextCopy.shell.nav[1], icon: Users, active: false },
+  { ...adminNextCopy.shell.nav[2], icon: Map, active: false },
+  { ...adminNextCopy.shell.nav[3], icon: LayoutDashboard, active: false },
+  { ...adminNextCopy.shell.nav[4], icon: Blocks, active: false },
 ];
 
 export function AdminShell({
@@ -37,22 +38,23 @@ export function AdminShell({
         <aside className="hidden border-r bg-background lg:flex lg:flex-col">
           <div className="border-b p-4">
             <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Bukeer Admin Next
+              {adminNextCopy.shell.brandEyebrow}
             </div>
             <div className="mt-2 flex items-center gap-2">
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <PlaneTakeoff className="size-4" />
               </div>
               <div>
-                <div className="text-sm font-semibold">Human-Agent OS</div>
-                <div className="text-xs text-muted-foreground">Prototype mode</div>
+                <div className="text-sm font-semibold">{adminNextCopy.shell.productName}</div>
+                <div className="text-xs text-muted-foreground">{adminNextCopy.shell.modeLabel}</div>
               </div>
             </div>
           </div>
           <nav className="flex-1 space-y-1 p-3">
-            {NAV.map((item) => (
+            {NAV_ITEMS.map((item) => (
               <button
-                key={item.label}
+                key={item.key}
+                data-testid={`admin-next-nav-${item.key}`}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-medium',
                   item.active
@@ -81,17 +83,18 @@ export function AdminShell({
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-8 min-w-0 items-center gap-2 rounded-md border bg-muted px-3 text-sm text-muted-foreground">
                   <Search className="size-4" />
-                  <span className="hidden sm:inline">Search leads, trips, suppliers</span>
+                  <span className="hidden sm:inline">{adminNextCopy.shell.searchPlaceholder}</span>
                   <Command className="hidden size-3 sm:block" />
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <StatusChip icon={<CheckCircle2 className="size-3.5" />} label="Read-only" />
-                <StatusChip icon={<CircleHelp className="size-3.5" />} label="No writes" />
+                <StatusChip icon={<CheckCircle2 className="size-3.5" />} label={adminNextCopy.shell.readOnlyStatus} />
+                <StatusChip icon={<CircleHelp className="size-3.5" />} label={adminNextCopy.shell.noWritesStatus} />
                 <button
                   className="flex size-8 items-center justify-center rounded-md border text-muted-foreground"
                   type="button"
-                  aria-label="Notifications"
+                  aria-label={adminNextCopy.shell.notificationsLabel}
+                  data-testid="admin-next-notifications"
                 >
                   <Bell className="size-4" />
                 </button>

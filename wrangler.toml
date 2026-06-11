@@ -81,6 +81,9 @@ new_sqlite_classes = ["DOQueueHandler"]
 
 [env.staging.vars]
 NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
+ADMIN_NEXT_PROTOTYPE_ENABLED = "true"
+ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED = "true"
+ADMIN_NEXT_DATA_SOURCE_MODE = "fixture"
 
 # ── Development environment ────────────────────────────────────────────────
 

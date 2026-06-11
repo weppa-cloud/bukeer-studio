@@ -26,6 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import {
   SignatureStatePill,
   type SignatureTone,
@@ -68,15 +69,14 @@ export function TraceDrawer({
           <div className="flex items-start justify-between gap-4 pr-8">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <SignatureStatePill tone="structural">Inspector</SignatureStatePill>
-                <SignatureStatePill tone="live">Trace available</SignatureStatePill>
+                <SignatureStatePill tone="structural">{adminNextCopy.traceDrawer.inspectorPill}</SignatureStatePill>
+                <SignatureStatePill tone="live">{adminNextCopy.traceDrawer.traceAvailablePill}</SignatureStatePill>
               </div>
               <SheetTitle className="mt-3 text-xl font-semibold tracking-normal">
-                Agent trace
+                {adminNextCopy.traceDrawer.title}
               </SheetTitle>
               <SheetDescription className="mt-1 max-w-lg text-sm text-muted-foreground">
-                Human-visible audit of evidence, tool results and approval state. Hidden
-                chain-of-thought is not shown.
+                {adminNextCopy.traceDrawer.description}
               </SheetDescription>
             </div>
             <SheetClose
@@ -84,11 +84,12 @@ export function TraceDrawer({
                 <button
                   type="button"
                   className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-[hsl(var(--bukeer-surface-panel))] text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  data-testid="trace-drawer-close"
                 />
               }
             >
               <X className="size-4" />
-              <span className="sr-only">Close trace drawer</span>
+              <span className="sr-only">{adminNextCopy.traceDrawer.closeAction}</span>
             </SheetClose>
           </div>
         </SheetHeader>
@@ -109,9 +110,9 @@ export function TraceTimeline({ events }: { events: TraceEvent[] }) {
       <div className="flex items-center justify-between gap-3 border-b border-border bg-[hsl(var(--bukeer-surface-panel-strong))] px-4 py-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Audit sequence
+            {adminNextCopy.traceDrawer.auditSequenceEyebrow}
           </div>
-          <div className="mt-1 text-sm font-semibold">Trace timeline</div>
+          <div className="mt-1 text-sm font-semibold">{adminNextCopy.traceDrawer.timelineTitle}</div>
         </div>
         <Clock3 className="size-4 text-[hsl(var(--bukeer-structural))]" />
       </div>
@@ -159,9 +160,9 @@ function TraceSummary({ summary }: { summary: TraceDrawerSummary }) {
               <BrainCircuit className="size-3.5" />
               {summary.traceId}
             </div>
-            <h3 className="mt-2 truncate text-base font-semibold">Run {summary.agentRunId}</h3>
+            <h3 className="mt-2 truncate text-base font-semibold">{adminNextCopy.traceDrawer.runLabel(summary.agentRunId)}</h3>
           </div>
-          <SignatureStatePill tone="live">Evidence ready</SignatureStatePill>
+          <SignatureStatePill tone="live">{adminNextCopy.traceDrawer.evidenceReadyPill}</SignatureStatePill>
         </div>
       </div>
 
@@ -169,25 +170,25 @@ function TraceSummary({ summary }: { summary: TraceDrawerSummary }) {
         <div className="grid gap-2 text-sm sm:grid-cols-2">
           <SummaryMetric
             icon={<Activity className="size-3.5" />}
-            label="Confidence"
+            label={adminNextCopy.traceDrawer.confidenceLabel}
             tone="live"
             value={`${Math.round(summary.confidence * 100)}%`}
           />
           <SummaryMetric
             icon={<ShieldCheck className="size-3.5" />}
-            label="Permission"
+            label={adminNextCopy.traceDrawer.permissionLabel}
             tone="humanLoop"
             value={summary.permissionResult}
           />
           <SummaryMetric
             icon={<LockKeyhole className="size-3.5" />}
-            label="Policy"
+            label={adminNextCopy.traceDrawer.policyLabel}
             tone="structural"
             value={summary.policyResult}
           />
           <SummaryMetric
             icon={<ExternalLink className="size-3.5" />}
-            label="Audit"
+            label={adminNextCopy.traceDrawer.auditLabel}
             tone="structural"
             value={summary.auditLink}
           />
@@ -196,7 +197,7 @@ function TraceSummary({ summary }: { summary: TraceDrawerSummary }) {
         <div className="mt-4">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <Database className="size-4 text-[hsl(var(--bukeer-structural))]" />
-            Data used
+            {adminNextCopy.traceDrawer.dataUsedTitle}
           </div>
           <div className="flex flex-wrap gap-2">
             {summary.dataUsed.map((item) => (
@@ -220,10 +221,9 @@ function TraceGovernance({ summary }: { summary: TraceDrawerSummary }) {
       <div className="flex items-start gap-3">
         <FileText className="mt-0.5 size-4 shrink-0 text-[hsl(var(--bukeer-human-loop))]" />
         <div className="min-w-0">
-          <div className="font-semibold">Human approval boundary</div>
+          <div className="font-semibold">{adminNextCopy.traceDrawer.approvalBoundaryTitle}</div>
           <p className="mt-1 text-sm text-muted-foreground">
-            This drawer explains what the agent used and why the workflow remains gated.
-            Customer-facing sends require explicit approval.
+            {adminNextCopy.traceDrawer.approvalBoundaryDescription}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <SignatureStatePill tone="humanLoop">{summary.permissionResult}</SignatureStatePill>

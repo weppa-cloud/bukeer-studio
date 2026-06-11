@@ -3,6 +3,7 @@
 import type { ApprovalRequest } from '@bukeer/admin-contract';
 import { AlertTriangle, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { StatePill } from './state-pill';
 
 export function ApprovalCommandBar({
@@ -38,28 +39,36 @@ export function ApprovalCommandBar({
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-          <Button variant="outline" size="sm" onClick={() => onInspectTrace(approval.traceId)}>
-            Trace
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid={`approval-command-trace-${approval.id}`}
+            onClick={() => onInspectTrace(approval.traceId)}
+          >
+            {adminNextCopy.approvalCommand.traceAction}
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onSimulate('Approve with edits simulated locally. No write was sent.')}
+            data-testid={`approval-command-edit-${approval.id}`}
+            onClick={() => onSimulate(adminNextCopy.approvalCommand.approveWithEditsMessage)}
           >
-            Edit approval
+            {adminNextCopy.approvalCommand.editApprovalAction}
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onSimulate('Approval rejected locally. No workflow execution was triggered.')}
+            data-testid={`approval-command-reject-${approval.id}`}
+            onClick={() => onSimulate(adminNextCopy.approvalCommand.rejectedMessage)}
           >
-            Reject
+            {adminNextCopy.approvalCommand.rejectAction}
           </Button>
           <Button
             size="sm"
-            onClick={() => onSimulate('Approval simulated locally. Execution remains disabled in this prototype.')}
+            data-testid={`approval-command-approve-${approval.id}`}
+            onClick={() => onSimulate(adminNextCopy.approvalCommand.approvedMessage)}
           >
-            Approve once
+            {adminNextCopy.approvalCommand.approveOnceAction}
           </Button>
         </div>
       </div>

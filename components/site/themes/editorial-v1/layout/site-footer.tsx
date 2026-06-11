@@ -58,18 +58,6 @@ function isColombiaToursWebsite(website: WebsiteData): boolean {
   );
 }
 
-function isColombiaToursWebsite(website: WebsiteData): boolean {
-  const subdomain = website.subdomain?.toLowerCase() ?? '';
-  const customDomain = website.custom_domain?.toLowerCase() ?? '';
-  const siteName = website.content?.siteName?.toLowerCase() ?? '';
-
-  return (
-    subdomain === 'colombiatours' ||
-    customDomain === 'colombiatours.travel' ||
-    siteName.includes('colombiatours')
-  );
-}
-
 export function EditorialSiteFooter({
   website,
   isCustomDomain = false,
