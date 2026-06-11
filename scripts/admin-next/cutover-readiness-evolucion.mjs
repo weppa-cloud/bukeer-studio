@@ -7,6 +7,7 @@ import process from 'node:process';
 
 const repoRoot = process.cwd();
 const phaseIssueNumber = '616';
+const flutterCutoverPrNumber = '852';
 
 const requiredRoutes = [
   ['Dashboard', 'app/admin/dashboard/page.tsx', 'app/admin/dashboard/smoke/page.tsx'],
@@ -110,6 +111,7 @@ function main() {
   checkThemeContract();
   checkGitClean();
   checkPhaseIssue();
+  checkFlutterCutoverContract();
   checkCutoverEvidence();
 
   const failed = checks.filter((check) => check.status === 'fail');
@@ -246,6 +248,72 @@ function checkPhaseIssue() {
   );
 }
 
+function checkFlutterCutoverContract() {
+  const output = safeExec('gh', [
+    'pr',
+    'view',
+    flutterCutoverPrNumber,
+    '--repo',
+    'weppa-cloud/bukeer-flutter',
+    '--json',
+    'body,baseRefName,headRefName,mergeStateStatus,state,statusCheckRollup,title,url',
+  ]);
+
+  if (!output) {
+    const manualStatus = (
+      process.env.ADMIN_NEXT_FLUTTER_CUTOVER_CONTRACT_STATUS ?? ''
+    )
+      .trim()
+      .toLowerCase();
+    if (manualStatus === 'pass') {
+      addCheck('flutter cutover contract', 'pass', {
+        source: 'ADMIN_NEXT_FLUTTER_CUTOVER_CONTRACT_STATUS',
+        reason: 'manual Flutter contract verification supplied because gh was unavailable',
+      });
+      return;
+    }
+
+    addCheck('flutter cutover contract', 'fail', {
+      reason:
+        'gh pr view failed; set ADMIN_NEXT_FLUTTER_CUTOVER_CONTRACT_STATUS=pass only after manually verifying bukeer-flutter#852',
+      expected: 'bukeer-flutter#852 exposes appServices.bukeerNextCutover',
+    });
+    return;
+  }
+
+  const pr = JSON.parse(output);
+  const body = pr.body ?? '';
+  const checkSummary = summarizeStatusCheckRollup(pr.statusCheckRollup ?? []);
+  const contractSignals = {
+    exposesAppServicesContract: body.includes('appServices.bukeerNextCutover'),
+    mapsMigratedRoutes: body.includes('Maps migrated Flutter route names'),
+    definesReadonlyFallback: body.includes('readonly fallback'),
+    referencesThirtyDayFallback: body.includes('30-day emergency fallback'),
+  };
+  const contractPresent = Object.values(contractSignals).every(Boolean);
+  const prStateOk = ['OPEN', 'MERGED'].includes(pr.state);
+
+  addCheck(
+    'flutter cutover contract',
+    contractPresent && prStateOk ? 'pass' : 'fail',
+    {
+      repo: 'weppa-cloud/bukeer-flutter',
+      pr: Number(flutterCutoverPrNumber),
+      title: pr.title,
+      url: pr.url,
+      state: pr.state,
+      baseRefName: pr.baseRefName,
+      headRefName: pr.headRefName,
+      mergeStateStatus: pr.mergeStateStatus,
+      contractSignals,
+      remoteChecksGreen: checkSummary.failed === 0 && checkSummary.pending === 0,
+      remoteCheckSummary: checkSummary,
+      note:
+        'This proves the Flutter policy surface exists; final cutover still requires actual freeze/read-only flags and PR checks/merge evidence.',
+    },
+  );
+}
+
 function checkCutoverEvidence() {
   const failed = [];
   const values = {};
@@ -300,6 +368,40 @@ function parseGitStatusPath(line) {
       ? line.slice(3)
       : line.slice(2).trimStart();
   return normalized.includes(' -> ') ? normalized.split(' -> ').at(-1) : normalized;
+}
+
+function summarizeStatusCheckRollup(rollup) {
+  const summary = {
+    success: 0,
+    failed: 0,
+    pending: 0,
+    skipped: 0,
+    other: 0,
+    failedChecks: [],
+    pendingChecks: [],
+  };
+
+  for (const item of rollup) {
+    const name = item.name ?? item.context ?? '<unknown>';
+    const status = item.status ?? item.state ?? '';
+    const conclusion = item.conclusion ?? item.state ?? '';
+
+    if (conclusion === 'SUCCESS') {
+      summary.success += 1;
+    } else if (conclusion === 'FAILURE' || conclusion === 'ERROR') {
+      summary.failed += 1;
+      summary.failedChecks.push(name);
+    } else if (status === 'IN_PROGRESS' || conclusion === 'PENDING') {
+      summary.pending += 1;
+      summary.pendingChecks.push(name);
+    } else if (conclusion === 'SKIPPED') {
+      summary.skipped += 1;
+    } else {
+      summary.other += 1;
+    }
+  }
+
+  return summary;
 }
 
 function isTrue(value) {
