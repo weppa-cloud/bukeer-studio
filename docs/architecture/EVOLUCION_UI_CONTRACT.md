@@ -87,6 +87,36 @@ Cada una tiene su markup HTML listo en el handoff — portar igual que las 4 ya 
 | Vista pública del itinerario | `bukeer-screens-public.js` | `/admin/prototype/public-view` (o ruta pública) |
 | Móvil (11 pantallas, bottom bar 5 destinos) | `Prototipo Bukeer Movil.html` + `bukeer-mobile.css/js` | responsive de las mismas rutas |
 
+## Móvil / responsive (cómo está diseñado en el handoff)
+
+El prototipo NO es un diseño "fluido": son **dos diseños deliberados** que comparten tokens:
+
+1. **Desktop** (`Prototipo Bukeer.html`, canvas 1440×900) — shell `.bk` con sidebar 232px.
+2. **Móvil** (`Prototipo Bukeer Movil.html`, 390×844) — deck `.mb` de **11 pantallas**:
+   Inicio (KPIs scroll horizontal), Itinerarios, Itinerario detalle (tabs pill), Pagos del
+   itinerario, CRM/Conversaciones, Chat, Contactos, Pagos, Agenda, Notificaciones, Más.
+   - **Bottom-nav de 5 destinos**: `Inicio · Itinerarios · CRM · Agenda · Más` — decisión final
+     del chat3: SIN botón ⊕ central; cada módulo lleva su agregar contextual (FAB flotante en
+     Itinerarios, `+` en CRM/Contactos/Pagos).
+   - **Bottom sheets** (`.m-veil/.m-bsheet`) como modales móviles: Crear, Nuevo itinerario,
+     Agregar servicio (fuentes: `sheetCreate/sheetNewIti/sheetAddSvc` en `bukeer-mobile2.js`).
+   - Chat con composer pill, tabs pill en detalle, filas `.m-row` de 56px mínimo.
+
+**Estrategia de implementación**: mismas rutas Next; breakpoint único `lg` (1024px).
+`≥1024px` renderiza el shell `.bk` desktop; `<1024px` renderiza los patrones `.mb/.m-*`
+(bottom-nav + sheets). No inventar estados intermedios: el handoff no define tablet — ante
+la duda, usar el layout móvil hasta `lg`. Todo el CSS móvil ya está en `evolucion.css`.
+
+## Qué queda del prototipo por implementar (markup, no CSS)
+
+El CSS está completo; lo pendiente es escribir el markup React de: detalle de itinerario
+(5 tabs), detalle contacto/proveedor/producto, Pagos, Agenda, Reportes (hub + 4), Configuración,
+~25 modales (`bukeer-screens-modals*.js`), vista pública, ⌘K, panel de notificaciones, y los
+comportamientos JS del prototipo (abrir/cerrar dropdowns y modales, toasts, encadenamiento
+Crear → Nuevo itinerario) que en Next son estado React local. Los archivos no-UI del bundle
+(`design-canvas.jsx`, `tweaks-panel.jsx`, `.design-canvas.state.json`) son tooling del canvas
+de diseño — NO se portan.
+
 ## Gate funcional (qué significa "pantalla migrada")
 
 UI exacta ≠ migrada. Una pantalla cuenta como migrada cuando:
