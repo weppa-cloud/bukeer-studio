@@ -3,11 +3,13 @@ import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 describe('adminNextCopy', () => {
   it('keeps stable shell navigation keys for agent selectors', () => {
     expect(adminNextCopy.shell.nav.map((item) => item.key)).toEqual([
+      'dashboard',
       'planner',
       'conversations',
-      'itineraries',
-      'manager',
-      'agent-control',
+      'contacts',
+      'agenda',
+      'account',
+      'settings',
     ]);
   });
 
@@ -22,6 +24,12 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.prototype.lightModeAction).toBe('Light');
     expect(adminNextCopy.prototype.darkModeAction).toBe('Dark');
     expect(adminNextCopy.prototype.whatsappHandoffFallbackError).toContain('WhatsApp handoff');
+  });
+
+  it('keeps dashboard module copy centralized', () => {
+    expect(adminNextCopy.dashboard.title).toBe('Dashboard');
+    expect(adminNextCopy.dashboard.salesVsCostTitle).toBe('Ventas vs. costo');
+    expect(adminNextCopy.dashboard.targetProgress(92)).toBe('92% de la meta');
   });
 
   it('keeps signature UI copy and formatters centralized', () => {

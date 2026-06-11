@@ -1,6 +1,7 @@
 export { AdminShell } from './admin-shell';
 export { AgentBlockedCard, AgentSuggestionCard } from './agent-cards';
 export { ApprovalCommandBar } from './approval-command-bar';
+export { DashboardModule } from './dashboard-module';
 export { LiveFeedColumn } from './live-feed-column';
 export { PlannerWorkbenchLayout } from './planner-workbench-layout';
 export { PlannerWorkbenchPrototype } from './planner-workbench-prototype';
