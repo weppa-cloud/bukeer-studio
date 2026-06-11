@@ -38,6 +38,7 @@
     "admin-next:scope:evolucion": "node scripts/admin-next/scope-audit-evolucion.mjs",
     "admin-next:validate:evolucion": "node scripts/admin-next/validate-evolucion-contract.mjs",
     "admin-next:smoke:evolucion": "node scripts/admin-next/smoke-evolucion.mjs",
+    "admin-next:smoke:evolucion:account": "node scripts/admin-next/smoke-evolucion-account.mjs",
     "admin-next:smoke:evolucion:agenda": "node scripts/admin-next/smoke-evolucion-agenda.mjs",
     "admin-next:smoke:evolucion:dashboard": "node scripts/admin-next/smoke-evolucion-dashboard.mjs",
     "admin-next:smoke:evolucion:contacts": "node scripts/admin-next/smoke-evolucion-contacts.mjs",

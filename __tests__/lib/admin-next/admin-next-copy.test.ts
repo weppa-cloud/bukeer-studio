@@ -55,6 +55,12 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.agenda.itineraryLabel('2647')).toBe('ID 2647');
   });
 
+  it('keeps account module copy centralized', () => {
+    expect(adminNextCopy.account.title).toBe('Mi cuenta');
+    expect(adminNextCopy.account.profileTitle).toBe('Perfil');
+    expect(adminNextCopy.account.signOutAction).toBe('Cerrar sesion');
+  });
+
   it('keeps signature UI copy and formatters centralized', () => {
     expect(adminNextCopy.signature.statusLabels.approval_required).toBe('Approval required');
     expect(adminNextCopy.signature.blockedBanner.missingFieldsPill(3)).toBe('3 fields missing');

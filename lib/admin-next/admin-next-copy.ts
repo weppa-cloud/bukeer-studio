@@ -86,6 +86,19 @@ export const adminNextCopy = {
     aiPanelDescription:
       'Lectura de notificaciones, pagos de cliente y pendientes con proveedor para los proximos servicios.',
   },
+  account: {
+    title: 'Mi cuenta',
+    subtitle: 'Perfil personal y preferencias · Carolina Ruiz',
+    signOutAction: 'Cerrar sesion',
+    profileTitle: 'Perfil',
+    editProfileAction: 'Editar perfil',
+    securityTitle: 'Seguridad',
+    preferencesTitle: 'Preferencias',
+    notificationsTitle: 'Notificaciones',
+    signatureTitle: 'Firma en propuestas',
+    changeAction: 'Cambiar',
+    editAction: 'Editar',
+  },
   tripRail: {
     eyebrow: 'Active travel opportunities',
     title: 'Planner queue',
