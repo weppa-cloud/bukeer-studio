@@ -263,6 +263,7 @@ export const adminNextCopy = {
     ratesTitle: 'Tarifas',
     ratesSubtitle: 'Costo, margen y venta deben quedar visibles para operar.',
     activeRatesLabel: (count: number) => `${count} vigentes`,
+    rateMenuLabel: (name: string) => `Opciones de tarifa ${name}`,
     costLabel: 'Costo',
     marginLabel: 'Margen',
     saleLabel: 'Venta',

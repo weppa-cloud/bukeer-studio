@@ -39,7 +39,7 @@ export function SettingsModule({
   return (
     <AdminShell session={session} activeKey="settings">
       <section
-        className="min-h-full bg-[var(--bukeer-surface-rail)] p-4 text-foreground md:p-6"
+        className="min-h-full overflow-x-hidden bg-[var(--bukeer-surface-rail)] p-4 text-foreground md:p-6"
         data-testid="admin-next-settings-root"
         data-theme-preset={evolucionTheme.presetSlug}
         style={evolucionTheme.styles.light}
@@ -163,7 +163,7 @@ function InfoPanel({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold">{item.label}</div>
-                <div className="mt-1 text-sm font-medium text-primary">{item.value}</div>
+                <div className="mt-1 break-words text-sm font-medium text-primary">{item.value}</div>
               </div>
               <span className="text-xs font-semibold text-muted-foreground">
                 {adminNextCopy.settings.readOnlyLabel}
@@ -212,7 +212,7 @@ function PanelHeader({ title, icon }: { title: string; icon: React.ReactNode }) 
       <span className="flex size-8 items-center justify-center rounded-md border bg-background text-primary">
         {icon}
       </span>
-      <h2 className="text-base font-semibold tracking-normal">{title}</h2>
+      <h2 className="min-w-0 text-base font-semibold tracking-normal">{title}</h2>
     </div>
   );
 }
@@ -221,7 +221,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border bg-background px-3 py-2">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 truncate text-sm font-semibold">{value}</div>
+      <div className="mt-1 break-words text-sm font-semibold">{value}</div>
     </div>
   );
 }

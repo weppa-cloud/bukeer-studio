@@ -686,6 +686,7 @@ function RatesPanel({ rates }: { rates: ProductRate[] }) {
             <RateMetric label={adminNextCopy.products.marginLabel} value={rate.margin} tone="success" />
             <RateMetric label={adminNextCopy.products.saleLabel} value={rate.sale} />
             <button
+              aria-label={adminNextCopy.products.rateMenuLabel(rate.name)}
               className="flex size-7 items-center justify-center rounded-md border bg-background text-muted-foreground"
               data-testid={`admin-next-products-rate-menu-${rate.id}`}
               type="button"

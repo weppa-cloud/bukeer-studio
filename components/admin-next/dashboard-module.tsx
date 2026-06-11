@@ -144,11 +144,11 @@ function SalesChart({
       className="flex min-h-[320px] flex-col rounded-lg border bg-card p-4 text-card-foreground"
       data-testid="admin-next-dashboard-sales-chart"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-normal">
           {adminNextCopy.dashboard.salesVsCostTitle}
         </h2>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <LegendDot label={adminNextCopy.dashboard.salesLegend} tone="primary" />
           <LegendDot label={adminNextCopy.dashboard.costLegend} tone="live" />
           <a
@@ -161,14 +161,14 @@ function SalesChart({
           </a>
         </div>
       </div>
-      <div className="mt-6 grid flex-1 grid-cols-6 items-end gap-3">
+      <div className="mt-6 grid flex-1 grid-cols-6 items-end gap-2 sm:gap-3">
         {chart.map((month) => (
           <div
             className="flex min-h-[220px] flex-col justify-end gap-2"
             data-testid={`admin-next-dashboard-chart-${month.month.toLowerCase()}`}
             key={month.month}
           >
-            <div className="flex flex-1 items-end justify-center gap-1.5 rounded-md bg-muted/50 px-2 py-2">
+            <div className="flex flex-1 items-end justify-center gap-1 rounded-md bg-muted/50 px-1.5 py-2 sm:gap-1.5 sm:px-2">
               <span
                 className="w-4 rounded-t-md bg-primary"
                 style={{ height: `${month.salesPct}%` }}

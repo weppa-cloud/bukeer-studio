@@ -59,7 +59,7 @@ export function AdminShell({
   activeKey?: AdminShellNavKey;
 }) {
   return (
-    <main className="min-h-screen bg-muted/40 text-foreground">
+    <main className="min-h-screen overflow-x-hidden bg-muted/40 text-foreground">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[248px_minmax(0,1fr)]">
         <aside className="hidden border-r bg-background lg:flex lg:flex-col">
           <div className="border-b p-4">
