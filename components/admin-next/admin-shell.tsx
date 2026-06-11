@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   CircleHelp,
   Command,
+  Package,
   LayoutDashboard,
   Map,
   PlaneTakeoff,
@@ -23,6 +24,7 @@ type AdminShellNavKey =
   | 'planner'
   | 'conversations'
   | 'contacts'
+  | 'products'
   | 'agenda'
   | 'account'
   | 'settings';
@@ -32,6 +34,7 @@ const NAV_ICONS = {
   planner: PlaneTakeoff,
   conversations: Blocks,
   contacts: Users,
+  products: Package,
   agenda: CalendarDays,
   account: CircleHelp,
   settings: Map,

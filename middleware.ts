@@ -1708,6 +1708,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    "/((?!api|admin/prototype|admin/dashboard|admin/contacts|admin/agenda|admin/account|admin/settings|login|forgot-password|reset-password|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
+    "/((?!api|admin/prototype|admin/dashboard|admin/contacts|admin/products|admin/agenda|admin/account|admin/settings|login|forgot-password|reset-password|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
   ],
 };

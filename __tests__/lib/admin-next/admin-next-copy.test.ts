@@ -7,6 +7,7 @@ describe('adminNextCopy', () => {
       'planner',
       'conversations',
       'contacts',
+      'products',
       'agenda',
       'account',
       'settings',
@@ -53,6 +54,12 @@ describe('adminNextCopy', () => {
       'services',
     ]);
     expect(adminNextCopy.agenda.itineraryLabel('2647')).toBe('ID 2647');
+  });
+
+  it('keeps products module copy centralized', () => {
+    expect(adminNextCopy.products.title).toBe('Productos');
+    expect(adminNextCopy.products.manageImagesAction(6)).toBe('Gestionar imagenes · 6');
+    expect(adminNextCopy.products.activeRatesLabel(3)).toBe('3 vigentes');
   });
 
   it('keeps account module copy centralized', () => {
