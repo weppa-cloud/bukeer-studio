@@ -80,6 +80,15 @@ export const adminNextCopy = {
     paymentTotalLabel: 'Total a pagar',
     installmentsTitle: 'Plan de cuotas',
     regeneratePendingAction: 'Regenerar pendientes',
+    publicProposalTitle: 'Vista pública',
+    publicProposalSubtitle:
+      'Landing compartible de 3 páginas para revisar antes de enviar al cliente.',
+    publicShareUrlLabel: 'URL pública',
+    publicPageLabels: {
+      cover: 'Portada',
+      itinerary: 'Dia a dia',
+      checkout: 'Reserva',
+    },
     installmentStatusLabels: {
       paid: 'Pagada',
       pending: 'Pendiente',

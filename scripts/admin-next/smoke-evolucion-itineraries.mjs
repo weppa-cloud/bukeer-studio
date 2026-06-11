@@ -170,6 +170,17 @@ async function runPlaywrightSmoke(targetUrl) {
     await page.waitForURL(/method=bank_transfer/);
     const updatedPaymentMethod = await root.getAttribute('data-payment-method');
     const updatedFeeIncluded = await paymentPlan.getAttribute('data-fee-included');
+    await page.getByTestId('admin-next-itinerary-tab-preview').click();
+    await page.waitForURL(/tab=preview/);
+    await page.getByTestId('admin-next-itinerary-public-page-checkout').click();
+    await page.waitForURL(/publicPage=checkout/);
+    const publicPage = await root.getAttribute('data-public-page');
+    const hasPublicProposal = await page
+      .getByTestId('admin-next-itinerary-public-proposal')
+      .isVisible();
+    const hasPublicCheckout = await page
+      .getByTestId('admin-next-itinerary-public-page-panel-checkout')
+      .isVisible();
 
     await page.getByTestId('admin-next-itineraries-view-kanban').click();
     await page.waitForURL(/view=kanban/);
@@ -239,6 +250,9 @@ async function runPlaywrightSmoke(targetUrl) {
     ) {
       throw new Error('Itinerary detail payments tab did not expose methods and locked paid installments.');
     }
+    if (publicPage !== 'checkout' || !hasPublicProposal || !hasPublicCheckout) {
+      throw new Error('Itinerary public proposal 3-page preview did not render checkout.');
+    }
     if (
       updatedView !== 'kanban' ||
       updatedStatus !== 'won' ||
@@ -274,6 +288,9 @@ async function runPlaywrightSmoke(targetUrl) {
       initialFeeIncluded,
       updatedPaymentMethod,
       updatedFeeIncluded,
+      publicPage,
+      hasPublicProposal,
+      hasPublicCheckout,
       hasDetail,
       hasServicesTab,
       hasPaymentsTab,

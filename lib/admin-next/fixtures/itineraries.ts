@@ -8,6 +8,7 @@ export type ItineraryDetailTab =
   | 'preview';
 export type ItineraryPaymentMethod = 'card' | 'bank_transfer' | 'cash';
 export type ItineraryInstallmentStatus = 'paid' | 'pending' | 'overdue';
+export type ItineraryPublicPage = 'cover' | 'itinerary' | 'checkout';
 export type ItineraryTone = 'primary' | 'success' | 'warning' | 'danger' | 'live';
 
 export type ItinerarySummary = {
@@ -82,6 +83,21 @@ export type ItineraryPaymentPlan = {
   installments: ItineraryInstallment[];
 };
 
+export type ItineraryPublicProposalPage = {
+  id: ItineraryPublicPage;
+  title: string;
+  headline: string;
+  body: string;
+  primaryMetric: string;
+  secondaryMetric: string;
+  tone: ItineraryTone;
+};
+
+export type ItineraryPublicProposal = {
+  shareUrl: string;
+  pages: ItineraryPublicProposalPage[];
+};
+
 export type ItinerariesFixture = {
   statuses: ItineraryColumn[];
   owners: Array<{
@@ -91,6 +107,7 @@ export type ItinerariesFixture = {
   itineraries: ItinerarySummary[];
   details: Record<string, ItineraryDetail>;
   paymentPlans: Record<string, ItineraryPaymentPlan>;
+  publicProposals: Record<string, ItineraryPublicProposal>;
   signals: ItinerarySignal[];
 };
 
@@ -342,6 +359,41 @@ function createPaymentPlan(itinerary: ItinerarySummary): ItineraryPaymentPlan {
   };
 }
 
+function createPublicProposal(itinerary: ItinerarySummary): ItineraryPublicProposal {
+  return {
+    shareUrl: `/propuesta/${itinerary.code.toLowerCase()}`,
+    pages: [
+      {
+        id: 'cover',
+        title: 'Portada',
+        headline: itinerary.title,
+        body: `${itinerary.destination} para ${itinerary.customer}`,
+        primaryMetric: itinerary.value,
+        secondaryMetric: `${itinerary.days} dias · ${itinerary.pax} pax`,
+        tone: 'primary',
+      },
+      {
+        id: 'itinerary',
+        title: 'Dia a dia',
+        headline: itinerary.nextService,
+        body: `Servicios principales entre ${itinerary.startDate} y ${itinerary.endDate}`,
+        primaryMetric: `${itinerary.services} servicios`,
+        secondaryMetric: itinerary.risk,
+        tone: itinerary.marginTone,
+      },
+      {
+        id: 'checkout',
+        title: 'Reserva',
+        headline: 'Pago y confirmacion',
+        body: 'El cliente revisa cuotas, metodo y condiciones antes de confirmar.',
+        primaryMetric: `${itinerary.paidInstallments}/${itinerary.totalInstallments} cuotas`,
+        secondaryMetric: itinerary.status === 'draft' ? 'Borrador no compartido' : 'Lista para compartir',
+        tone: itinerary.status === 'draft' ? 'warning' : 'success',
+      },
+    ],
+  };
+}
+
 function installmentAmount(value: string, totalInstallments: number): string {
   return `${value}/${totalInstallments}`;
 }
@@ -400,6 +452,9 @@ export const itinerariesFixture: ItinerariesFixture = {
   paymentPlans: Object.fromEntries(
     itinerarySummaries.map((itinerary) => [itinerary.id, createPaymentPlan(itinerary)]),
   ) as Record<string, ItineraryPaymentPlan>,
+  publicProposals: Object.fromEntries(
+    itinerarySummaries.map((itinerary) => [itinerary.id, createPublicProposal(itinerary)]),
+  ) as Record<string, ItineraryPublicProposal>,
   signals: [
     {
       id: 'paid-immutability',

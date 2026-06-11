@@ -23,6 +23,8 @@ import type {
   ItineraryDetailTab,
   ItineraryPaymentMethod,
   ItineraryPaymentPlan,
+  ItineraryPublicPage,
+  ItineraryPublicProposal,
   ItineraryStatus,
   ItinerarySummary,
   ItineraryTone,
@@ -36,6 +38,7 @@ const DEFAULT_STATUS = 'all';
 const DEFAULT_OWNER = 'all';
 const DEFAULT_DETAIL_TAB: ItineraryDetailTab = 'services';
 const DEFAULT_PAYMENT_METHOD: ItineraryPaymentMethod = 'card';
+const DEFAULT_PUBLIC_PAGE: ItineraryPublicPage = 'cover';
 const DETAIL_TABS: ItineraryDetailTab[] = [
   'services',
   'passengers',
@@ -43,6 +46,7 @@ const DETAIL_TABS: ItineraryDetailTab[] = [
   'payments',
   'preview',
 ];
+const PUBLIC_PAGES: ItineraryPublicPage[] = ['cover', 'itinerary', 'checkout'];
 
 export function ItinerariesModule({
   session,
@@ -88,12 +92,19 @@ export function ItinerariesModule({
   const selectedPaymentPlan = selectedItinerary
     ? fixture.paymentPlans[selectedItinerary.id]
     : null;
+  const selectedPublicProposal = selectedItinerary
+    ? fixture.publicProposals[selectedItinerary.id]
+    : null;
   const tabParam = resolvedSearchParams.get('tab');
   const activeDetailTab = isDetailTab(tabParam) ? tabParam : DEFAULT_DETAIL_TAB;
   const methodParam = resolvedSearchParams.get('method');
   const selectedPaymentMethod = isPaymentMethod(methodParam)
     ? methodParam
     : DEFAULT_PAYMENT_METHOD;
+  const publicPageParam = resolvedSearchParams.get('publicPage');
+  const selectedPublicPage = isPublicPage(publicPageParam)
+    ? publicPageParam
+    : DEFAULT_PUBLIC_PAGE;
 
   const replaceQuery = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(resolvedSearchParams.toString());
@@ -119,6 +130,7 @@ export function ItinerariesModule({
         data-selected-itinerary={selectedItinerary?.id ?? ''}
         data-active-tab={activeDetailTab}
         data-payment-method={selectedPaymentMethod}
+        data-public-page={selectedPublicPage}
         data-visible-itineraries={visibleItineraries.length}
         data-kanban-columns={fixture.statuses.length}
         style={evolucionTheme.styles.light}
@@ -142,7 +154,10 @@ export function ItinerariesModule({
                 itinerary={selectedItinerary}
                 paymentMethod={selectedPaymentMethod}
                 paymentPlan={selectedPaymentPlan}
+                publicPage={selectedPublicPage}
+                publicProposal={selectedPublicProposal}
                 onPaymentMethodChange={(method) => replaceQuery({ method })}
+                onPublicPageChange={(publicPage) => replaceQuery({ publicPage })}
                 onTabChange={(tab) => replaceQuery({ selected: selectedItinerary.id, tab })}
               />
             ) : null}
@@ -287,7 +302,10 @@ function ItineraryDetailPanel({
   itinerary,
   paymentMethod,
   paymentPlan,
+  publicPage,
+  publicProposal,
   onPaymentMethodChange,
+  onPublicPageChange,
   onTabChange,
 }: {
   activeTab: ItineraryDetailTab;
@@ -295,7 +313,10 @@ function ItineraryDetailPanel({
   itinerary: ItinerarySummary;
   paymentMethod: ItineraryPaymentMethod;
   paymentPlan: ItineraryPaymentPlan | null;
+  publicPage: ItineraryPublicPage;
+  publicProposal: ItineraryPublicProposal | null;
   onPaymentMethodChange: (method: ItineraryPaymentMethod) => void;
+  onPublicPageChange: (publicPage: ItineraryPublicPage) => void;
   onTabChange: (tab: ItineraryDetailTab) => void;
 }) {
   return (
@@ -375,6 +396,79 @@ function ItineraryDetailPanel({
           onPaymentMethodChange={onPaymentMethodChange}
         />
       ) : null}
+      {activeTab === 'preview' && publicProposal ? (
+        <PublicProposalPanel
+          publicPage={publicPage}
+          publicProposal={publicProposal}
+          onPublicPageChange={onPublicPageChange}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function PublicProposalPanel({
+  publicPage,
+  publicProposal,
+  onPublicPageChange,
+}: {
+  publicPage: ItineraryPublicPage;
+  publicProposal: ItineraryPublicProposal;
+  onPublicPageChange: (publicPage: ItineraryPublicPage) => void;
+}) {
+  const selectedPage =
+    publicProposal.pages.find((page) => page.id === publicPage) ??
+    publicProposal.pages[0];
+
+  return (
+    <section
+      className="mt-4 rounded-lg border bg-background p-4"
+      data-public-page={selectedPage.id}
+      data-testid="admin-next-itinerary-public-proposal"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h3 className="text-sm font-semibold">
+            {adminNextCopy.itineraries.publicProposalTitle}
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {adminNextCopy.itineraries.publicProposalSubtitle}
+          </p>
+        </div>
+        <div className="rounded-md border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+          {adminNextCopy.itineraries.publicShareUrlLabel} · {publicProposal.shareUrl}
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {PUBLIC_PAGES.map((page) => (
+          <button
+            className={filterButtonClass(selectedPage.id === page)}
+            data-active={selectedPage.id === page}
+            data-testid={`admin-next-itinerary-public-page-${page}`}
+            key={page}
+            type="button"
+            onClick={() => onPublicPageChange(page)}
+          >
+            {adminNextCopy.itineraries.publicPageLabels[page]}
+          </button>
+        ))}
+      </div>
+      <article
+        className="mt-4 overflow-hidden rounded-lg border bg-card"
+        data-testid={`admin-next-itinerary-public-page-panel-${selectedPage.id}`}
+      >
+        <div className="border-b bg-primary/10 p-5">
+          <ToneBadge tone={selectedPage.tone}>{selectedPage.title}</ToneBadge>
+          <h4 className="mt-3 text-2xl font-semibold tracking-normal">
+            {selectedPage.headline}
+          </h4>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedPage.body}</p>
+        </div>
+        <div className="grid gap-3 p-5 md:grid-cols-2">
+          <MetricCard label={adminNextCopy.itineraries.valueLabel} tone="primary" value={selectedPage.primaryMetric} />
+          <MetricCard label={adminNextCopy.itineraries.nextServiceLabel} tone={selectedPage.tone} value={selectedPage.secondaryMetric} />
+        </div>
+      </article>
     </section>
   );
 }
@@ -686,6 +780,10 @@ function isDetailTab(value: string | null): value is ItineraryDetailTab {
 
 function isPaymentMethod(value: string | null): value is ItineraryPaymentMethod {
   return value === 'card' || value === 'bank_transfer' || value === 'cash';
+}
+
+function isPublicPage(value: string | null): value is ItineraryPublicPage {
+  return PUBLIC_PAGES.some((page) => page === value);
 }
 
 function statusTone(status: ItineraryStatus): ItineraryTone {

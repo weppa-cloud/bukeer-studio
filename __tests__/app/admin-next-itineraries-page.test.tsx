@@ -127,6 +127,15 @@ describe('/admin/itineraries auth boundary', () => {
                 ]),
               }),
             }),
+            publicProposals: expect.objectContaining({
+              'it-2651': expect.objectContaining({
+                pages: expect.arrayContaining([
+                  expect.objectContaining({ id: 'cover' }),
+                  expect.objectContaining({ id: 'itinerary' }),
+                  expect.objectContaining({ id: 'checkout' }),
+                ]),
+              }),
+            }),
           }),
           evolucionTheme: expect.objectContaining({
             presetSlug: 'evolucion',

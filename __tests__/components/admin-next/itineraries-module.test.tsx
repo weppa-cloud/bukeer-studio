@@ -3,9 +3,14 @@ import { ItinerariesModule } from '@/components/admin-next/itineraries-module';
 import { itinerariesFixture } from '@/lib/admin-next/fixtures/itineraries';
 
 const replace = jest.fn();
-const mockSearchParams = new URLSearchParams(
-  'view=kanban&status=won&owner=daniel&selected=it-2651&tab=payments&method=bank_transfer',
-);
+const mockSearchParams = new URLSearchParams();
+
+function setMockSearchParams(value: string) {
+  Array.from(mockSearchParams.keys()).forEach((key) => mockSearchParams.delete(key));
+  new URLSearchParams(value).forEach((paramValue, key) => {
+    mockSearchParams.set(key, paramValue);
+  });
+}
 
 jest.mock('next/navigation', () => ({
   usePathname: () => '/admin/itineraries',
@@ -16,6 +21,9 @@ jest.mock('next/navigation', () => ({
 describe('ItinerariesModule', () => {
   beforeEach(() => {
     replace.mockClear();
+    setMockSearchParams(
+      'view=kanban&status=won&owner=daniel&selected=it-2651&tab=payments&method=bank_transfer',
+    );
   });
 
   it('renders kanban/list state with Evolucion preset metadata and URL filters', () => {
@@ -72,5 +80,44 @@ describe('ItinerariesModule', () => {
     expect(markup).toContain('data-testid="admin-next-itineraries-kanban-won"');
     expect(markup).toContain('data-testid="admin-next-itineraries-ai-panel"');
     expect(markup).toContain('Itinerarios');
+  });
+
+  it('renders the 3-page public proposal preview from URL state', () => {
+    setMockSearchParams(
+      'view=list&status=all&owner=all&selected=it-2651&tab=preview&publicPage=checkout',
+    );
+
+    const markup = renderToStaticMarkup(
+      <ItinerariesModule
+        session={{
+          status: 'authenticated',
+          userId: 'user-1',
+          email: 'planner@bukeer.test',
+          accountId: 'account-1',
+          role: 'admin',
+          displayName: 'Planner One',
+          permissions: ['admin_next.view', 'planner.view'],
+          flags: {
+            adminNextPrototype: true,
+          },
+        }}
+        fixture={itinerariesFixture}
+        evolucionTheme={{
+          presetSlug: 'evolucion',
+          styles: {
+            light: { ['--bukeer-test-token' as string]: 'light' },
+            dark: { ['--bukeer-test-token' as string]: 'dark' },
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-active-tab="preview"');
+    expect(markup).toContain('data-public-page="checkout"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-public-proposal"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-public-page-cover"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-public-page-itinerary"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-public-page-checkout"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-public-page-panel-checkout"');
   });
 });
