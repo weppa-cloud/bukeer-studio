@@ -7,6 +7,7 @@ import {
   Blocks,
   CalendarDays,
   CheckCircle2,
+  ClipboardList,
   CircleHelp,
   Command,
   Package,
@@ -23,6 +24,7 @@ import { cn } from '@/lib/utils';
 
 type AdminShellNavKey =
   | 'dashboard'
+  | 'itineraries'
   | 'planner'
   | 'conversations'
   | 'contacts'
@@ -35,6 +37,7 @@ type AdminShellNavKey =
 
 const NAV_ICONS = {
   dashboard: LayoutDashboard,
+  itineraries: ClipboardList,
   planner: PlaneTakeoff,
   conversations: Blocks,
   contacts: Users,

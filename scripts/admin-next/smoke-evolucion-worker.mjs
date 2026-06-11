@@ -49,6 +49,11 @@ async function main() {
     ADMIN_NEXT_DASHBOARD_SMOKE_OUTPUT_DIR:
       'output/playwright/admin-next/dashboard-worker',
   });
+  const itinerariesSmoke = runSmoke('scripts/admin-next/smoke-evolucion-itineraries.mjs', {
+    ADMIN_NEXT_ITINERARIES_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_ITINERARIES_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/itineraries-worker',
+  });
   const contactsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-contacts.mjs', {
     ADMIN_NEXT_CONTACTS_SMOKE_BASE_URL: baseUrl,
     ADMIN_NEXT_CONTACTS_SMOKE_OUTPUT_DIR:
@@ -83,6 +88,7 @@ async function main() {
         productsSmoke,
         agendaSmoke,
         dashboardSmoke,
+        itinerariesSmoke,
         contactsSmoke,
         conversationsSmoke,
         reportsSmoke,

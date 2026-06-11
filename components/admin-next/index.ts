@@ -6,6 +6,7 @@ export { ApprovalCommandBar } from './approval-command-bar';
 export { ConversationsModule } from './conversations-module';
 export { ContactsModule } from './contacts-module';
 export { DashboardModule } from './dashboard-module';
+export { ItinerariesModule } from './itineraries-module';
 export { LiveFeedColumn } from './live-feed-column';
 export { PlannerWorkbenchLayout } from './planner-workbench-layout';
 export { PlannerWorkbenchPrototype } from './planner-workbench-prototype';

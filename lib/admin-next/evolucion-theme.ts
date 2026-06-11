@@ -25,6 +25,9 @@ const lightVars = toCssVariableMap(webTheme.light);
 const darkVars = toCssVariableMap(webTheme.dark);
 
 export const evolucionFontImports = webTheme.fontImports;
+export const evolucionFontImportCss = webTheme.fontImports
+  .map((href) => `@import url("${href}");`)
+  .join('\n');
 
 export const evolucionThemeMetadata = {
   presetSlug: EVOLUCION_PRESET.metadata.slug,

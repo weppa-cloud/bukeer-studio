@@ -1,18 +1,20 @@
 import {
-  evolucionFontImports,
+  evolucionFontImportCss,
   getEvolucionThemeCss,
 } from '@/lib/admin-next/evolucion-theme';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      {evolucionFontImports.map((href) => (
-        <link key={href} rel="stylesheet" href={href} />
-      ))}
+      <style
+        id="admin-next-evolucion-fonts"
+        dangerouslySetInnerHTML={{ __html: evolucionFontImportCss }}
+      />
       <style
         id="admin-next-evolucion-theme"
         dangerouslySetInnerHTML={{
           __html: `
+body:has(.bukeer-admin-signature),
 .bukeer-admin-signature {
 ${getEvolucionThemeCss('light')}
   font-family: var(--font-body), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -20,6 +22,7 @@ ${getEvolucionThemeCss('light')}
   letter-spacing: var(--letter-spacing);
 }
 
+body:has(.bukeer-admin-signature.dark),
 .bukeer-admin-signature.dark {
 ${getEvolucionThemeCss('dark')}
   color-scheme: dark;

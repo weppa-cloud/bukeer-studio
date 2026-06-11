@@ -1,4 +1,5 @@
 import {
+  evolucionFontImportCss,
   evolucionFontImports,
   evolucionThemeMetadata,
   getEvolucionThemeCss,
@@ -48,6 +49,8 @@ describe('admin-next Evolución theme bridge', () => {
   it('exposes compiled font imports and css for the Admin Next layout', () => {
     expect(evolucionFontImports.join('\n')).toContain('Outfit');
     expect(evolucionFontImports.join('\n')).toContain('Readex+Pro');
+    expect(evolucionFontImportCss).toContain('@import url("');
+    expect(evolucionFontImportCss).toContain('Readex+Pro');
     expect(getEvolucionThemeCss('light')).toContain('--font-heading');
     expect(getEvolucionThemeCss('dark')).toContain('--bukeer-surface-rail');
   });

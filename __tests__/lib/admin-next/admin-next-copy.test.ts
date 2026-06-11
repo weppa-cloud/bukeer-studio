@@ -4,6 +4,7 @@ describe('adminNextCopy', () => {
   it('keeps stable shell navigation keys for agent selectors', () => {
     expect(adminNextCopy.shell.nav.map((item) => item.key)).toEqual([
       'dashboard',
+      'itineraries',
       'planner',
       'conversations',
       'contacts',
@@ -33,6 +34,15 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.dashboard.title).toBe('Dashboard');
     expect(adminNextCopy.dashboard.salesVsCostTitle).toBe('Ventas vs. costo');
     expect(adminNextCopy.dashboard.targetProgress(92)).toBe('92% de la meta');
+  });
+
+  it('keeps itineraries module copy centralized', () => {
+    expect(adminNextCopy.itineraries.title).toBe('Itinerarios');
+    expect(adminNextCopy.itineraries.listAction).toBe('Lista');
+    expect(adminNextCopy.itineraries.kanbanAction).toBe('Kanban');
+    expect(adminNextCopy.itineraries.statusLabels.won).toBe('Confirmado');
+    expect(adminNextCopy.itineraries.paxLabel(4)).toBe('4 pax');
+    expect(adminNextCopy.itineraries.paymentsLabel(1, 3)).toBe('1/3 cuotas');
   });
 
   it('keeps contacts module copy centralized', () => {
