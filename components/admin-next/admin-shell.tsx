@@ -4,6 +4,7 @@ import type { AuthenticatedAdminSessionContext } from '@bukeer/admin-contract';
 import {
   Bell,
   Blocks,
+  CalendarDays,
   CheckCircle2,
   CircleHelp,
   Command,
@@ -17,20 +18,33 @@ import {
 import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { cn } from '@/lib/utils';
 
-const NAV_ITEMS = [
-  { ...adminNextCopy.shell.nav[0], icon: PlaneTakeoff, active: true },
-  { ...adminNextCopy.shell.nav[1], icon: Users, active: false },
-  { ...adminNextCopy.shell.nav[2], icon: Map, active: false },
-  { ...adminNextCopy.shell.nav[3], icon: LayoutDashboard, active: false },
-  { ...adminNextCopy.shell.nav[4], icon: Blocks, active: false },
-];
+type AdminShellNavKey =
+  | 'dashboard'
+  | 'planner'
+  | 'conversations'
+  | 'contacts'
+  | 'agenda'
+  | 'account'
+  | 'settings';
+
+const NAV_ICONS = {
+  dashboard: LayoutDashboard,
+  planner: PlaneTakeoff,
+  conversations: Blocks,
+  contacts: Users,
+  agenda: CalendarDays,
+  account: CircleHelp,
+  settings: Map,
+} satisfies Record<AdminShellNavKey, React.ComponentType<{ className?: string }>>;
 
 export function AdminShell({
   session,
   children,
+  activeKey = 'planner',
 }: {
   session: AuthenticatedAdminSessionContext;
   children: React.ReactNode;
+  activeKey?: AdminShellNavKey;
 }) {
   return (
     <main className="min-h-screen bg-muted/40 text-foreground">
@@ -51,22 +65,27 @@ export function AdminShell({
             </div>
           </div>
           <nav className="flex-1 space-y-1 p-3">
-            {NAV_ITEMS.map((item) => (
+            {adminNextCopy.shell.nav.map((item) => {
+              const Icon = NAV_ICONS[item.key as AdminShellNavKey];
+              const isActive = item.key === activeKey;
+
+              return (
               <button
                 key={item.key}
                 data-testid={`admin-next-nav-${item.key}`}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-medium',
-                  item.active
+                  isActive
                     ? 'border-primary/30 bg-primary/10 text-primary'
                     : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted',
                 )}
                 type="button"
               >
-                <item.icon className="size-4" />
+                <Icon className="size-4" />
                 {item.label}
               </button>
-            ))}
+              );
+            })}
           </nav>
           <div className="border-t p-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">

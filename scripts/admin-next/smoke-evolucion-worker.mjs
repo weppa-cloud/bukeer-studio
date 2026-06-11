@@ -20,17 +20,34 @@ async function main() {
   writeFileSync(tempConfigPath, createSmokeWranglerConfig(), 'utf8');
 
   const baseUrl = await startPreview();
-  const smokeOutput = execFileSync('node', ['scripts/admin-next/smoke-evolucion.mjs'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      ADMIN_NEXT_SMOKE_BASE_URL: baseUrl,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
+  const plannerSmoke = runSmoke('scripts/admin-next/smoke-evolucion.mjs', {
+    ADMIN_NEXT_SMOKE_BASE_URL: baseUrl,
   });
-
-  const parsed = JSON.parse(smokeOutput.slice(smokeOutput.indexOf('{')));
+  const accountSmoke = runSmoke('scripts/admin-next/smoke-evolucion-account.mjs', {
+    ADMIN_NEXT_ACCOUNT_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_ACCOUNT_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/account-worker',
+  });
+  const settingsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-settings.mjs', {
+    ADMIN_NEXT_SETTINGS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_SETTINGS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/settings-worker',
+  });
+  const agendaSmoke = runSmoke('scripts/admin-next/smoke-evolucion-agenda.mjs', {
+    ADMIN_NEXT_AGENDA_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_AGENDA_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/agenda-worker',
+  });
+  const dashboardSmoke = runSmoke('scripts/admin-next/smoke-evolucion-dashboard.mjs', {
+    ADMIN_NEXT_DASHBOARD_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_DASHBOARD_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/dashboard-worker',
+  });
+  const contactsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-contacts.mjs', {
+    ADMIN_NEXT_CONTACTS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_CONTACTS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/contacts-worker',
+  });
 
   console.log(
     JSON.stringify(
@@ -39,12 +56,31 @@ async function main() {
         runtime: 'cloudflare-opennext-preview',
         previewEnv,
         baseUrl,
-        smoke: parsed,
+        plannerSmoke,
+        accountSmoke,
+        settingsSmoke,
+        agendaSmoke,
+        dashboardSmoke,
+        contactsSmoke,
       },
       null,
       2,
     ),
   );
+}
+
+function runSmoke(scriptPath, env) {
+  const output = execFileSync('node', [scriptPath], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...env,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  return JSON.parse(output.slice(output.indexOf('{')));
 }
 
 function createSmokeWranglerConfig() {
@@ -55,13 +91,18 @@ function createSmokeWranglerConfig() {
     throw new Error(`Could not find ${marker.trim()} in wrangler.toml.`);
   }
 
-  const smokeVars = [
+  const requiredSmokeVars = [
     'ADMIN_NEXT_PROTOTYPE_ENABLED = "true"',
     'ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED = "true"',
     'ADMIN_NEXT_DATA_SOURCE_MODE = "fixture"',
-  ].join('\n');
+  ];
+  const missingSmokeVars = requiredSmokeVars.filter((line) => !source.includes(line));
 
-  return source.replace(marker, `${marker}${smokeVars}\n`);
+  if (missingSmokeVars.length === 0) {
+    return source;
+  }
+
+  return source.replace(marker, `${marker}${missingSmokeVars.join('\n')}\n`);
 }
 
 function startPreview() {

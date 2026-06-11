@@ -3,11 +3,13 @@ import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 describe('adminNextCopy', () => {
   it('keeps stable shell navigation keys for agent selectors', () => {
     expect(adminNextCopy.shell.nav.map((item) => item.key)).toEqual([
+      'dashboard',
       'planner',
       'conversations',
-      'itineraries',
-      'manager',
-      'agent-control',
+      'contacts',
+      'agenda',
+      'account',
+      'settings',
     ]);
   });
 
@@ -22,6 +24,47 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.prototype.lightModeAction).toBe('Light');
     expect(adminNextCopy.prototype.darkModeAction).toBe('Dark');
     expect(adminNextCopy.prototype.whatsappHandoffFallbackError).toContain('WhatsApp handoff');
+  });
+
+  it('keeps dashboard module copy centralized', () => {
+    expect(adminNextCopy.dashboard.title).toBe('Dashboard');
+    expect(adminNextCopy.dashboard.salesVsCostTitle).toBe('Ventas vs. costo');
+    expect(adminNextCopy.dashboard.targetProgress(92)).toBe('92% de la meta');
+  });
+
+  it('keeps contacts module copy centralized', () => {
+    expect(adminNextCopy.contacts.title).toBe('Contactos');
+    expect(adminNextCopy.contacts.filters.map((filter) => filter.key)).toEqual([
+      'all',
+      'clients',
+      'providers',
+      'debt',
+    ]);
+    expect(adminNextCopy.contacts.totalLabel(6)).toBe('6 visibles');
+  });
+
+  it('keeps agenda module copy centralized', () => {
+    expect(adminNextCopy.agenda.title).toBe('Agenda de servicios');
+    expect(adminNextCopy.agenda.filters.map((filter) => filter.key)).toEqual([
+      'all',
+      'flights',
+      'hotels',
+      'transport',
+      'services',
+    ]);
+    expect(adminNextCopy.agenda.itineraryLabel('2647')).toBe('ID 2647');
+  });
+
+  it('keeps account module copy centralized', () => {
+    expect(adminNextCopy.account.title).toBe('Mi cuenta');
+    expect(adminNextCopy.account.profileTitle).toBe('Perfil');
+    expect(adminNextCopy.account.signOutAction).toBe('Cerrar sesion');
+  });
+
+  it('keeps settings module copy centralized', () => {
+    expect(adminNextCopy.settings.title).toBe('Configuracion');
+    expect(adminNextCopy.settings.agencyTitle).toBe('Agencia');
+    expect(adminNextCopy.settings.rulesTitle).toBe('Reglas de negocio');
   });
 
   it('keeps signature UI copy and formatters centralized', () => {
