@@ -117,6 +117,7 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-NF-010]] | [ADR-NF-010](./architecture/ADR-NF-010-feature-flags-kill-switches.md) | Feature flags and kill switches | [[feature-flags]] [[rollback]] [[admin-next]] |
 | [[ADR-NF-011]] | [ADR-NF-011](./architecture/ADR-NF-011-ai-first-grounded-workbench.md) | AI-first grounded workbench | [[AI]] [[trace]] [[approval]] |
 | [[ADR-NF-012]] | [ADR-NF-012](./architecture/ADR-NF-012-media-registry-boundary.md) | Media registry boundary | [[media-assets]] [[cross-repo-flutter]] [[admin-next]] |
+| [[ADR-NF-013]] | [ADR-NF-013](./architecture/ADR-NF-013-stripe-payments-treasury-contract.md) | Stripe payments and treasury contract | [[Stripe]] [[payments]] [[treasury]] [[admin-next]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -692,6 +693,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-NF-010]]`                                      | `docs/architecture/ADR-NF-010-feature-flags-kill-switches.md`                      |
 | `[[ADR-NF-011]]`                                      | `docs/architecture/ADR-NF-011-ai-first-grounded-workbench.md`                      |
 | `[[ADR-NF-012]]`                                      | `docs/architecture/ADR-NF-012-media-registry-boundary.md`                          |
+| `[[ADR-NF-013]]`                                      | `docs/architecture/ADR-NF-013-stripe-payments-treasury-contract.md`                |
 | `[[SPEC_MEDIA_ASSET_LIBRARY_V1]]`                     | `docs/specs/SPEC_MEDIA_ASSET_LIBRARY_V1.md`                                       |
 | `[[field-ownership]]`                                 | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias)      |
 | `[[booking-defer]]`                                   | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias)              |

@@ -28,6 +28,7 @@ const PHASE0_ALLOWLIST = [
   /^lib\/admin-next\/evolucion-theme\.ts$/,
   /^lib\/admin-next\/products-adapter\.ts$/,
   /^lib\/admin-next\/products-catalog-resolver\.ts$/,
+  /^lib\/admin-next\/payments-stripe-contract\.ts$/,
   /^lib\/admin-next\/route-boundary\.ts$/,
   /^lib\/admin-next\/session\/get-admin-session-context\.ts$/,
   /^lib\/admin-next\/fixtures\/account\.ts$/,
@@ -68,6 +69,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/lib\/admin-next\/session\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/products-adapter\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/products-catalog-resolver\.test\.ts$/,
+  /^__tests__\/lib\/admin-next\/payments-stripe-contract\.test\.ts$/,
   /^__tests__\/lib\/auth\//,
   /^__tests__\/lib\/auth\/safe-redirect\.test\.ts$/,
 ];
