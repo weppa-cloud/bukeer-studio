@@ -1,4 +1,7 @@
-import { resolveProductCatalogRows } from '@/lib/admin-next/products-catalog-resolver';
+import {
+  resolveProductCatalogRows,
+  resolveProductCatalogRowsReadonly,
+} from '@/lib/admin-next/products-catalog-resolver';
 
 describe('products catalog resolver', () => {
   it('resolves known CSV rows against the catalog fixture contract', () => {
@@ -40,6 +43,44 @@ describe('products catalog resolver', () => {
         action: 'create',
         reason: 'no_match_fixture_fallback',
       },
+    ]);
+  });
+
+  it('resolves readonly rows through the master catalog RPC contract', async () => {
+    const rpc = jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'master-hotel-1',
+          name: 'Hotel Las Islas',
+          data_completeness: 0.96,
+        },
+      ],
+      error: null,
+    });
+
+    const result = await resolveProductCatalogRowsReadonly(
+      { rpc },
+      [
+        {
+          id: 'row-1',
+          sourceName: 'Hotel Las Islas',
+          type: 'Hotel',
+        },
+      ],
+    );
+
+    expect(rpc).toHaveBeenCalledWith('search_master_hotels', {
+      p_query: 'Hotel Las Islas',
+      p_limit: 1,
+    });
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'row-1',
+        masterName: 'Hotel Las Islas · master master-hotel-1',
+        confidence: '96%',
+        action: 'link',
+        reason: 'readonly_master_match',
+      }),
     ]);
   });
 });

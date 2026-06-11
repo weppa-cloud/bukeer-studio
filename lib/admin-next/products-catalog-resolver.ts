@@ -17,7 +17,11 @@ export const ProductCatalogResolverRequestSchema = z.object({
 export type ProductCatalogResolverRow = z.infer<typeof ProductCatalogResolverRowSchema>;
 
 export type ProductCatalogResolverResult = ProductCatalogResolution & {
-  reason: 'exact_fixture_match' | 'no_match_fixture_fallback';
+  reason:
+    | 'exact_fixture_match'
+    | 'no_match_fixture_fallback'
+    | 'readonly_master_match'
+    | 'readonly_no_match';
 };
 
 export type ProductCatalogResolverResponse = {
@@ -58,6 +62,63 @@ export function resolveProductCatalogRows(
   });
 }
 
+type CatalogResolverRpcClient = {
+  rpc: (
+    fn: 'search_master_hotels' | 'search_master_activities',
+    args: { p_query: string; p_limit: number },
+  ) => PromiseLike<{ data: unknown[] | null; error: { message?: string } | null }>;
+};
+
+type MasterCatalogRow = {
+  id?: unknown;
+  name?: unknown;
+  data_completeness?: unknown;
+  rank?: unknown;
+};
+
+export async function resolveProductCatalogRowsReadonly(
+  supabase: CatalogResolverRpcClient,
+  rows: ProductCatalogResolverRow[],
+): Promise<ProductCatalogResolverResult[]> {
+  return Promise.all(
+    rows.map(async (row) => {
+      const rpcNames = rpcNamesForRow(row);
+
+      for (const rpcName of rpcNames) {
+        const { data, error } = await supabase.rpc(rpcName, {
+          p_query: row.sourceName,
+          p_limit: 1,
+        });
+
+        if (error) {
+          throw new Error(error.message || `Unable to read ${rpcName}`);
+        }
+
+        const candidate = data?.[0] as MasterCatalogRow | undefined;
+        if (candidate?.id && candidate.name) {
+          return {
+            id: row.id,
+            sourceName: row.sourceName,
+            masterName: `${String(candidate.name)} · master ${String(candidate.id)}`,
+            confidence: formatCompleteness(candidate.data_completeness ?? candidate.rank),
+            action: 'link',
+            reason: 'readonly_master_match',
+          };
+        }
+      }
+
+      return {
+        id: row.id,
+        sourceName: row.sourceName,
+        masterName: 'Sin coincidencia segura',
+        confidence: '0%',
+        action: 'create',
+        reason: 'readonly_no_match',
+      };
+    }),
+  );
+}
+
 function normalizeCatalogName(value: string): string {
   return value
     .trim()
@@ -65,4 +126,20 @@ function normalizeCatalogName(value: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ');
+}
+
+function rpcNamesForRow(row: ProductCatalogResolverRow): Array<'search_master_hotels' | 'search_master_activities'> {
+  const normalizedType = normalizeCatalogName(row.type ?? row.sourceName);
+
+  if (normalizedType.includes('hotel')) return ['search_master_hotels'];
+  if (normalizedType.includes('actividad') || normalizedType.includes('tour')) return ['search_master_activities'];
+
+  return ['search_master_hotels', 'search_master_activities'];
+}
+
+function formatCompleteness(value: unknown): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '0%';
+  const percent = numeric <= 1 ? numeric * 100 : numeric;
+  return `${Math.max(0, Math.min(100, Math.round(percent)))}%`;
 }

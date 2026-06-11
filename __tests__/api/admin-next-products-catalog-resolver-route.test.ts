@@ -5,14 +5,20 @@ import {
   getAdminSessionContext,
   hasAdminPermission,
 } from '@/lib/admin-next/session/get-admin-session-context';
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 
 jest.mock('@/lib/admin-next/session/get-admin-session-context', () => ({
   getAdminSessionContext: jest.fn(),
   hasAdminPermission: jest.fn(),
 }));
 
+jest.mock('@/lib/supabase/server-client', () => ({
+  createSupabaseServerClient: jest.fn(),
+}));
+
 const mockGetAdminSessionContext = jest.mocked(getAdminSessionContext);
 const mockHasAdminPermission = jest.mocked(hasAdminPermission);
+const mockCreateSupabaseServerClient = jest.mocked(createSupabaseServerClient);
 
 function request(body: unknown) {
   return new NextRequest('http://localhost/api/admin-next/products/catalog-resolver', {
@@ -48,6 +54,9 @@ describe('POST /api/admin-next/products/catalog-resolver', () => {
     process.env.ADMIN_NEXT_DATA_SOURCE_MODE = 'fixture';
     mockGetAdminSessionContext.mockResolvedValue(session() as never);
     mockHasAdminPermission.mockReturnValue(true);
+    mockCreateSupabaseServerClient.mockResolvedValue({
+      rpc: jest.fn(),
+    } as never);
   });
 
   afterEach(() => {
@@ -128,6 +137,50 @@ describe('POST /api/admin-next/products/catalog-resolver', () => {
           id: 'row-2',
           action: 'create',
           reason: 'no_match_fixture_fallback',
+        }),
+      ],
+    });
+  });
+
+  it('uses the readonly Supabase RPC resolver for beta readonly sessions', async () => {
+    process.env.ADMIN_NEXT_DATA_SOURCE_MODE = 'readonly';
+    const rpc = jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'master-hotel-1',
+          name: 'Hotel Las Islas',
+          data_completeness: 96,
+        },
+      ],
+      error: null,
+    });
+    mockCreateSupabaseServerClient.mockResolvedValue({ rpc } as never);
+
+    const response = await POST(
+      request({
+        rows: [
+          {
+            id: 'row-1',
+            sourceName: 'Hotel Las Islas',
+            type: 'Hotel',
+          },
+        ],
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(rpc).toHaveBeenCalledWith('search_master_hotels', {
+      p_query: 'Hotel Las Islas',
+      p_limit: 1,
+    });
+    expect(body.data).toMatchObject({
+      mode: 'readonly',
+      accountId: 'account-products',
+      items: [
+        expect.objectContaining({
+          action: 'link',
+          reason: 'readonly_master_match',
         }),
       ],
     });
