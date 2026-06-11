@@ -37,6 +37,10 @@ describe('ProductsModule', () => {
     expect(markup).toContain('data-testid="admin-next-products-gallery"');
     expect(markup).toContain('data-testid="admin-next-products-rates"');
     expect(markup).toContain('data-testid="admin-next-products-ai-panel"');
+    expect(markup).toContain('data-testid="admin-next-products-new"');
+    expect(markup).toContain('data-testid="admin-next-products-edit"');
+    expect(markup).toContain('data-testid="admin-next-products-new-rate"');
+    expect(markup).toContain('data-testid="admin-next-products-manage-images"');
     expect(markup).toContain('Hotel Las Islas');
     expect(markup).toContain('Gestionar imagenes');
   });

@@ -132,6 +132,30 @@ async function runPlaywrightSmoke(targetUrl) {
     const hasAiPanel = await page.getByTestId('admin-next-products-ai-panel').isVisible();
     const screenshot = path.join(outputDir, 'products-evolucion-light.png');
     await page.screenshot({ path: screenshot, fullPage: false });
+    await page.getByTestId('admin-next-products-new').click();
+    await page.getByTestId('admin-next-products-new-product-modal').waitFor({ timeout: 10_000 });
+    const hasNewProductModal = await page.getByTestId('admin-next-products-new-product-modal').isVisible();
+    await page.getByTestId('admin-next-products-modal-continue').click();
+    await page.getByTestId('admin-next-products-new-hotel-modal').waitFor({ timeout: 10_000 });
+    const hasNewHotelModal = await page.getByTestId('admin-next-products-new-hotel-modal').isVisible();
+    await page.getByTestId('admin-next-products-modal-finish-hotel').click();
+    await page.getByTestId('admin-next-products-new-rate-modal').waitFor({ timeout: 10_000 });
+    const hasNewRateModal = await page.getByTestId('admin-next-products-new-rate-modal').isVisible();
+    const rateModalScreenshot = path.join(outputDir, 'products-rate-modal-evolucion-light.png');
+    await page.screenshot({ path: rateModalScreenshot, fullPage: false });
+    await page.getByTestId('admin-next-products-modal-close').click();
+
+    await page.getByTestId('admin-next-products-edit').click();
+    await page.getByTestId('admin-next-products-edit-modal').waitFor({ timeout: 10_000 });
+    const hasEditModal = await page.getByTestId('admin-next-products-edit-modal').isVisible();
+    await page.getByTestId('admin-next-products-modal-close').click();
+
+    await page.getByTestId('admin-next-products-manage-images').click();
+    await page.getByTestId('admin-next-products-gallery-modal').waitFor({ timeout: 10_000 });
+    const hasGalleryModal = await page.getByTestId('admin-next-products-gallery-modal').isVisible();
+    const galleryTileCount = await page.locator('[data-testid^="admin-next-products-gallery-tile-"]').count();
+    const galleryModalScreenshot = path.join(outputDir, 'products-gallery-modal-evolucion-light.png');
+    await page.screenshot({ path: galleryModalScreenshot, fullPage: false });
 
     if (preset !== 'evolucion') {
       throw new Error(`Expected Evolucion preset, got ${preset}`);
@@ -141,6 +165,9 @@ async function runPlaywrightSmoke(targetUrl) {
     }
     if (productCount < 3 || !hasToolbar || !hasDetail || !hasGallery || !hasRates || !hasAiPanel) {
       throw new Error('Products required surfaces are not visible.');
+    }
+    if (!hasNewProductModal || !hasNewHotelModal || !hasNewRateModal || !hasEditModal || !hasGalleryModal || galleryTileCount < 6) {
+      throw new Error('Products modal flows are not fully reachable.');
     }
     if (pageErrors.length > 0) {
       throw new Error(`Page errors detected:\n${pageErrors.join('\n')}`);
@@ -157,8 +184,14 @@ async function runPlaywrightSmoke(targetUrl) {
       hasGallery,
       hasRates,
       hasAiPanel,
+      hasNewProductModal,
+      hasNewHotelModal,
+      hasNewRateModal,
+      hasEditModal,
+      hasGalleryModal,
+      galleryTileCount,
       consoleMessages,
-      screenshots: [screenshot],
+      screenshots: [screenshot, rateModalScreenshot, galleryModalScreenshot],
     };
   } finally {
     await browser.close();
