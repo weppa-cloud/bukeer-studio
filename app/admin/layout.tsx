@@ -2,6 +2,7 @@ import {
   evolucionFontImportCss,
   getEvolucionThemeCss,
 } from '@/lib/admin-next/evolucion-theme';
+import './evolucion.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

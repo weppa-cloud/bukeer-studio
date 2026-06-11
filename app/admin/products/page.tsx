@@ -1,13 +1,11 @@
-import { ProductsModule } from '@/components/admin-next';
+import { EvoShell } from '@/components/admin-next/evolucion/evo-shell';
+import { EvoProducts } from '@/components/admin-next/evolucion/evo-products';
 import { getAdminNextDataSourceMode } from '@/lib/admin-next/flags';
 import {
   createProductsAdapter,
   type AdminNextProductsReadonlySupabaseClient,
 } from '@/lib/admin-next/products-adapter';
-import {
-  getAdminNextEvolucionTheme,
-  requireAdminNextSession,
-} from '@/lib/admin-next/route-boundary';
+import { requireAdminNextSession } from '@/lib/admin-next/route-boundary';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 
 export const dynamic = 'force-dynamic';
@@ -36,12 +34,14 @@ export default async function AdminNextProductsPage() {
       : createProductsAdapter(dataSourceMode);
   const fixture = await adapter.getProducts();
 
+  const total = fixture.categories.find((category) => category.key === 'all')?.count ??
+    fixture.products.length;
+  const categories = fixture.categories.filter((category) => category.key !== 'all').length;
+  const subtitle = `Catálogo · ${total} productos en ${categories} categorías`;
+
   return (
-    <ProductsModule
-      session={session}
-      fixture={fixture}
-      dataSourceMode={dataSourceMode}
-      evolucionTheme={getAdminNextEvolucionTheme()}
-    />
+    <EvoShell userName={session.displayName} accountLabel={session.email} activeKey="products">
+      <EvoProducts fixture={fixture} subtitle={subtitle} />
+    </EvoShell>
   );
 }
