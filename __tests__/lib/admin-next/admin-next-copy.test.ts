@@ -61,6 +61,12 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.account.signOutAction).toBe('Cerrar sesion');
   });
 
+  it('keeps settings module copy centralized', () => {
+    expect(adminNextCopy.settings.title).toBe('Configuracion');
+    expect(adminNextCopy.settings.agencyTitle).toBe('Agencia');
+    expect(adminNextCopy.settings.rulesTitle).toBe('Reglas de negocio');
+  });
+
   it('keeps signature UI copy and formatters centralized', () => {
     expect(adminNextCopy.signature.statusLabels.approval_required).toBe('Approval required');
     expect(adminNextCopy.signature.blockedBanner.missingFieldsPill(3)).toBe('3 fields missing');

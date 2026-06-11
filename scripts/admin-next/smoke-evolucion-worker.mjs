@@ -28,6 +28,11 @@ async function main() {
     ADMIN_NEXT_ACCOUNT_SMOKE_OUTPUT_DIR:
       'output/playwright/admin-next/account-worker',
   });
+  const settingsSmoke = runSmoke('scripts/admin-next/smoke-evolucion-settings.mjs', {
+    ADMIN_NEXT_SETTINGS_SMOKE_BASE_URL: baseUrl,
+    ADMIN_NEXT_SETTINGS_SMOKE_OUTPUT_DIR:
+      'output/playwright/admin-next/settings-worker',
+  });
   const agendaSmoke = runSmoke('scripts/admin-next/smoke-evolucion-agenda.mjs', {
     ADMIN_NEXT_AGENDA_SMOKE_BASE_URL: baseUrl,
     ADMIN_NEXT_AGENDA_SMOKE_OUTPUT_DIR:
@@ -53,6 +58,7 @@ async function main() {
         baseUrl,
         plannerSmoke,
         accountSmoke,
+        settingsSmoke,
         agendaSmoke,
         dashboardSmoke,
         contactsSmoke,

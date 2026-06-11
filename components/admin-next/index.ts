@@ -9,6 +9,7 @@ export { LiveFeedColumn } from './live-feed-column';
 export { PlannerWorkbenchLayout } from './planner-workbench-layout';
 export { PlannerWorkbenchPrototype } from './planner-workbench-prototype';
 export { PlanningCanvas } from './planning-canvas';
+export { SettingsModule } from './settings-module';
 export {
   SignatureApprovalCommandBar,
   SignatureBlockedBanner,
