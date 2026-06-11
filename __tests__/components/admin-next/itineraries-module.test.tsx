@@ -4,7 +4,7 @@ import { itinerariesFixture } from '@/lib/admin-next/fixtures/itineraries';
 
 const replace = jest.fn();
 const mockSearchParams = new URLSearchParams(
-  'view=kanban&status=won&owner=daniel&selected=it-2651&tab=payments',
+  'view=kanban&status=won&owner=daniel&selected=it-2651&tab=payments&method=bank_transfer',
 );
 
 jest.mock('next/navigation', () => ({
@@ -51,6 +51,7 @@ describe('ItinerariesModule', () => {
     expect(markup).toContain('data-active-owner="daniel"');
     expect(markup).toContain('data-selected-itinerary="it-2651"');
     expect(markup).toContain('data-active-tab="payments"');
+    expect(markup).toContain('data-payment-method="bank_transfer"');
     expect(markup).toContain('data-visible-itineraries="1"');
     expect(markup).toContain('data-kanban-columns="5"');
     expect(markup).toContain('data-testid="admin-next-itinerary-detail"');
@@ -61,6 +62,12 @@ describe('ItinerariesModule', () => {
     expect(markup).toContain('data-testid="admin-next-itinerary-tab-preview"');
     expect(markup).toContain('data-testid="admin-next-itinerary-tab-panel-payments"');
     expect(markup).toContain('admin-next-itinerary-payment-locked-it-2651-pay-1');
+    expect(markup).toContain('data-testid="admin-next-itinerary-payment-plan"');
+    expect(markup).toContain('data-fee-included="false"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-payment-method-bank_transfer"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-regenerate-pending"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-installment-it-2651-installment-1"');
+    expect(markup).toContain('data-locked="true"');
     expect(markup).toContain('data-testid="admin-next-itineraries-kanban"');
     expect(markup).toContain('data-testid="admin-next-itineraries-kanban-won"');
     expect(markup).toContain('data-testid="admin-next-itineraries-ai-panel"');

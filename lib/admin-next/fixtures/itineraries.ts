@@ -6,6 +6,8 @@ export type ItineraryDetailTab =
   | 'suppliers'
   | 'payments'
   | 'preview';
+export type ItineraryPaymentMethod = 'card' | 'bank_transfer' | 'cash';
+export type ItineraryInstallmentStatus = 'paid' | 'pending' | 'overdue';
 export type ItineraryTone = 'primary' | 'success' | 'warning' | 'danger' | 'live';
 
 export type ItinerarySummary = {
@@ -56,6 +58,30 @@ export type ItineraryDetailItem = {
 
 export type ItineraryDetail = Record<ItineraryDetailTab, ItineraryDetailItem[]>;
 
+export type ItineraryPaymentMethodOption = {
+  id: ItineraryPaymentMethod;
+  label: string;
+  fee: string;
+  total: string;
+  feeIncluded: boolean;
+  tone: ItineraryTone;
+};
+
+export type ItineraryInstallment = {
+  id: string;
+  label: string;
+  amount: string;
+  dueDate: string;
+  status: ItineraryInstallmentStatus;
+  locked: boolean;
+  tone: ItineraryTone;
+};
+
+export type ItineraryPaymentPlan = {
+  methods: ItineraryPaymentMethodOption[];
+  installments: ItineraryInstallment[];
+};
+
 export type ItinerariesFixture = {
   statuses: ItineraryColumn[];
   owners: Array<{
@@ -64,6 +90,7 @@ export type ItinerariesFixture = {
   }>;
   itineraries: ItinerarySummary[];
   details: Record<string, ItineraryDetail>;
+  paymentPlans: Record<string, ItineraryPaymentPlan>;
   signals: ItinerarySignal[];
 };
 
@@ -269,6 +296,62 @@ function createItineraryDetail(itinerary: ItinerarySummary): ItineraryDetail {
   };
 }
 
+function createPaymentPlan(itinerary: ItinerarySummary): ItineraryPaymentPlan {
+  return {
+    methods: [
+      {
+        id: 'card',
+        label: 'Tarjeta',
+        fee: '$128k',
+        total: `${itinerary.value} + fee`,
+        feeIncluded: true,
+        tone: 'primary',
+      },
+      {
+        id: 'bank_transfer',
+        label: 'Transferencia',
+        fee: '$0',
+        total: itinerary.value,
+        feeIncluded: false,
+        tone: 'success',
+      },
+      {
+        id: 'cash',
+        label: 'Efectivo',
+        fee: '$0',
+        total: itinerary.value,
+        feeIncluded: false,
+        tone: 'warning',
+      },
+    ],
+    installments: Array.from({ length: itinerary.totalInstallments }, (_, index) => {
+      const number = index + 1;
+      const paid = number <= itinerary.paidInstallments;
+      const overdue = !paid && itinerary.status === 'operating' && number === itinerary.totalInstallments;
+
+      return {
+        id: `${itinerary.id}-installment-${number}`,
+        label: `Cuota ${number}`,
+        amount: installmentAmount(itinerary.value, itinerary.totalInstallments),
+        dueDate: installmentDueDate(itinerary.startDate, index),
+        status: paid ? 'paid' : overdue ? 'overdue' : 'pending',
+        locked: paid,
+        tone: paid ? 'success' : overdue ? 'danger' : 'warning',
+      };
+    }),
+  };
+}
+
+function installmentAmount(value: string, totalInstallments: number): string {
+  return `${value}/${totalInstallments}`;
+}
+
+function installmentDueDate(startDate: string, index: number): string {
+  const date = new Date(`${startDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 30 + index * 15);
+  return date.toISOString().slice(0, 10);
+}
+
 function statusToneForDetail(status: ItineraryStatus): ItineraryTone {
   if (status === 'won' || status === 'operating') return 'live';
   if (status === 'closed') return 'success';
@@ -314,6 +397,9 @@ export const itinerariesFixture: ItinerariesFixture = {
   details: Object.fromEntries(
     itinerarySummaries.map((itinerary) => [itinerary.id, createItineraryDetail(itinerary)]),
   ) as Record<string, ItineraryDetail>,
+  paymentPlans: Object.fromEntries(
+    itinerarySummaries.map((itinerary) => [itinerary.id, createPaymentPlan(itinerary)]),
+  ) as Record<string, ItineraryPaymentPlan>,
   signals: [
     {
       id: 'paid-immutability',

@@ -159,10 +159,17 @@ async function runPlaywrightSmoke(targetUrl) {
     const hasPaymentsTab = await page
       .getByTestId('admin-next-itinerary-tab-panel-payments')
       .isVisible();
+    const paymentPlan = page.getByTestId('admin-next-itinerary-payment-plan');
+    const initialPaymentMethod = await root.getAttribute('data-payment-method');
+    const initialFeeIncluded = await paymentPlan.getAttribute('data-fee-included');
     const hasLockedPayment = await page
       .locator('[data-testid^="admin-next-itinerary-payment-locked-"]')
       .first()
       .isVisible();
+    await page.getByTestId('admin-next-itinerary-payment-method-bank_transfer').click();
+    await page.waitForURL(/method=bank_transfer/);
+    const updatedPaymentMethod = await root.getAttribute('data-payment-method');
+    const updatedFeeIncluded = await paymentPlan.getAttribute('data-fee-included');
 
     await page.getByTestId('admin-next-itineraries-view-kanban').click();
     await page.waitForURL(/view=kanban/);
@@ -221,8 +228,16 @@ async function runPlaywrightSmoke(targetUrl) {
     if (!hasList || !hasDetail || !hasServicesTab || !hasAiPanel) {
       throw new Error('Itineraries list, detail or AI panel did not render.');
     }
-    if (paymentsTab !== 'payments' || !hasPaymentsTab || !hasLockedPayment) {
-      throw new Error('Itinerary detail payments tab did not expose locked paid installments.');
+    if (
+      paymentsTab !== 'payments' ||
+      !hasPaymentsTab ||
+      initialPaymentMethod !== 'card' ||
+      initialFeeIncluded !== 'true' ||
+      updatedPaymentMethod !== 'bank_transfer' ||
+      updatedFeeIncluded !== 'false' ||
+      !hasLockedPayment
+    ) {
+      throw new Error('Itinerary detail payments tab did not expose methods and locked paid installments.');
     }
     if (
       updatedView !== 'kanban' ||
@@ -255,6 +270,10 @@ async function runPlaywrightSmoke(targetUrl) {
       initialCount,
       kanbanColumns,
       paymentsTab,
+      initialPaymentMethod,
+      initialFeeIncluded,
+      updatedPaymentMethod,
+      updatedFeeIncluded,
       hasDetail,
       hasServicesTab,
       hasPaymentsTab,

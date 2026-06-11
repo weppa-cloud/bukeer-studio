@@ -49,6 +49,8 @@ describe('adminNextCopy', () => {
       'preview',
     ]);
     expect(adminNextCopy.itineraries.lockedPaymentLabel).toBe('Bloqueada');
+    expect(adminNextCopy.itineraries.paymentMethodTitle).toBe('Medios de pago');
+    expect(adminNextCopy.itineraries.installmentStatusLabels.paid).toBe('Pagada');
     expect(adminNextCopy.itineraries.paxLabel(4)).toBe('4 pax');
     expect(adminNextCopy.itineraries.paymentsLabel(1, 3)).toBe('1/3 cuotas');
   });

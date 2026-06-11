@@ -73,6 +73,18 @@ export const adminNextCopy = {
       'Servicios, pasajeros, proveedores, pagos y vista previa comparten el mismo deep-link.',
     detailSelectedLabel: 'Seleccionado',
     lockedPaymentLabel: 'Bloqueada',
+    paymentMethodTitle: 'Medios de pago',
+    paymentMethodSubtitle:
+      'El metodo elegido viaja en la URL y solo recalcula cuotas pendientes.',
+    paymentFeeLabel: 'Fee',
+    paymentTotalLabel: 'Total a pagar',
+    installmentsTitle: 'Plan de cuotas',
+    regeneratePendingAction: 'Regenerar pendientes',
+    installmentStatusLabels: {
+      paid: 'Pagada',
+      pending: 'Pendiente',
+      overdue: 'Vencida',
+    },
     detailTabLabels: {
       services: 'Servicios',
       passengers: 'Pasajeros',

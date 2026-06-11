@@ -21,6 +21,8 @@ import type {
   ItinerariesFixture,
   ItineraryDetailItem,
   ItineraryDetailTab,
+  ItineraryPaymentMethod,
+  ItineraryPaymentPlan,
   ItineraryStatus,
   ItinerarySummary,
   ItineraryTone,
@@ -33,6 +35,7 @@ const DEFAULT_VIEW: ItineraryViewMode = 'list';
 const DEFAULT_STATUS = 'all';
 const DEFAULT_OWNER = 'all';
 const DEFAULT_DETAIL_TAB: ItineraryDetailTab = 'services';
+const DEFAULT_PAYMENT_METHOD: ItineraryPaymentMethod = 'card';
 const DETAIL_TABS: ItineraryDetailTab[] = [
   'services',
   'passengers',
@@ -82,8 +85,15 @@ export function ItinerariesModule({
     visibleItineraries[0] ??
     fixture.itineraries[0];
   const selectedDetail = selectedItinerary ? fixture.details[selectedItinerary.id] : null;
+  const selectedPaymentPlan = selectedItinerary
+    ? fixture.paymentPlans[selectedItinerary.id]
+    : null;
   const tabParam = resolvedSearchParams.get('tab');
   const activeDetailTab = isDetailTab(tabParam) ? tabParam : DEFAULT_DETAIL_TAB;
+  const methodParam = resolvedSearchParams.get('method');
+  const selectedPaymentMethod = isPaymentMethod(methodParam)
+    ? methodParam
+    : DEFAULT_PAYMENT_METHOD;
 
   const replaceQuery = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(resolvedSearchParams.toString());
@@ -108,6 +118,7 @@ export function ItinerariesModule({
         data-active-owner={selectedOwner}
         data-selected-itinerary={selectedItinerary?.id ?? ''}
         data-active-tab={activeDetailTab}
+        data-payment-method={selectedPaymentMethod}
         data-visible-itineraries={visibleItineraries.length}
         data-kanban-columns={fixture.statuses.length}
         style={evolucionTheme.styles.light}
@@ -129,6 +140,9 @@ export function ItinerariesModule({
                 activeTab={activeDetailTab}
                 detailItems={selectedDetail[activeDetailTab]}
                 itinerary={selectedItinerary}
+                paymentMethod={selectedPaymentMethod}
+                paymentPlan={selectedPaymentPlan}
+                onPaymentMethodChange={(method) => replaceQuery({ method })}
                 onTabChange={(tab) => replaceQuery({ selected: selectedItinerary.id, tab })}
               />
             ) : null}
@@ -271,11 +285,17 @@ function ItineraryDetailPanel({
   activeTab,
   detailItems,
   itinerary,
+  paymentMethod,
+  paymentPlan,
+  onPaymentMethodChange,
   onTabChange,
 }: {
   activeTab: ItineraryDetailTab;
   detailItems: ItineraryDetailItem[];
   itinerary: ItinerarySummary;
+  paymentMethod: ItineraryPaymentMethod;
+  paymentPlan: ItineraryPaymentPlan | null;
+  onPaymentMethodChange: (method: ItineraryPaymentMethod) => void;
   onTabChange: (tab: ItineraryDetailTab) => void;
 }) {
   return (
@@ -348,7 +368,124 @@ function ItineraryDetailPanel({
           </article>
         ))}
       </div>
+      {activeTab === 'payments' && paymentPlan ? (
+        <PaymentPlanPanel
+          paymentMethod={paymentMethod}
+          paymentPlan={paymentPlan}
+          onPaymentMethodChange={onPaymentMethodChange}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function PaymentPlanPanel({
+  paymentMethod,
+  paymentPlan,
+  onPaymentMethodChange,
+}: {
+  paymentMethod: ItineraryPaymentMethod;
+  paymentPlan: ItineraryPaymentPlan;
+  onPaymentMethodChange: (method: ItineraryPaymentMethod) => void;
+}) {
+  const selectedMethod =
+    paymentPlan.methods.find((method) => method.id === paymentMethod) ??
+    paymentPlan.methods[0];
+
+  return (
+    <section
+      className="mt-4 rounded-lg border bg-background p-4"
+      data-fee-included={selectedMethod.feeIncluded}
+      data-payment-method={selectedMethod.id}
+      data-testid="admin-next-itinerary-payment-plan"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <CreditCard className="size-4 text-primary" />
+            {adminNextCopy.itineraries.paymentMethodTitle}
+          </div>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {adminNextCopy.itineraries.paymentMethodSubtitle}
+          </p>
+        </div>
+        <button
+          className="inline-flex h-8 items-center rounded-md border bg-card px-3 text-xs font-semibold text-primary"
+          data-testid="admin-next-itinerary-regenerate-pending"
+          type="button"
+        >
+          {adminNextCopy.itineraries.regeneratePendingAction}
+        </button>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {paymentPlan.methods.map((method) => (
+          <button
+            className={filterButtonClass(selectedMethod.id === method.id)}
+            data-active={selectedMethod.id === method.id}
+            data-testid={`admin-next-itinerary-payment-method-${method.id}`}
+            key={method.id}
+            type="button"
+            onClick={() => onPaymentMethodChange(method.id)}
+          >
+            {method.label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <MetricCard
+          label={adminNextCopy.itineraries.paymentFeeLabel}
+          tone={selectedMethod.tone}
+          value={selectedMethod.fee}
+        />
+        <MetricCard
+          label={adminNextCopy.itineraries.paymentTotalLabel}
+          tone="primary"
+          value={selectedMethod.total}
+        />
+      </div>
+      <h3 className="mt-4 text-sm font-semibold">
+        {adminNextCopy.itineraries.installmentsTitle}
+      </h3>
+      <div className="mt-3 grid gap-2">
+        {paymentPlan.installments.map((installment) => (
+          <article
+            className="grid gap-2 rounded-md border bg-card p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]"
+            data-locked={installment.locked}
+            data-status={installment.status}
+            data-testid={`admin-next-itinerary-installment-${installment.id}`}
+            key={installment.id}
+          >
+            <div>
+              <div className="text-sm font-semibold">{installment.label}</div>
+              <div className="text-xs text-muted-foreground">{installment.dueDate}</div>
+            </div>
+            <div className="text-sm font-semibold">{installment.amount}</div>
+            <ToneBadge tone={installment.tone}>
+              {adminNextCopy.itineraries.installmentStatusLabels[installment.status]}
+            </ToneBadge>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MetricCard({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: ItineraryTone;
+  value: string;
+}) {
+  return (
+    <div className="rounded-md border bg-card p-3">
+      <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+      <div className="mt-1">
+        <ToneBadge tone={tone}>{value}</ToneBadge>
+      </div>
+    </div>
   );
 }
 
@@ -545,6 +682,10 @@ function isStatusKey(fixture: ItinerariesFixture, value: string): value is Itine
 
 function isDetailTab(value: string | null): value is ItineraryDetailTab {
   return DETAIL_TABS.some((tab) => tab === value);
+}
+
+function isPaymentMethod(value: string | null): value is ItineraryPaymentMethod {
+  return value === 'card' || value === 'bank_transfer' || value === 'cash';
 }
 
 function statusTone(status: ItineraryStatus): ItineraryTone {

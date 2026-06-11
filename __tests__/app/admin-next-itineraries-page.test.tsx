@@ -116,6 +116,17 @@ describe('/admin/itineraries auth boundary', () => {
                 preview: expect.any(Array),
               }),
             }),
+            paymentPlans: expect.objectContaining({
+              'it-2651': expect.objectContaining({
+                methods: expect.arrayContaining([
+                  expect.objectContaining({ id: 'card', feeIncluded: true }),
+                  expect.objectContaining({ id: 'bank_transfer', feeIncluded: false }),
+                ]),
+                installments: expect.arrayContaining([
+                  expect.objectContaining({ id: 'it-2651-installment-1', locked: true }),
+                ]),
+              }),
+            }),
           }),
           evolucionTheme: expect.objectContaining({
             presetSlug: 'evolucion',
