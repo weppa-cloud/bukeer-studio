@@ -17,6 +17,7 @@ import {
   lintTheme,
   TOURISM_PRESETS,
   COLOMBIA_CARIBE_PRESET,
+  EVOLUCION_PRESET,
   ALL_SYSTEM_PRESETS,
   getPresetBySlug,
   getPresetsByCategory,
@@ -230,6 +231,37 @@ describe('compileTheme', () => {
     assert.ok(compiled.web!.fontImports.some((url) => url.includes('Bricolage+Grotesque:opsz,wght@8..144,200..800')));
     // Body font is Inter per designer reference default palette
     assert.ok(compiled.web!.fontImports.some((url) => url.includes('family=Inter')));
+  });
+
+  it('parses, validates and compiles the evolucion product preset', () => {
+    const parsed = parseTheme({
+      tokens: EVOLUCION_PRESET.tokens,
+      profile: EVOLUCION_PRESET.profile,
+    });
+    assert.equal(parsed.success, true);
+    assert.equal(EVOLUCION_PRESET.metadata.slug, 'evolucion');
+    assert.equal(EVOLUCION_PRESET.profile.brand.name, 'Evolución');
+    // Brand continuity: purple seed + Outfit/Readex Pro kept from Flutter
+    assert.equal(EVOLUCION_PRESET.tokens.colors.seedColor, '#7C57B3');
+    assert.equal(EVOLUCION_PRESET.tokens.colors.accents!.accent2, '#1FA597');
+    assert.equal(EVOLUCION_PRESET.tokens.typography.display.family, 'Outfit');
+    assert.equal(EVOLUCION_PRESET.tokens.typography.display.weight, '500');
+    assert.equal(EVOLUCION_PRESET.tokens.typography.body.family, 'Readex Pro');
+    // Workbench surface contract: cards sit on a darker page foundation
+    assert.equal(EVOLUCION_PRESET.tokens.colors.light.surfaceContainerHigh, '#FFFFFF');
+    assert.equal(EVOLUCION_PRESET.tokens.colors.dark.surface, '#15161E');
+    assert.equal(EVOLUCION_PRESET.tokens.spacing.containerMaxPx, 1440);
+
+    const validation = validateTheme(EVOLUCION_PRESET.tokens, EVOLUCION_PRESET.profile);
+    assert.equal(validation.valid, true, JSON.stringify(validation.issues));
+
+    const compiled = compileTheme(EVOLUCION_PRESET.tokens, EVOLUCION_PRESET.profile);
+    assert.ok(compiled.web);
+    assert.ok(compiled.flutter);
+    assert.ok(compiled.web!.fontImports.some((url) => url.includes('Readex+Pro')));
+
+    // App preset stays out of the agency website gallery by design
+    assert.ok(!ALL_SYSTEM_PRESETS.some((p) => p.metadata.slug === 'evolucion'));
   });
 });
 
