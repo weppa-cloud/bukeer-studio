@@ -66,6 +66,26 @@ export const adminNextCopy = {
     aiPanelDescription:
       'Senales accionables sobre saldo, proveedor vinculado y datos listos para operar.',
   },
+  agenda: {
+    title: 'Agenda de servicios',
+    subtitle: 'Servicios programados · proximos 30 dias · 18 servicios',
+    filters: [
+      { key: 'all', label: 'Todos' },
+      { key: 'flights', label: 'Vuelos' },
+      { key: 'hotels', label: 'Hoteles' },
+      { key: 'transport', label: 'Transporte' },
+      { key: 'services', label: 'Servicios' },
+    ],
+    searchPlaceholder: 'Buscar por cliente, proveedor o producto',
+    collapsedDayLabel: 'Servicios agrupados para revision posterior.',
+    amountLabel: 'Total',
+    serviceSubline: (supplier: string, customer: string) => `${supplier} · ${customer}`,
+    itineraryLabel: (id: string) => `ID ${id}`,
+    aiPanelEyebrow: 'Panel contextual IA',
+    aiPanelTitle: 'Riesgos de operacion',
+    aiPanelDescription:
+      'Lectura de notificaciones, pagos de cliente y pendientes con proveedor para los proximos servicios.',
+  },
   tripRail: {
     eyebrow: 'Active travel opportunities',
     title: 'Planner queue',

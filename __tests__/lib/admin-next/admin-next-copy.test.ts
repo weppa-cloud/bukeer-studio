@@ -43,6 +43,18 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.contacts.totalLabel(6)).toBe('6 visibles');
   });
 
+  it('keeps agenda module copy centralized', () => {
+    expect(adminNextCopy.agenda.title).toBe('Agenda de servicios');
+    expect(adminNextCopy.agenda.filters.map((filter) => filter.key)).toEqual([
+      'all',
+      'flights',
+      'hotels',
+      'transport',
+      'services',
+    ]);
+    expect(adminNextCopy.agenda.itineraryLabel('2647')).toBe('ID 2647');
+  });
+
   it('keeps signature UI copy and formatters centralized', () => {
     expect(adminNextCopy.signature.statusLabels.approval_required).toBe('Approval required');
     expect(adminNextCopy.signature.blockedBanner.missingFieldsPill(3)).toBe('3 fields missing');

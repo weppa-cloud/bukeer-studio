@@ -1701,13 +1701,13 @@ export const config = {
     /*
      * Match all request paths except for the ones starting with:
      * - api (API routes)
-     * - admin/prototype, admin/dashboard and admin/contacts (Admin Next routes guard themselves server-side)
+     * - admin/prototype, admin/dashboard, admin/contacts and admin/agenda (Admin Next routes guard themselves server-side)
      * - login / forgot-password / reset-password (auth pages render without middleware)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    "/((?!api|admin/prototype|admin/dashboard|admin/contacts|login|forgot-password|reset-password|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
+    "/((?!api|admin/prototype|admin/dashboard|admin/contacts|admin/agenda|login|forgot-password|reset-password|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
   ],
 };

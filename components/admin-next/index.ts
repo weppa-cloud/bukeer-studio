@@ -1,4 +1,5 @@
 export { AdminShell } from './admin-shell';
+export { AgendaModule } from './agenda-module';
 export { AgentBlockedCard, AgentSuggestionCard } from './agent-cards';
 export { ApprovalCommandBar } from './approval-command-bar';
 export { ContactsModule } from './contacts-module';
