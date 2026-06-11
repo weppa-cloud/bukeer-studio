@@ -28,6 +28,9 @@ jest.mock('@/lib/admin-next/planner-workbench-adapter', () => ({
 
 jest.mock('@/lib/admin-next/session/get-admin-session-context', () => ({
   getAdminSessionContext: jest.fn(),
+  hasAdminPermission: jest.requireActual(
+    '@/lib/admin-next/session/get-admin-session-context',
+  ).hasAdminPermission,
 }));
 
 jest.mock('@/lib/supabase/server-client', () => ({

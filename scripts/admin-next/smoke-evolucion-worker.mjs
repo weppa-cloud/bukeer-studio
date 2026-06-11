@@ -4,6 +4,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { adminNextSmokeToken } from './smoke-auth-headers.mjs';
 
 const repoRoot = process.cwd();
 const workerPath = path.join(repoRoot, '.open-next/worker.js');
@@ -106,15 +107,32 @@ function createSmokeWranglerConfig() {
   const requiredSmokeVars = [
     'ADMIN_NEXT_PROTOTYPE_ENABLED = "true"',
     'ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED = "true"',
+    `ADMIN_NEXT_PROTOTYPE_SMOKE_TOKEN = "${adminNextSmokeToken}"`,
     'ADMIN_NEXT_DATA_SOURCE_MODE = "fixture"',
   ];
-  const missingSmokeVars = requiredSmokeVars.filter((line) => !source.includes(line));
 
-  if (missingSmokeVars.length === 0) {
-    return source;
+  return upsertEnvVars(source, marker, requiredSmokeVars);
+}
+
+function upsertEnvVars(source, marker, lines) {
+  const start = source.indexOf(marker) + marker.length;
+  const nextSection = source.slice(start).search(/\n\[/);
+  const end = nextSection === -1 ? source.length : start + nextSection + 1;
+  let section = source.slice(start, end);
+
+  for (const line of lines) {
+    const key = line.split('=')[0].trim();
+    const keyPattern = new RegExp(`^${escapeRegExp(key)}\\s*=.*$`, 'm');
+    section = keyPattern.test(section)
+      ? section.replace(keyPattern, line)
+      : `${line}\n${section}`;
   }
 
-  return source.replace(marker, `${marker}${missingSmokeVars.join('\n')}\n`);
+  return `${source.slice(0, start)}${section}${source.slice(end)}`;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function startPreview() {

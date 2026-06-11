@@ -32,6 +32,11 @@ describe('admin-next session helpers', () => {
     expect(permissionsForRole('agent')).not.toContain('planner.approve');
   });
 
+  it('does not grant fallback permissions to unknown roles', () => {
+    expect(permissionsForRole('viewer')).toEqual([]);
+    expect(permissionsForRole('')).toEqual([]);
+  });
+
   it('checks permissions only for authenticated contexts', () => {
     const authCtx: AdminSessionContext = {
       status: 'authenticated',

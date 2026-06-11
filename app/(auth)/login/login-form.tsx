@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { motion } from 'framer-motion';
+import { sanitizeInternalRedirect } from '@/lib/auth/safe-redirect';
 
 export function LoginForm({ redirect }: { redirect: string }) {
+  const safeRedirect = sanitizeInternalRedirect(redirect);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -33,7 +35,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
 
     // @supabase/ssr browser client automatically syncs session to cookies
     // Force a hard navigation so middleware sees the new cookies
-    window.location.href = redirect;
+    window.location.href = safeRedirect;
   }
 
   async function handleGoogleLogin() {
@@ -41,7 +43,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`,
+        redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(safeRedirect)}`,
       },
     });
 

@@ -129,7 +129,7 @@ export function getAdminNextSessionFlags(input?: {
 }
 
 export function permissionsForRole(role: string): AdminPermission[] {
-  return ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS.agent;
+  return ROLE_PERMISSIONS[role] ?? [];
 }
 
 export function hasAdminPermission(

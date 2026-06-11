@@ -2,6 +2,7 @@
 // This avoids useSearchParams() in a client component (which requires Suspense
 // and causes the form to be missing from the SSR HTML / stuck on spinner).
 import { LoginForm } from './login-form';
+import { sanitizeInternalRedirect } from '@/lib/auth/safe-redirect';
 
 export default async function LoginPage({
   searchParams,
@@ -9,6 +10,6 @@ export default async function LoginPage({
   searchParams: Promise<{ redirect?: string; next?: string }>;
 }) {
   const params = await searchParams;
-  const redirect = params.next || params.redirect || '/dashboard';
+  const redirect = sanitizeInternalRedirect(params.next || params.redirect);
   return <LoginForm redirect={redirect} />;
 }

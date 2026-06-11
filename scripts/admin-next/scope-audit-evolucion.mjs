@@ -6,6 +6,7 @@ import process from 'node:process';
 const PHASE0_ALLOWLIST = [
   /^app\/\(auth\)\/login\/login-form\.tsx$/,
   /^app\/\(auth\)\/login\/page\.tsx$/,
+  /^app\/admin\/layout\.tsx$/,
   /^app\/admin\/account\//,
   /^app\/admin\/agenda\//,
   /^app\/admin\/contacts\//,
@@ -26,6 +27,8 @@ const PHASE0_ALLOWLIST = [
   /^lib\/admin-next\/evolucion-theme\.ts$/,
   /^lib\/admin-next\/products-adapter\.ts$/,
   /^lib\/admin-next\/products-catalog-resolver\.ts$/,
+  /^lib\/admin-next\/route-boundary\.ts$/,
+  /^lib\/admin-next\/session\/get-admin-session-context\.ts$/,
   /^lib\/admin-next\/fixtures\/account\.ts$/,
   /^lib\/admin-next\/fixtures\/agenda\.ts$/,
   /^lib\/admin-next\/fixtures\/contacts\.ts$/,
@@ -33,6 +36,7 @@ const PHASE0_ALLOWLIST = [
   /^lib\/admin-next\/fixtures\/products\.ts$/,
   /^lib\/admin-next\/fixtures\/dashboard\.ts$/,
   /^lib\/admin-next\/fixtures\/settings\.ts$/,
+  /^lib\/auth\/safe-redirect\.ts$/,
   /^middleware\.ts$/,
   /^package\.json$/,
   /^wrangler\.toml$/,
@@ -57,8 +61,11 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/components\/admin-next\/settings-module\.test\.tsx$/,
   /^__tests__\/lib\/admin-next\/admin-next-copy\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/evolucion-theme\.test\.ts$/,
+  /^__tests__\/lib\/admin-next\/session\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/products-adapter\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/products-catalog-resolver\.test\.ts$/,
+  /^__tests__\/lib\/auth\//,
+  /^__tests__\/lib\/auth\/safe-redirect\.test\.ts$/,
 ];
 
 const KNOWN_MIXED_FILES = new Set(['package.json']);
@@ -87,7 +94,10 @@ function isPhase0File(filePath) {
 }
 
 function packageJsonSignals() {
-  const diff = git(['diff', '--', 'package.json']);
+  const diff = [
+    git(['diff', '--', 'package.json']),
+    git(['diff', '--cached', '--', 'package.json']),
+  ].join('\n');
   const addedLines = diff
     .split(/\r?\n/)
     .filter((line) => line.startsWith('+') && !line.startsWith('+++'));
