@@ -46,6 +46,26 @@ describe('products adapter', () => {
               last_name: 'Caribe',
               email: 'reservas@example.test',
             },
+            account_rates: [
+              {
+                id: 'rate-hotel-1',
+                price: 950000,
+                currency: 'COP',
+                is_active: true,
+              },
+              {
+                id: 'rate-hotel-2',
+                price: 720000,
+                currency: 'COP',
+                is_active: true,
+              },
+              {
+                id: 'rate-hotel-draft',
+                price: 500000,
+                currency: 'COP',
+                is_active: false,
+              },
+            ],
           },
         ],
         error: null,
@@ -75,6 +95,20 @@ describe('products adapter', () => {
               last_name: 'Tours',
               email: 'ops@example.test',
             },
+            activity_options: [
+              {
+                id: 'option-1',
+                is_active: true,
+                activity_prices: [
+                  {
+                    id: 'activity-price-1',
+                    price: '180000',
+                    currency: 'COP',
+                    is_active: true,
+                  },
+                ],
+              },
+            ],
           },
         ],
         error: null,
@@ -93,6 +127,7 @@ describe('products adapter', () => {
     expect(supabase.calls).toEqual([
       {
         table: 'account_hotels',
+        columns: expect.stringContaining('account_rates'),
         filters: [
           ['account_id', 'acct-1'],
           ['is_active', true],
@@ -101,6 +136,7 @@ describe('products adapter', () => {
       },
       {
         table: 'account_activities',
+        columns: expect.stringContaining('activity_options'),
         filters: [
           ['account_id', 'acct-1'],
           ['is_active', true],
@@ -123,8 +159,11 @@ describe('products adapter', () => {
         location: 'Baru, Colombia',
         provider: 'Operador Caribe',
         providerKey: 'operador-caribe',
+        fromPrice: '$720.000',
+        priceAmount: 720000,
         reviews: 83,
-        rateState: 'review',
+        rateState: 'active',
+        tone: 'primary',
         imageCount: 2,
       }),
       expect.objectContaining({
@@ -133,8 +172,10 @@ describe('products adapter', () => {
         type: 'Actividades',
         location: 'Cartagena, Colombia',
         provider: 'Eco Tours',
-        rateState: 'review',
-        tone: 'warning',
+        fromPrice: '$180.000',
+        priceAmount: 180000,
+        rateState: 'active',
+        tone: 'live',
         imageCount: 1,
       }),
     ]);
@@ -176,12 +217,14 @@ function createReadonlySupabaseMock(rows: {
 }): AdminNextProductsReadonlySupabaseClient & {
   calls: Array<{
     table: string;
+    columns: string;
     filters: Array<[string, unknown]>;
     limit: number | null;
   }>;
 } {
   const calls: Array<{
     table: string;
+    columns: string;
     filters: Array<[string, unknown]>;
     limit: number | null;
   }> = [];
@@ -190,12 +233,13 @@ function createReadonlySupabaseMock(rows: {
     calls,
     from(table: 'account_hotels' | 'account_activities') {
       return {
-        select() {
+        select(columns: string) {
           const call: {
             table: string;
+            columns: string;
             filters: Array<[string, unknown]>;
             limit: number | null;
-          } = { table, filters: [], limit: null };
+          } = { table, columns, filters: [], limit: null };
           calls.push(call);
           const query = {
             eq(column: string, value: unknown) {
@@ -221,6 +265,7 @@ function createReadonlySupabaseMock(rows: {
   } as unknown as AdminNextProductsReadonlySupabaseClient & {
     calls: Array<{
       table: string;
+      columns: string;
       filters: Array<[string, unknown]>;
       limit: number | null;
     }>;

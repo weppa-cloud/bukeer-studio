@@ -56,6 +56,7 @@ interface ReadonlyHotelRow {
   rates_count?: NumericValue;
   master_hotels?: ReadonlyMasterHotelRow | ReadonlyMasterHotelRow[] | null;
   contacts?: ReadonlyProviderContactRow | ReadonlyProviderContactRow[] | null;
+  account_rates?: ReadonlyAccountRateRow[] | null;
 }
 
 interface ReadonlyActivityRow {
@@ -74,6 +75,7 @@ interface ReadonlyActivityRow {
     | ReadonlyMasterActivityRow[]
     | null;
   contacts?: ReadonlyProviderContactRow | ReadonlyProviderContactRow[] | null;
+  activity_options?: ReadonlyActivityOptionRow[] | null;
 }
 
 interface ReadonlyMasterHotelRow {
@@ -105,6 +107,31 @@ interface ReadonlyProviderContactRow {
   name?: string | null;
   last_name?: string | null;
   email?: string | null;
+}
+
+interface ReadonlyAccountRateRow {
+  id?: string | null;
+  price?: NumericValue;
+  currency?: string | null;
+  is_active?: boolean | null;
+}
+
+interface ReadonlyActivityOptionRow {
+  id?: string | null;
+  is_active?: boolean | null;
+  activity_prices?: ReadonlyActivityPriceRow[] | null;
+}
+
+interface ReadonlyActivityPriceRow {
+  id?: string | null;
+  price?: NumericValue;
+  currency?: string | null;
+  is_active?: boolean | null;
+}
+
+interface RateSummary {
+  activePricedCount: number;
+  minPrice: number | null;
 }
 
 const READONLY_PRODUCT_LIMIT = 25;
@@ -173,7 +200,7 @@ function readAccountHotels(
     .from('account_hotels')
     .select<
       ReadonlyHotelRow[]
-    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_hotels(id, name, city, country, description, photos, star_rating, user_rating, reviews_count)', 'contacts!account_hotels_provider_contact_id_fkey(id, name, last_name, email)'].join(', '))
+    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_hotels(id, name, city, country, description, photos, star_rating, user_rating, reviews_count)', 'contacts!account_hotels_provider_contact_id_fkey(id, name, last_name, email)', 'account_rates(id, price, currency, is_active)'].join(', '))
     .eq('account_id', accountId)
     .eq('is_active', true)
     .limit(READONLY_PRODUCT_LIMIT);
@@ -187,7 +214,7 @@ function readAccountActivities(
     .from('account_activities')
     .select<
       ReadonlyActivityRow[]
-    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_activities(id, name, city, country, description, description_short, photos, duration_minutes, experience_type)', 'contacts!account_activities_provider_contact_id_fkey(id, name, last_name, email)'].join(', '))
+    >(['id', 'custom_name', 'custom_description', 'is_active', 'provider_contact_id', 'master_activities(id, name, city, country, description, description_short, photos, duration_minutes, experience_type)', 'contacts!account_activities_provider_contact_id_fkey(id, name, last_name, email)', 'activity_options(id, is_active, activity_prices(id, price, currency, is_active))'].join(', '))
     .eq('account_id', accountId)
     .eq('is_active', true)
     .limit(READONLY_PRODUCT_LIMIT);
@@ -221,6 +248,7 @@ function buildReadonlyProductsFixture(
 function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
   const master = firstRelation(row.master_hotels);
   const providerContact = firstRelation(row.contacts);
+  const rateSummary = summarizeRates(row.account_rates ?? []);
   const name = firstNonEmpty(
     row.custom_name,
     row.hotel_name,
@@ -233,8 +261,11 @@ function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
     providerContact?.email,
     name,
   );
-  const priceAmount = readNumber(row.min_price) ?? 0;
-  const rateCount = readNumber(row.rates_count) ?? 0;
+  const priceAmount = rateSummary.minPrice ?? readNumber(row.min_price) ?? 0;
+  const rateCount =
+    rateSummary.activePricedCount > 0
+      ? rateSummary.activePricedCount
+      : readNumber(row.rates_count) ?? 0;
   const rating =
     readNumber(row.hotel_star_rating) ??
     readNumber(master?.user_rating) ??
@@ -273,6 +304,7 @@ function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
 function mapActivityRowToProduct(row: ReadonlyActivityRow): ProductRecord {
   const master = firstRelation(row.master_activities);
   const providerContact = firstRelation(row.contacts);
+  const rateSummary = summarizeActivityOptions(row.activity_options ?? []);
   const name = firstNonEmpty(
     row.custom_name,
     row.activity_name,
@@ -285,8 +317,11 @@ function mapActivityRowToProduct(row: ReadonlyActivityRow): ProductRecord {
     providerContact?.email,
     name,
   );
-  const priceAmount = readNumber(row.min_price) ?? 0;
-  const optionCount = readNumber(row.options_count) ?? 0;
+  const priceAmount = rateSummary.minPrice ?? readNumber(row.min_price) ?? 0;
+  const optionCount =
+    rateSummary.activePricedCount > 0
+      ? rateSummary.activePricedCount
+      : readNumber(row.options_count) ?? 0;
 
   return {
     id: row.id,
@@ -425,6 +460,36 @@ function readNumber(value: NumericValue): number | null {
   }
 
   return null;
+}
+
+function summarizeRates(
+  rates: readonly ReadonlyAccountRateRow[],
+): RateSummary {
+  return summarizePricedRows(rates);
+}
+
+function summarizeActivityOptions(
+  options: readonly ReadonlyActivityOptionRow[],
+): RateSummary {
+  const prices = options
+    .filter((option) => option.is_active !== false)
+    .flatMap((option) => option.activity_prices ?? []);
+
+  return summarizePricedRows(prices);
+}
+
+function summarizePricedRows(
+  rows: readonly (ReadonlyAccountRateRow | ReadonlyActivityPriceRow)[],
+): RateSummary {
+  const prices = rows
+    .filter((row) => row.is_active !== false)
+    .map((row) => readNumber(row.price))
+    .filter((price): price is number => price != null && price > 0);
+
+  return {
+    activePricedCount: prices.length,
+    minPrice: prices.length > 0 ? Math.min(...prices) : null,
+  };
 }
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {

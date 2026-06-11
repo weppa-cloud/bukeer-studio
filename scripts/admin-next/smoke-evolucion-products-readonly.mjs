@@ -42,6 +42,7 @@ async function main() {
     email: readonlyContext.email,
     password: readonlyContext.password,
     expectedProductCount: readonlyContext.expectedProductCount,
+    expectedActiveProductCount: readonlyContext.expectedActiveProductCount,
     firstExpectedProductId: readonlyContext.firstExpectedProductId,
     expectedHotelCount: readonlyContext.expectedHotelCount,
     expectedActivityCount: readonlyContext.expectedActivityCount,
@@ -139,13 +140,15 @@ async function resolveReadonlyContext() {
   const [hotelsResponse, activitiesResponse] = await Promise.all([
     supabase
       .from('account_hotels')
-      .select('id')
+      .select('id, account_rates(id, price, is_active)')
       .eq('account_id', accountId)
       .eq('is_active', true)
       .limit(25),
     supabase
       .from('account_activities')
-      .select('id')
+      .select(
+        'id, activity_options(id, is_active, activity_prices(id, price, is_active))',
+      )
       .eq('account_id', accountId)
       .eq('is_active', true)
       .limit(25),
@@ -164,6 +167,10 @@ async function resolveReadonlyContext() {
 
   const hotelRows = hotelsResponse.data ?? [];
   const activityRows = activitiesResponse.data ?? [];
+  const expectedActiveHotelCount = hotelRows.filter(hasActiveHotelRate).length;
+  const expectedActiveActivityCount = activityRows.filter(
+    hasActiveActivityPrice,
+  ).length;
 
   return {
     email,
@@ -173,8 +180,42 @@ async function resolveReadonlyContext() {
     expectedHotelCount: hotelRows.length,
     expectedActivityCount: activityRows.length,
     expectedProductCount: hotelRows.length + activityRows.length,
+    expectedActiveProductCount:
+      expectedActiveHotelCount + expectedActiveActivityCount,
     firstExpectedProductId: hotelRows[0]?.id ?? activityRows[0]?.id ?? null,
   };
+}
+
+function hasActiveHotelRate(row) {
+  return Array.isArray(row.account_rates)
+    ? row.account_rates.some((rate) => isActivePricedRow(rate))
+    : false;
+}
+
+function hasActiveActivityPrice(row) {
+  if (!Array.isArray(row.activity_options)) return false;
+
+  return row.activity_options
+    .filter((option) => option?.is_active !== false)
+    .some((option) =>
+      Array.isArray(option.activity_prices)
+        ? option.activity_prices.some((price) => isActivePricedRow(price))
+        : false,
+    );
+}
+
+function isActivePricedRow(row) {
+  return row?.is_active !== false && readNumber(row?.price) > 0;
+}
+
+function readNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim().replaceAll(',', ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
 }
 
 function extractRoleName(roleValue) {
@@ -256,6 +297,7 @@ async function runReadonlyProductsSmoke({
   email,
   password,
   expectedProductCount,
+  expectedActiveProductCount,
   firstExpectedProductId,
   expectedHotelCount,
   expectedActivityCount,
@@ -304,6 +346,9 @@ async function runReadonlyProductsSmoke({
     const productCount = await page
       .locator('[data-testid^="admin-next-product-card-"]')
       .count();
+    const activeProductCount = await page
+      .locator('[data-testid^="admin-next-product-card-"][data-rate-state="active"]')
+      .count();
     const firstExpectedProductVisible = firstExpectedProductId
       ? await page
           .locator(
@@ -342,6 +387,11 @@ async function runReadonlyProductsSmoke({
         `Expected ${expectedProductCount} readonly products, got ${productCount}`,
       );
     }
+    if (activeProductCount !== expectedActiveProductCount) {
+      throw new Error(
+        `Expected ${expectedActiveProductCount} active readonly products, got ${activeProductCount}`,
+      );
+    }
     if (!firstExpectedProductVisible) {
       throw new Error(
         'First readonly catalog row was not visible in Products UI.',
@@ -364,7 +414,9 @@ async function runReadonlyProductsSmoke({
       expectedHotelCount,
       expectedActivityCount,
       expectedProductCount,
+      expectedActiveProductCount,
       productCount,
+      activeProductCount,
       firstExpectedProductVisible,
       hasToolbar,
       hasDetail,

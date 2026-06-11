@@ -486,6 +486,7 @@ function ProductCard({
         isSelected && 'border-primary/40 bg-primary/5',
       )}
       data-testid={`admin-next-product-card-${product.id}`}
+      data-rate-state={product.rateState}
     >
       <div className="relative flex h-28 items-center justify-center bg-muted text-muted-foreground">
         <Image className="size-8" />

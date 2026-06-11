@@ -40,6 +40,7 @@ describe('ProductsModule', () => {
     );
     expect(markup).toContain('data-testid="admin-next-products-result-count"');
     expect(markup).toContain('data-testid="admin-next-products-grid"');
+    expect(markup).toContain('data-rate-state="active"');
     expect(markup).toContain('data-testid="admin-next-products-detail"');
     expect(markup).toContain('data-testid="admin-next-products-gallery"');
     expect(markup).toContain('data-testid="admin-next-products-rates"');
