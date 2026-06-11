@@ -18,6 +18,7 @@ const PHASE0_ALLOWLIST = [
   /^lib\/admin-next\/evolucion-theme\.ts$/,
   /^middleware\.ts$/,
   /^package\.json$/,
+  /^wrangler\.toml$/,
   /^scripts\/admin-next\//,
   /^__tests__\/app\/admin-next-planner-workbench-page\.test\.tsx$/,
   /^__tests__\/app\/login-page\.test\.tsx$/,
