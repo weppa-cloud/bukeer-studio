@@ -132,6 +132,16 @@ async function runPlaywrightSmoke(targetUrl) {
     const hasAiPanel = await page.getByTestId('admin-next-products-ai-panel').isVisible();
     const screenshot = path.join(outputDir, 'products-evolucion-light.png');
     await page.screenshot({ path: screenshot, fullPage: false });
+    await page.getByTestId('admin-next-products-import').click();
+    await page.getByTestId('admin-next-products-import-csv-modal').waitFor({ timeout: 10_000 });
+    const hasImportCsvModal = await page.getByTestId('admin-next-products-import-csv-modal').isVisible();
+    const hasImportDropzone = await page.getByTestId('admin-next-products-import-dropzone').isVisible();
+    const importStepCount = await page.locator('[data-testid^="admin-next-products-import-step-"]').count();
+    const importPreviewRowCount = await page.locator('[data-testid^="admin-next-products-import-row-"]').count();
+    const importCsvScreenshot = path.join(outputDir, 'products-import-csv-modal-evolucion-light.png');
+    await page.screenshot({ path: importCsvScreenshot, fullPage: false });
+    await page.getByTestId('admin-next-products-modal-close').click();
+
     await page.getByTestId('admin-next-products-new').click();
     await page.getByTestId('admin-next-products-new-product-modal').waitFor({ timeout: 10_000 });
     const hasNewProductModal = await page.getByTestId('admin-next-products-new-product-modal').isVisible();
@@ -166,7 +176,18 @@ async function runPlaywrightSmoke(targetUrl) {
     if (productCount < 3 || !hasToolbar || !hasDetail || !hasGallery || !hasRates || !hasAiPanel) {
       throw new Error('Products required surfaces are not visible.');
     }
-    if (!hasNewProductModal || !hasNewHotelModal || !hasNewRateModal || !hasEditModal || !hasGalleryModal || galleryTileCount < 6) {
+    if (
+      !hasImportCsvModal ||
+      !hasImportDropzone ||
+      importStepCount !== 3 ||
+      importPreviewRowCount < 3 ||
+      !hasNewProductModal ||
+      !hasNewHotelModal ||
+      !hasNewRateModal ||
+      !hasEditModal ||
+      !hasGalleryModal ||
+      galleryTileCount < 6
+    ) {
       throw new Error('Products modal flows are not fully reachable.');
     }
     if (pageErrors.length > 0) {
@@ -184,6 +205,10 @@ async function runPlaywrightSmoke(targetUrl) {
       hasGallery,
       hasRates,
       hasAiPanel,
+      hasImportCsvModal,
+      hasImportDropzone,
+      importStepCount,
+      importPreviewRowCount,
       hasNewProductModal,
       hasNewHotelModal,
       hasNewRateModal,
@@ -191,7 +216,7 @@ async function runPlaywrightSmoke(targetUrl) {
       hasGalleryModal,
       galleryTileCount,
       consoleMessages,
-      screenshots: [screenshot, rateModalScreenshot, galleryModalScreenshot],
+      screenshots: [screenshot, importCsvScreenshot, rateModalScreenshot, galleryModalScreenshot],
     };
   } finally {
     await browser.close();
