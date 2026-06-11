@@ -75,6 +75,8 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.products.importCsvResultLabel(3)).toBe('3 productos preparados');
     expect(adminNextCopy.products.importCsvMappings).toHaveLength(6);
     expect(adminNextCopy.products.importCsvPreviewRows).toHaveLength(3);
+    expect(adminNextCopy.products.rateRequiredGateTitle).toBe('Tarifa obligatoria pendiente');
+    expect(adminNextCopy.products.rateReadyGateTitle).toBe('Tarifa activa lista');
   });
 
   it('keeps account module copy centralized', () => {

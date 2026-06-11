@@ -197,12 +197,33 @@ async function runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary) {
     await page.getByTestId('admin-next-products-modal-continue').click();
     await page.getByTestId('admin-next-products-new-hotel-modal').waitFor({ timeout: 10_000 });
     const hasNewHotelModal = await page.getByTestId('admin-next-products-new-hotel-modal').isVisible();
+    const hotelRateRequiredGate = await page
+      .getByTestId('admin-next-products-rate-required-gate')
+      .getAttribute('data-rate-required');
+    const hotelProductState = await page
+      .getByTestId('admin-next-products-rate-required-gate')
+      .getAttribute('data-product-state');
+    const finishRequiresRate = await page
+      .getByTestId('admin-next-products-modal-finish-hotel')
+      .getAttribute('data-rate-required');
     await page.getByTestId('admin-next-products-modal-finish-hotel').click();
     await page.getByTestId('admin-next-products-new-rate-modal').waitFor({ timeout: 10_000 });
     const hasNewRateModal = await page.getByTestId('admin-next-products-new-rate-modal').isVisible();
+    const activeRateGate = await page
+      .getByTestId('admin-next-products-active-rate-gate')
+      .getAttribute('data-rate-required');
+    const activeRateState = await page
+      .getByTestId('admin-next-products-rate-summary')
+      .getAttribute('data-rate-state');
+    const saveCompletesRateRequired = await page
+      .getByTestId('admin-next-products-modal-save-rate')
+      .getAttribute('data-completes-rate-required');
     const rateModalScreenshot = path.join(outputDir, 'products-rate-modal-evolucion-light.png');
     await page.screenshot({ path: rateModalScreenshot, fullPage: false });
-    await page.getByTestId('admin-next-products-modal-close').click();
+    await page.getByTestId('admin-next-products-modal-save-rate').click();
+    const rateModalClosedBySave = await page
+      .getByTestId('admin-next-products-new-rate-modal')
+      .isHidden();
 
     await page.getByTestId('admin-next-products-edit').click();
     await page.getByTestId('admin-next-products-edit-modal').waitFor({ timeout: 10_000 });
@@ -241,6 +262,13 @@ async function runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary) {
       !hasNewProductModal ||
       !hasNewHotelModal ||
       !hasNewRateModal ||
+      hotelRateRequiredGate !== 'true' ||
+      hotelProductState !== 'rate_required' ||
+      finishRequiresRate !== 'true' ||
+      activeRateGate !== 'false' ||
+      activeRateState !== 'active' ||
+      saveCompletesRateRequired !== 'true' ||
+      !rateModalClosedBySave ||
       !hasEditModal ||
       !hasGalleryModal ||
       galleryTileCount < 6
@@ -277,6 +305,13 @@ async function runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary) {
       hasNewProductModal,
       hasNewHotelModal,
       hasNewRateModal,
+      hotelRateRequiredGate,
+      hotelProductState,
+      finishRequiresRate,
+      activeRateGate,
+      activeRateState,
+      saveCompletesRateRequired,
+      rateModalClosedBySave,
       hasEditModal,
       hasGalleryModal,
       galleryTileCount,

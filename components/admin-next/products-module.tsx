@@ -1126,8 +1126,18 @@ function NewHotelModal({
         <ModalSection icon={<Building2 className="size-4" />} title={adminNextCopy.products.sectionProviderStatus}>
           <ModalField label={adminNextCopy.products.providerTitle} value={product.provider} />
           <ModalField label={adminNextCopy.products.stateLabel} value={product.status} />
-          <div className="rounded-md border bg-muted p-3 text-sm text-muted-foreground">
-            {adminNextCopy.products.mandatoryRateNote}
+          <div
+            className="rounded-md border border-[hsl(var(--bukeer-warning))]/30 bg-[hsl(var(--bukeer-warning)/0.12)] p-3 text-sm"
+            data-product-state="rate_required"
+            data-rate-required="true"
+            data-testid="admin-next-products-rate-required-gate"
+          >
+            <div className="font-semibold text-[hsl(var(--bukeer-warning))]">
+              {adminNextCopy.products.rateRequiredGateTitle}
+            </div>
+            <p className="mt-1 text-muted-foreground">
+              {adminNextCopy.products.rateRequiredGateDetail}
+            </p>
           </div>
         </ModalSection>
       </div>
@@ -1143,6 +1153,7 @@ function NewHotelModal({
         </button>
         <button
           className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground"
+          data-rate-required="true"
           data-testid="admin-next-products-modal-finish-hotel"
           onClick={() => openModal('new-rate')}
           type="button"
@@ -1178,10 +1189,28 @@ function NewRateModal({ fixture, onClose }: { fixture: ProductsFixture; onClose:
           <ModalField label={adminNextCopy.products.capacityLabel} value="2 pax" />
           <ModalField label={adminNextCopy.products.stateLabel} value={adminNextCopy.products.activeRateLabel} />
         </div>
-        <aside className="rounded-lg border bg-muted p-4" data-testid="admin-next-products-rate-summary">
+        <aside
+          className="rounded-lg border bg-muted p-4"
+          data-rate-required="false"
+          data-rate-state="active"
+          data-testid="admin-next-products-rate-summary"
+        >
           <div className="flex items-center gap-2 text-sm font-semibold">
             <WalletCards className="size-4 text-primary" />
             {adminNextCopy.products.priceFormulaNote}
+          </div>
+          <div
+            className="mt-3 rounded-md border border-secondary/30 bg-secondary/10 p-3 text-sm"
+            data-product-state="active"
+            data-rate-required="false"
+            data-testid="admin-next-products-active-rate-gate"
+          >
+            <div className="font-semibold text-secondary">
+              {adminNextCopy.products.rateReadyGateTitle}
+            </div>
+            <p className="mt-1 text-muted-foreground">
+              {adminNextCopy.products.rateReadyGateDetail}
+            </p>
           </div>
           <div className="mt-4 space-y-3">
             <RateMetric label={adminNextCopy.products.costLabel} value={rate?.cost ?? fixture.selected.fromPrice} />
@@ -1201,6 +1230,7 @@ function NewRateModal({ fixture, onClose }: { fixture: ProductsFixture; onClose:
         </button>
         <button
           className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground"
+          data-completes-rate-required="true"
           data-testid="admin-next-products-modal-save-rate"
           onClick={onClose}
           type="button"

@@ -171,6 +171,12 @@ export const adminNextCopy = {
     extraCostsLabel: 'Costos extra',
     recommendationsLabel: 'Recomendaciones',
     mandatoryRateNote: 'Al finalizar se pedira al menos una tarifa activa.',
+    rateRequiredGateTitle: 'Tarifa obligatoria pendiente',
+    rateRequiredGateDetail:
+      'El producto queda en borrador operativo hasta registrar una tarifa activa.',
+    rateReadyGateTitle: 'Tarifa activa lista',
+    rateReadyGateDetail:
+      'Guardar esta tarifa habilita el producto para ventas, catalogo y CRM.',
     finishHotelAction: 'Finalizar hotel',
     newRateTitle: 'Tarifas del hotel',
     newRateSubtitle: 'Precio = costo + margen. El resumen se recalcula al editar.',
