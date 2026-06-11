@@ -15,6 +15,7 @@ import {
   PlaneTakeoff,
   Search,
   ShieldCheck,
+  WalletCards,
   Users,
 } from 'lucide-react';
 import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
@@ -27,6 +28,7 @@ type AdminShellNavKey =
   | 'contacts'
   | 'products'
   | 'reports'
+  | 'payments'
   | 'agenda'
   | 'account'
   | 'settings';
@@ -38,6 +40,7 @@ const NAV_ICONS = {
   contacts: Users,
   products: Package,
   reports: BarChart3,
+  payments: WalletCards,
   agenda: CalendarDays,
   account: CircleHelp,
   settings: Map,

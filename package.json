@@ -46,6 +46,7 @@
     "admin-next:smoke:evolucion:products": "node scripts/admin-next/smoke-evolucion-products.mjs",
     "admin-next:smoke:evolucion:products:readonly": "node scripts/admin-next/smoke-evolucion-products-readonly.mjs",
     "admin-next:smoke:evolucion:reports": "node scripts/admin-next/smoke-evolucion-reports.mjs",
+    "admin-next:smoke:evolucion:payments": "node scripts/admin-next/smoke-evolucion-payments.mjs",
     "admin-next:smoke:evolucion:settings": "node scripts/admin-next/smoke-evolucion-settings.mjs",
     "admin-next:smoke:evolucion:auth": "node scripts/admin-next/smoke-evolucion-auth.mjs",
     "admin-next:smoke:evolucion:worker": "node scripts/admin-next/smoke-evolucion-worker.mjs",

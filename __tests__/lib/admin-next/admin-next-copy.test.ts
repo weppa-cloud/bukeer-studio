@@ -9,6 +9,7 @@ describe('adminNextCopy', () => {
       'contacts',
       'products',
       'reports',
+      'payments',
       'agenda',
       'account',
       'settings',
@@ -96,6 +97,15 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.reports.exportAction).toBe('Exportar CSV');
     expect(adminNextCopy.reports.urlStateLabel).toBe('URL-as-state');
     expect(adminNextCopy.reports.aiPanelTitle).toBe('Riesgos y gates');
+  });
+
+  it('keeps payments module copy centralized', () => {
+    expect(adminNextCopy.payments.title).toBe('Pagos');
+    expect(adminNextCopy.payments.methodLabels.card).toBe('Tarjeta');
+    expect(adminNextCopy.payments.methodLabels.bank_transfer).toBe('Transferencia');
+    expect(adminNextCopy.payments.invoicesLabel(3)).toBe('3 cuotas');
+    expect(adminNextCopy.payments.reservationsLabel(2)).toBe('2 reservas');
+    expect(adminNextCopy.payments.permissionLabel).toBe('Permiso payments.manage');
   });
 
   it('keeps account module copy centralized', () => {

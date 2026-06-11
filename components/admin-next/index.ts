@@ -10,6 +10,7 @@ export { LiveFeedColumn } from './live-feed-column';
 export { PlannerWorkbenchLayout } from './planner-workbench-layout';
 export { PlannerWorkbenchPrototype } from './planner-workbench-prototype';
 export { PlanningCanvas } from './planning-canvas';
+export { PaymentsModule } from './payments-module';
 export { ProductsModule } from './products-module';
 export { ReportsModule } from './reports-module';
 export { SettingsModule } from './settings-module';
