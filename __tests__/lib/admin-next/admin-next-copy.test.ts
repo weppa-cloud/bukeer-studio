@@ -32,6 +32,17 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.dashboard.targetProgress(92)).toBe('92% de la meta');
   });
 
+  it('keeps contacts module copy centralized', () => {
+    expect(adminNextCopy.contacts.title).toBe('Contactos');
+    expect(adminNextCopy.contacts.filters.map((filter) => filter.key)).toEqual([
+      'all',
+      'clients',
+      'providers',
+      'debt',
+    ]);
+    expect(adminNextCopy.contacts.totalLabel(6)).toBe('6 visibles');
+  });
+
   it('keeps signature UI copy and formatters centralized', () => {
     expect(adminNextCopy.signature.statusLabels.approval_required).toBe('Approval required');
     expect(adminNextCopy.signature.blockedBanner.missingFieldsPill(3)).toBe('3 fields missing');

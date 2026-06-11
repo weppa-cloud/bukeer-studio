@@ -39,6 +39,7 @@
     "admin-next:validate:evolucion": "node scripts/admin-next/validate-evolucion-contract.mjs",
     "admin-next:smoke:evolucion": "node scripts/admin-next/smoke-evolucion.mjs",
     "admin-next:smoke:evolucion:dashboard": "node scripts/admin-next/smoke-evolucion-dashboard.mjs",
+    "admin-next:smoke:evolucion:contacts": "node scripts/admin-next/smoke-evolucion-contacts.mjs",
     "admin-next:smoke:evolucion:auth": "node scripts/admin-next/smoke-evolucion-auth.mjs",
     "admin-next:smoke:evolucion:worker": "node scripts/admin-next/smoke-evolucion-worker.mjs",
     "session:run": "bash scripts/session-acquire.sh --run",
