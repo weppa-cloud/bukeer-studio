@@ -14,8 +14,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         id="admin-next-evolucion-theme"
         dangerouslySetInnerHTML={{
           __html: `
-:root:has(.bukeer-admin-signature),
-body:has(.bukeer-admin-signature),
+:root,
+body,
 .bukeer-admin-signature {
 ${getEvolucionThemeCss('light')}
   font-family: var(--font-body), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -23,8 +23,6 @@ ${getEvolucionThemeCss('light')}
   letter-spacing: var(--letter-spacing);
 }
 
-:root:has(.bukeer-admin-signature.dark),
-body:has(.bukeer-admin-signature.dark),
 .bukeer-admin-signature.dark {
 ${getEvolucionThemeCss('dark')}
   color-scheme: dark;

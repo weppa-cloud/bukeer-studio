@@ -60,6 +60,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/app\/admin-next-payments-page\.test\.tsx$/,
   /^__tests__\/app\/admin-next-dashboard-page\.test\.tsx$/,
   /^__tests__\/app\/admin-next-settings-page\.test\.tsx$/,
+  /^__tests__\/app\/admin-layout\.test\.tsx$/,
   /^__tests__\/app\/login-page\.test\.tsx$/,
   /^__tests__\/api\/admin-next-.*\.test\.ts$/,
   /^__tests__\/components\/admin-next\/account-module\.test\.tsx$/,
@@ -81,6 +82,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/lib\/admin-next\/payments-stripe-contract\.test\.ts$/,
   /^__tests__\/lib\/auth\//,
   /^__tests__\/lib\/auth\/safe-redirect\.test\.ts$/,
+  /^__tests__\/middleware\/public-cache\.test\.ts$/,
 ];
 
 const KNOWN_MIXED_FILES = new Set(['package.json']);

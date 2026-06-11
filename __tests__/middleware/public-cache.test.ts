@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { middlewareInternals } from "@/middleware";
+import { config, middlewareInternals } from "@/middleware";
 
 function makeRequest(url: string): NextRequest {
   return new NextRequest(url);
 }
 
 describe("public site cache headers", () => {
+  it("keeps auth pages inside middleware so en subdomain canonical redirects still run", () => {
+    const matcher = new RegExp(`^${config.matcher[0]}$`);
+
+    expect(matcher.test("/login")).toBe(true);
+    expect(matcher.test("/forgot-password")).toBe(true);
+    expect(matcher.test("/reset-password")).toBe(true);
+    expect(matcher.test("/_next/static/chunk.js")).toBe(false);
+  });
+
   it("adds shared edge cache headers for cacheable public tenant HTML", () => {
     const request = makeRequest("https://colombiatours.travel/");
     const response = NextResponse.rewrite(
