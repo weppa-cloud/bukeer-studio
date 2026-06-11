@@ -6,6 +6,7 @@ import process from 'node:process';
 const PHASE0_ALLOWLIST = [
   /^app\/\(auth\)\/login\/login-form\.tsx$/,
   /^app\/\(auth\)\/login\/page\.tsx$/,
+  /^app\/\(auth\)\/callback\/route\.ts$/,
   /^app\/admin\/layout\.tsx$/,
   /^app\/admin\/account\//,
   /^app\/admin\/agenda\//,
@@ -61,6 +62,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/app\/admin-next-dashboard-page\.test\.tsx$/,
   /^__tests__\/app\/admin-next-settings-page\.test\.tsx$/,
   /^__tests__\/app\/admin-layout\.test\.tsx$/,
+  /^__tests__\/app\/auth-callback-route\.test\.ts$/,
   /^__tests__\/app\/login-page\.test\.tsx$/,
   /^__tests__\/api\/admin-next-.*\.test\.ts$/,
   /^__tests__\/components\/admin-next\/account-module\.test\.tsx$/,
@@ -83,6 +85,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/lib\/auth\//,
   /^__tests__\/lib\/auth\/safe-redirect\.test\.ts$/,
   /^__tests__\/middleware\/public-cache\.test\.ts$/,
+  /^__tests__\/scripts\/admin-next-governance-scripts\.test\.js$/,
 ];
 
 const KNOWN_MIXED_FILES = new Set(['package.json']);

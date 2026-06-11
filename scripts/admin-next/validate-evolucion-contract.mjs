@@ -2,7 +2,7 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -159,7 +159,7 @@ function findInteractiveWithoutTestId(file, content) {
   }
 }
 
-function findInteractiveOpeningTags(content) {
+export function findInteractiveOpeningTags(content) {
   const tags = [];
   const tagStart = /<(button|Button|a)\b/g;
   let match;
@@ -177,7 +177,7 @@ function findInteractiveOpeningTags(content) {
   return tags;
 }
 
-function readOpeningTag(content, start) {
+export function readOpeningTag(content, start) {
   let quote = null;
   let braceDepth = 0;
 
@@ -304,7 +304,9 @@ async function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

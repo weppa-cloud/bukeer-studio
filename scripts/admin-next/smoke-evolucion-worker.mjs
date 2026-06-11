@@ -4,6 +4,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import { adminNextSmokeToken } from './smoke-auth-headers.mjs';
 
 const repoRoot = process.cwd();
@@ -132,7 +133,7 @@ function createSmokeWranglerConfig() {
   return upsertEnvVars(source, marker, requiredSmokeVars);
 }
 
-function upsertEnvVars(source, marker, lines) {
+export function upsertEnvVars(source, marker, lines) {
   const start = source.indexOf(marker) + marker.length;
   const nextSection = source.slice(start).search(/\n\[/);
   const end = nextSection === -1 ? source.length : start + nextSection + 1;
@@ -232,9 +233,11 @@ async function cleanup() {
   }
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(cleanup);
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main()
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(cleanup);
+}
