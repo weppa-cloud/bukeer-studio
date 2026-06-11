@@ -6,9 +6,9 @@ import { LoginForm } from './login-form';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirect?: string }>;
+  searchParams: Promise<{ redirect?: string; next?: string }>;
 }) {
   const params = await searchParams;
-  const redirect = params.redirect || '/dashboard';
+  const redirect = params.next || params.redirect || '/dashboard';
   return <LoginForm redirect={redirect} />;
 }

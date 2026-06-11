@@ -856,15 +856,26 @@ select.sort-select {
 }
 
 .bukeer-admin-signature {
-  font-family: "Readex Pro", var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: var(--font-body-weight);
+  letter-spacing: var(--letter-spacing);
 }
 
 .bukeer-admin-signature h1,
 .bukeer-admin-signature h2,
 .bukeer-admin-signature h3,
 .bukeer-admin-signature .bukeer-display {
-  font-family: "Outfit", var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0;
+  font-family: var(--font-heading), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: var(--font-heading-weight);
+  letter-spacing: var(--letter-spacing);
+}
+
+.bukeer-admin-signature .bukeer-trip-rail-item {
+  color: var(--bukeer-on-surface-color);
+}
+
+.bukeer-admin-signature .bukeer-trip-rail-muted {
+  color: var(--bukeer-on-surface-muted-color);
 }
 
 .dark {

@@ -3,6 +3,7 @@
 import type { ItinerarySegment, PlannerOpportunity } from '@bukeer/admin-contract';
 import { CalendarDays, DollarSign, FileText, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { StatePill } from './state-pill';
 
 export function PlanningCanvas({
@@ -20,7 +21,7 @@ export function PlanningCanvas({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Planner Workbench
+              {adminNextCopy.planningCanvas.title}
             </h1>
             <div className="mt-1 text-2xl font-semibold tracking-normal">{opportunity.destination}</div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -28,9 +29,9 @@ export function PlanningCanvas({
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-xs lg:min-w-[360px]">
-            <Metric icon={<CalendarDays className="size-4" />} label="SLA" value={opportunity.slaLabel} />
-            <Metric icon={<DollarSign className="size-4" />} label="Value" value={opportunity.valueLabel} />
-            <Metric icon={<ShieldAlert className="size-4" />} label="Margin" value={opportunity.marginLabel} />
+            <Metric icon={<CalendarDays className="size-4" />} label={adminNextCopy.planningCanvas.slaLabel} value={opportunity.slaLabel} />
+            <Metric icon={<DollarSign className="size-4" />} label={adminNextCopy.planningCanvas.valueLabel} value={opportunity.valueLabel} />
+            <Metric icon={<ShieldAlert className="size-4" />} label={adminNextCopy.planningCanvas.marginLabel} value={opportunity.marginLabel} />
           </div>
         </div>
       </div>
@@ -39,9 +40,9 @@ export function PlanningCanvas({
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 size-4 text-muted-foreground" />
             <div>
-              <div className="text-sm font-semibold">Not ready to send</div>
+              <div className="text-sm font-semibold">{adminNextCopy.planningCanvas.blockedTitle}</div>
               <p className="mt-1 text-sm text-muted-foreground">
-                Public proposal send requires approval and missing passenger data resolution. This prototype is read-only.
+                {adminNextCopy.planningCanvas.blockedDescription}
               </p>
             </div>
           </div>
@@ -50,8 +51,8 @@ export function PlanningCanvas({
         <div className="rounded-md border bg-background">
           <div className="flex items-center justify-between border-b px-4 py-3">
             <div>
-              <div className="text-sm font-semibold">Itinerary Manifest</div>
-              <div className="text-xs text-muted-foreground">Confirmed, suggested, blocked and approval-required segments</div>
+              <div className="text-sm font-semibold">{adminNextCopy.planningCanvas.manifestTitle}</div>
+              <div className="text-xs text-muted-foreground">{adminNextCopy.planningCanvas.manifestDescription}</div>
             </div>
             <FileText className="size-4 text-muted-foreground" />
           </div>
@@ -71,8 +72,13 @@ export function PlanningCanvas({
                     <div className="font-semibold">{segment.priceLabel}</div>
                     <div className="text-muted-foreground">{segment.marginLabel}</div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => onInspectTrace(segment.traceId)}>
-                    Trace
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid={`planning-segment-trace-${segment.id}`}
+                    onClick={() => onInspectTrace(segment.traceId)}
+                  >
+                    {adminNextCopy.planningCanvas.traceAction}
                   </Button>
                 </div>
               </article>

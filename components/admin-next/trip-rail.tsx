@@ -2,6 +2,7 @@
 
 import type { PlannerOpportunity } from '@bukeer/admin-contract';
 import { Clock, MessageSquareText, PlaneTakeoff, Users } from 'lucide-react';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { cn } from '@/lib/utils';
 import { StatePill } from './state-pill';
 
@@ -16,9 +17,9 @@ export function TripRail({
     <aside className="border-b bg-background lg:border-b-0 lg:border-r">
       <div className="border-b p-4">
         <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Active travel opportunities
+          {adminNextCopy.tripRail.eyebrow}
         </div>
-        <h2 className="mt-1 text-lg font-semibold">Planner queue</h2>
+        <h2 className="mt-1 text-lg font-semibold">{adminNextCopy.tripRail.title}</h2>
       </div>
       <div className="flex gap-3 overflow-x-auto p-3 lg:block lg:space-y-2 lg:overflow-visible">
         {opportunities.map((item) => {
@@ -26,6 +27,7 @@ export function TripRail({
           return (
             <button
               key={item.id}
+              data-testid={`trip-rail-opportunity-${item.id}`}
               className={cn(
                 'min-w-[280px] rounded-md border bg-background p-3 text-left lg:w-full',
                 selected ? 'border-primary/40 shadow-sm ring-1 ring-primary/20' : 'border-border',
@@ -43,13 +45,16 @@ export function TripRail({
                 <StatePill state={item.actionState} />
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                <Meta icon={<Users className="size-3.5" />} label={`${item.traveler.pax.adults + item.traveler.pax.children} pax`} />
+                <Meta
+                  icon={<Users className="size-3.5" />}
+                  label={adminNextCopy.tripRail.paxLabel(item.traveler.pax.adults + item.traveler.pax.children)}
+                />
                 <Meta icon={<Clock className="size-3.5" />} label={item.slaLabel} />
                 <Meta icon={<MessageSquareText className="size-3.5" />} label={item.sourceChannel} />
               </div>
               <div className="mt-3 flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{item.valueLabel}</span>
-                <span className="font-semibold">{item.marginLabel} margin</span>
+                <span className="font-semibold">{adminNextCopy.tripRail.marginLabel(item.marginLabel)}</span>
               </div>
             </button>
           );

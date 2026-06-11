@@ -83,6 +83,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
               </label>
               <input
                 id="email"
+                data-testid="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -102,6 +103,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
               </label>
               <input
                 id="password"
+                data-testid="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -123,6 +125,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
             )}
 
             <button
+              data-testid="login-submit"
               type="submit"
               disabled={loading}
               className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
@@ -147,6 +150,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
           </div>
 
           <button
+            data-testid="login-google"
             onClick={handleGoogleLogin}
             disabled={loading}
             className="w-full py-3 px-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300"
@@ -162,6 +166,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
 
           <div className="mt-4 text-center">
             <a
+              data-testid="login-forgot-password"
               href="/forgot-password"
               className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
             >

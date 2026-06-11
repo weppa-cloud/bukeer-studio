@@ -3,6 +3,7 @@
 import type { LiveFeedItem } from '@bukeer/admin-contract';
 import { Activity, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { StatePill } from './state-pill';
 
 export function LiveFeedColumn({
@@ -18,9 +19,9 @@ export function LiveFeedColumn({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Live supplier feed
+              {adminNextCopy.liveFeed.eyebrow}
             </div>
-            <h2 className="mt-1 text-base font-semibold">Availability & margin</h2>
+            <h2 className="mt-1 text-base font-semibold">{adminNextCopy.liveFeed.title}</h2>
           </div>
           <Activity className="size-4 text-secondary" />
         </div>
@@ -40,15 +41,16 @@ export function LiveFeedColumn({
                 <RefreshCw className="size-3.5" />
                 {item.updatedLabel}
               </span>
-              <span className="font-semibold">{item.marginLabel} margin</span>
+              <span className="font-semibold">{adminNextCopy.liveFeed.marginLabel(item.marginLabel)}</span>
             </div>
             <Button
               className="mt-3 w-full"
               variant="outline"
               size="sm"
+              data-testid={`live-feed-trace-${item.id}`}
               onClick={() => onInspectTrace(item.traceId)}
             >
-              Inspect trace
+              {adminNextCopy.liveFeed.inspectTraceAction}
             </Button>
           </article>
         ))}

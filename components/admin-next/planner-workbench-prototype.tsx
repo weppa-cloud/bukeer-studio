@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import type {
   AdminDataSourceMode,
@@ -9,6 +9,7 @@ import type {
   PlannerWorkbenchFixture,
 } from '@bukeer/admin-contract';
 import { mapAgentLedgerToTrace } from '@/lib/admin-next/agent-ledger-adapter';
+import type { EvolucionThemeStyle } from '@/lib/admin-next/evolucion-theme';
 import { agentLedgerFixture } from '@/lib/admin-next/fixtures/agent-ledger';
 import type { AdminNextSessionContext } from '@/lib/admin-next/session/get-admin-session-context';
 import {
@@ -27,6 +28,7 @@ import {
   type BukeerDraftAction,
   type SignatureWhatsAppHandoffResult,
 } from './signature-ui';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import { TraceDrawer } from './trace-drawer';
 
 type PrototypeAppearance = 'light' | 'dark';
@@ -46,11 +48,16 @@ export function PlannerWorkbenchPrototype({
   fixture,
   agentLedger = agentLedgerFixture,
   dataSourceMode = 'fixture',
+  evolucionTheme,
 }: {
   session: AuthenticatedAdminNextSessionContext;
   fixture: PlannerWorkbenchFixture;
   agentLedger?: AgentLedgerSnapshot;
   dataSourceMode?: AdminDataSourceMode;
+  evolucionTheme: {
+    presetSlug: string;
+    styles: Record<PrototypeAppearance, EvolucionThemeStyle>;
+  };
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
   const [lastTraceId, setLastTraceId] = useState(fixture.traceSummary.traceId);
@@ -89,7 +96,7 @@ export function PlannerWorkbenchPrototype({
       const message =
         typeof payload?.error?.message === 'string'
           ? payload.error.message
-          : 'Could not create WhatsApp handoff.';
+          : adminNextCopy.prototype.whatsappHandoffFallbackError;
       throw new Error(message);
     }
 
@@ -103,7 +110,7 @@ export function PlannerWorkbenchPrototype({
           : null;
 
     if (!referenceCode || !waMeUrl) {
-      throw new Error('WhatsApp handoff response was incomplete.');
+      throw new Error(adminNextCopy.prototype.whatsappHandoffIncompleteError);
     }
 
     return {
@@ -138,12 +145,19 @@ export function PlannerWorkbenchPrototype({
         appearance === 'dark' && 'dark'
       )}
       data-appearance={appearance}
+      data-source-mode={dataSourceMode}
+      data-theme-preset={evolucionTheme.presetSlug}
       data-testid="planner-workbench-root"
-      style={{ colorScheme: appearance }}
+      style={
+        {
+          ...evolucionTheme.styles[appearance],
+          colorScheme: appearance,
+        } as CSSProperties
+      }
     >
       {hydrated ? (
         <span data-testid="planner-workbench-hydrated" className="sr-only">
-          Planner Workbench hydrated
+          {adminNextCopy.prototype.hydratedLabel}
         </span>
       ) : null}
 
@@ -245,7 +259,7 @@ function PrototypeAppearanceToggle({
 }) {
   return (
     <div
-      aria-label="Appearance"
+      aria-label={adminNextCopy.prototype.appearanceLabel}
       className="inline-flex rounded-md border border-border bg-[hsl(var(--bukeer-surface-panel))] p-1 text-xs shadow-sm"
       role="group"
     >
@@ -261,7 +275,7 @@ function PrototypeAppearanceToggle({
         onClick={() => onAppearanceChange('light')}
       >
         <Sun className="size-3.5" />
-        Light
+        {adminNextCopy.prototype.lightModeAction}
       </button>
       <button
         type="button"
@@ -275,7 +289,7 @@ function PrototypeAppearanceToggle({
         onClick={() => onAppearanceChange('dark')}
       >
         <Moon className="size-3.5" />
-        Dark
+        {adminNextCopy.prototype.darkModeAction}
       </button>
     </div>
   );

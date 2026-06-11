@@ -1,6 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 import { PlannerWorkbenchPrototype } from '@/components/admin-next';
 import { createPlannerAgentLedgerSnapshot } from '@/lib/admin-next/agent-ledger-source';
+import {
+  evolucionThemeMetadata,
+  getEvolucionThemeStyle,
+} from '@/lib/admin-next/evolucion-theme';
 import { getAdminNextDataSourceMode } from '@/lib/admin-next/flags';
 import {
   createPlannerWorkbenchAdapter,
@@ -55,6 +59,13 @@ export default async function PlannerWorkbenchPrototypePage() {
       fixture={fixture}
       agentLedger={agentLedger}
       dataSourceMode={dataSourceMode}
+      evolucionTheme={{
+        presetSlug: evolucionThemeMetadata.presetSlug,
+        styles: {
+          light: getEvolucionThemeStyle('light'),
+          dark: getEvolucionThemeStyle('dark'),
+        },
+      }}
     />
   );
 }

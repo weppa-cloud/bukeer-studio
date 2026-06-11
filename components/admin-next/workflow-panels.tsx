@@ -1,13 +1,14 @@
 "use client";
 
 import { CheckCircle2, CircleDollarSign, ListChecks, ShieldAlert } from 'lucide-react';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 
 export function MissingDataChecklist({ items }: { items: string[] }) {
   return (
     <section className="rounded-md border bg-background p-4">
       <div className="flex items-center gap-2">
         <ListChecks className="size-4 text-accent" />
-        <h3 className="font-semibold">Missing data</h3>
+        <h3 className="font-semibold">{adminNextCopy.workflow.missingDataTitle}</h3>
       </div>
       <div className="mt-3 space-y-2">
         {items.map((item) => (
@@ -38,26 +39,26 @@ export function MarginGuardPanel({
     <section className="rounded-md border bg-background p-4">
       <div className="flex items-center gap-2">
         <CircleDollarSign className="size-4 text-accent" />
-        <h3 className="font-semibold">Margin guard</h3>
+        <h3 className="font-semibold">{adminNextCopy.workflow.marginGuardTitle}</h3>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-        <Metric label="Revenue" value={revenue} />
-        <Metric label="Cost" value={cost} />
-        <Metric label="Profit" value={profit} />
+        <Metric label={adminNextCopy.workflow.revenueLabel} value={revenue} />
+        <Metric label={adminNextCopy.workflow.costLabel} value={cost} />
+        <Metric label={adminNextCopy.workflow.profitLabel} value={profit} />
       </div>
       <div className="mt-3 rounded-md border border-accent/30 bg-accent/10 p-3">
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="font-semibold">Current margin</span>
+          <span className="font-semibold">{adminNextCopy.workflow.currentMarginLabel}</span>
           <span className="font-semibold">{current}</span>
         </div>
         <div className="mt-1 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>Target</span>
+          <span>{adminNextCopy.workflow.targetLabel}</span>
           <span>{target}</span>
         </div>
       </div>
       <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
         <CheckCircle2 className="mt-0.5 size-3.5 text-secondary" />
-        <span>Hotel swap suggestion can recover margin before public proposal send.</span>
+        <span>{adminNextCopy.workflow.recoveryHint}</span>
       </div>
     </section>
   );

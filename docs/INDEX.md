@@ -105,6 +105,18 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-028]] | [ADR-028](./architecture/ADR-028-media-assets-canonical-registry.md)                   | Media Assets Canonical Registry                                                                                                                                 | [[media-assets]] [[storage]] [[cross-repo-flutter]]                                      |
 | [[ADR-029]] | [ADR-029](./architecture/ADR-029-funnel-events-source-of-truth.md)                     | Funnel Events as Source of Truth (**Proposed 2026-05-03** — `funnel_events` table = SOT, single dispatcher fans out to Meta/Ads/GA4/TikTok)                     | [[funnel-events]] [[SOT]] [[tracking]] [[Meta CAPI]] [[Google Ads]] [[GA4]]              |
 | [[ADR-030]] | [ADR-030](./architecture/ADR-030-multitenant-redirect-policy-source-of-truth.md)       | Multitenant Redirect Policy Source of Truth (**Accepted 2026-05-20** — `website_redirect_policies` as canonical redirect/bypass contract with legacy fallback) | [[multi-tenant]] [[middleware]] [[routing]] [[redirects]] [[paid-media]]                 |
+| [[ADR-NF-001]] | [ADR-NF-001](./architecture/ADR-NF-001-parse-dont-validate.md) | Bukeer Next parse-dont-validate boundaries | [[Bukeer Next]] [[validation]] [[admin-next]] |
+| [[ADR-NF-002]] | [ADR-NF-002](./architecture/ADR-NF-002-auth-server-session-boundary.md) | Shared Supabase session server boundary | [[auth]] [[Supabase]] [[RBAC]] [[admin-next]] |
+| [[ADR-NF-003]] | [ADR-NF-003](./architecture/ADR-NF-003-url-as-state.md) | URL as durable workspace state | [[state]] [[routing]] [[agent-evidence]] |
+| [[ADR-NF-004]] | [ADR-NF-004](./architecture/ADR-NF-004-rbac-server-enforcement.md) | RBAC enforced server-side | [[RBAC]] [[security]] [[admin-next]] |
+| [[ADR-NF-005]] | [ADR-NF-005](./architecture/ADR-NF-005-agent-testids.md) | Stable data-testid contract for agent verification | [[testing]] [[Playwright]] [[agent-evidence]] |
+| [[ADR-NF-006]] | [ADR-NF-006](./architecture/ADR-NF-006-pagination-has-more.md) | Pagination exposes has_more | [[pagination]] [[edge]] [[admin-next]] |
+| [[ADR-NF-007]] | [ADR-NF-007](./architecture/ADR-NF-007-human-feedback-and-approval.md) | Human feedback and approval boundary | [[approval]] [[AI]] [[governance]] |
+| [[ADR-NF-008]] | [ADR-NF-008](./architecture/ADR-NF-008-single-token-source-evolucion.md) | Evolucion tokens via theme-sdk only | [[Evolucion]] [[theme-sdk]] [[design-system]] |
+| [[ADR-NF-009]] | [ADR-NF-009](./architecture/ADR-NF-009-admin-next-i18n-copy-contract.md) | Admin Next copy contract and i18n guardrail | [[i18n]] [[admin-next]] [[quality-gate]] |
+| [[ADR-NF-010]] | [ADR-NF-010](./architecture/ADR-NF-010-feature-flags-kill-switches.md) | Feature flags and kill switches | [[feature-flags]] [[rollback]] [[admin-next]] |
+| [[ADR-NF-011]] | [ADR-NF-011](./architecture/ADR-NF-011-ai-first-grounded-workbench.md) | AI-first grounded workbench | [[AI]] [[trace]] [[approval]] |
+| [[ADR-NF-012]] | [ADR-NF-012](./architecture/ADR-NF-012-media-registry-boundary.md) | Media registry boundary | [[media-assets]] [[cross-repo-flutter]] [[admin-next]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -668,6 +680,18 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-028]]`                                         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
 | `[[ADR-028-media-assets-canonical-registry]]`         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
 | `[[ADR-030]]`                                         | `docs/architecture/ADR-030-multitenant-redirect-policy-source-of-truth.md`         |
+| `[[ADR-NF-001]]`                                      | `docs/architecture/ADR-NF-001-parse-dont-validate.md`                              |
+| `[[ADR-NF-002]]`                                      | `docs/architecture/ADR-NF-002-auth-server-session-boundary.md`                     |
+| `[[ADR-NF-003]]`                                      | `docs/architecture/ADR-NF-003-url-as-state.md`                                     |
+| `[[ADR-NF-004]]`                                      | `docs/architecture/ADR-NF-004-rbac-server-enforcement.md`                          |
+| `[[ADR-NF-005]]`                                      | `docs/architecture/ADR-NF-005-agent-testids.md`                                    |
+| `[[ADR-NF-006]]`                                      | `docs/architecture/ADR-NF-006-pagination-has-more.md`                              |
+| `[[ADR-NF-007]]`                                      | `docs/architecture/ADR-NF-007-human-feedback-and-approval.md`                      |
+| `[[ADR-NF-008]]`                                      | `docs/architecture/ADR-NF-008-single-token-source-evolucion.md`                    |
+| `[[ADR-NF-009]]`                                      | `docs/architecture/ADR-NF-009-admin-next-i18n-copy-contract.md`                    |
+| `[[ADR-NF-010]]`                                      | `docs/architecture/ADR-NF-010-feature-flags-kill-switches.md`                      |
+| `[[ADR-NF-011]]`                                      | `docs/architecture/ADR-NF-011-ai-first-grounded-workbench.md`                      |
+| `[[ADR-NF-012]]`                                      | `docs/architecture/ADR-NF-012-media-registry-boundary.md`                          |
 | `[[SPEC_MEDIA_ASSET_LIBRARY_V1]]`                     | `docs/specs/SPEC_MEDIA_ASSET_LIBRARY_V1.md`                                       |
 | `[[field-ownership]]`                                 | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias)      |
 | `[[booking-defer]]`                                   | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias)              |

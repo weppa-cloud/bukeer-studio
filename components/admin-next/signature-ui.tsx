@@ -33,6 +33,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 
 export type SignatureTone =
   | 'structural'
@@ -43,17 +44,17 @@ export type SignatureTone =
   | 'danger';
 
 export const signatureStatusLabels: Record<AgenticActionState, string> = {
-  observed: 'Observed',
-  suggested: 'AI suggestion',
-  drafted: 'Drafted',
-  blocked_missing_data: 'AI blocked',
-  blocked_policy: 'Policy blocked',
-  approval_required: 'Approval required',
-  approved: 'Approved',
-  executing: 'Executing',
-  executed: 'Executed',
-  rejected: 'Rejected',
-  expired: 'Expiring',
+  observed: adminNextCopy.signature.statusLabels.observed,
+  suggested: adminNextCopy.signature.statusLabels.suggested,
+  drafted: adminNextCopy.signature.statusLabels.drafted,
+  blocked_missing_data: adminNextCopy.signature.statusLabels.blocked_missing_data,
+  blocked_policy: adminNextCopy.signature.statusLabels.blocked_policy,
+  approval_required: adminNextCopy.signature.statusLabels.approval_required,
+  approved: adminNextCopy.signature.statusLabels.approved,
+  executing: adminNextCopy.signature.statusLabels.executing,
+  executed: adminNextCopy.signature.statusLabels.executed,
+  rejected: adminNextCopy.signature.statusLabels.rejected,
+  expired: adminNextCopy.signature.statusLabels.expired,
 };
 
 export type SignatureUiVariantState = Extract<
@@ -132,59 +133,59 @@ type SignatureWhatsAppHandoffLocalState =
 export const signatureUiVariantDefaults: Record<SignatureUiVariantState, SignatureUiVariant> = {
   loading: {
     state: 'loading',
-    title: 'Loading signature workspace',
-    description: 'Fetching fixture context and preparing the human-agent controls.',
-    badge: 'Loading',
+    title: adminNextCopy.signature.variantDefaults.loading.title,
+    description: adminNextCopy.signature.variantDefaults.loading.description,
+    badge: adminNextCopy.signature.variantDefaults.loading.badge,
     tone: 'live',
   },
   empty: {
     state: 'empty',
-    title: 'No signature work queued',
-    description: 'There are no planner opportunities ready for signature review.',
-    badge: 'Empty',
+    title: adminNextCopy.signature.variantDefaults.empty.title,
+    description: adminNextCopy.signature.variantDefaults.empty.description,
+    badge: adminNextCopy.signature.variantDefaults.empty.badge,
     tone: 'structural',
   },
   error: {
     state: 'error',
-    title: 'Signature state unavailable',
-    description: 'The local prototype state could not be resolved.',
-    badge: 'Error',
+    title: adminNextCopy.signature.variantDefaults.error.title,
+    description: adminNextCopy.signature.variantDefaults.error.description,
+    badge: adminNextCopy.signature.variantDefaults.error.badge,
     tone: 'danger',
-    actionLabel: 'Retry',
+    actionLabel: adminNextCopy.signature.variantDefaults.error.actionLabel,
   },
   no_permission: {
     state: 'no_permission',
-    title: 'Permission required',
-    description: 'This user cannot approve or execute this signature workflow.',
-    badge: 'No permission',
+    title: adminNextCopy.signature.variantDefaults.noPermission.title,
+    description: adminNextCopy.signature.variantDefaults.noPermission.description,
+    badge: adminNextCopy.signature.variantDefaults.noPermission.badge,
     tone: 'danger',
   },
   approved: {
     state: 'approved',
-    title: 'Approved for execution',
-    description: 'The human approval gate has been cleared.',
-    badge: 'Approved',
+    title: adminNextCopy.signature.variantDefaults.approved.title,
+    description: adminNextCopy.signature.variantDefaults.approved.description,
+    badge: adminNextCopy.signature.variantDefaults.approved.badge,
     tone: 'success',
   },
   rejected: {
     state: 'rejected',
-    title: 'Rejected by reviewer',
-    description: 'The proposal remains blocked and requires revision before execution.',
-    badge: 'Rejected',
+    title: adminNextCopy.signature.variantDefaults.rejected.title,
+    description: adminNextCopy.signature.variantDefaults.rejected.description,
+    badge: adminNextCopy.signature.variantDefaults.rejected.badge,
     tone: 'danger',
   },
   executing: {
     state: 'executing',
-    title: 'Executing approved action',
-    description: 'The local prototype is showing execution-in-progress state only.',
-    badge: 'Executing',
+    title: adminNextCopy.signature.variantDefaults.executing.title,
+    description: adminNextCopy.signature.variantDefaults.executing.description,
+    badge: adminNextCopy.signature.variantDefaults.executing.badge,
     tone: 'live',
   },
   executed: {
     state: 'executed',
-    title: 'Execution complete',
-    description: 'The approved workflow has completed in prototype state.',
-    badge: 'Executed',
+    title: adminNextCopy.signature.variantDefaults.executed.title,
+    description: adminNextCopy.signature.variantDefaults.executed.description,
+    badge: adminNextCopy.signature.variantDefaults.executed.badge,
     tone: 'success',
   },
 };
@@ -261,7 +262,7 @@ export function signatureToneForDraftActionStatus(status?: string): SignatureTon
 }
 
 function draftActionStatusLabel(status?: string) {
-  if (!status) return 'Drafted';
+  if (!status) return adminNextCopy.signature.draft.fallbackStatus;
   if (isAgenticActionState(status)) return signatureStatusLabels[status];
   return status
     .split(/[_-]/)
@@ -272,7 +273,7 @@ function draftActionStatusLabel(status?: string) {
 
 function draftActionTypeLabel(action: BukeerDraftAction) {
   const draftType =
-    action.draftType ?? action.type ?? action.kind ?? action.draftKind ?? 'travel draft';
+    action.draftType ?? action.type ?? action.kind ?? action.draftKind ?? adminNextCopy.signature.draft.fallbackType;
   return draftType
     .split(/[_-]/)
     .filter(Boolean)
@@ -287,7 +288,7 @@ function draftActionFields(action: BukeerDraftAction) {
     return [
       {
         id: `${action.id}-body`,
-        label: 'Draft body',
+        label: adminNextCopy.signature.draft.bodyLabel,
         proposedValue: action.proposedDraft ?? action.body,
         required: true,
       },
@@ -307,11 +308,11 @@ function draftActionFieldLabel(field: BukeerDraftEditableField) {
 
 function draftActionFieldValue(action: BukeerDraftAction, field: BukeerDraftEditableField) {
   if (typeof field === 'string') {
-    if (field === 'body') return action.body ?? action.proposedDraft ?? 'Needs review';
-    if (field === 'title') return action.title ?? 'Needs review';
-    return 'Editable in local review';
+    if (field === 'body') return action.body ?? action.proposedDraft ?? adminNextCopy.signature.draft.needsReview;
+    if (field === 'title') return action.title ?? adminNextCopy.signature.draft.needsReview;
+    return adminNextCopy.signature.draft.localReviewValue;
   }
-  return field.proposedValue ?? field.value ?? field.currentValue ?? 'Needs review';
+  return field.proposedValue ?? field.value ?? field.currentValue ?? adminNextCopy.signature.draft.needsReview;
 }
 
 function draftActionFieldId(field: BukeerDraftEditableField, index: number) {
@@ -334,7 +335,7 @@ function isManualWhatsAppHandoffAction(action: BukeerDraftAction) {
 
 function handoffErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) return error.message;
-  return 'Could not create WhatsApp handoff. Try again from local review.';
+  return adminNextCopy.signature.draft.handoffErrorFallback;
 }
 
 function displayWaMeUrl(url: string) {
@@ -359,9 +360,9 @@ export function SignatureWhatsAppHandoffStatus({
       >
         <div className="flex items-center gap-2 font-medium text-[hsl(var(--bukeer-live))]">
           <RefreshCw className="size-3.5 animate-spin" />
-          Creating WhatsApp handoff
+          {adminNextCopy.signature.whatsappHandoff.creatingTitle}
         </div>
-        <p className="mt-1">Not sent. Human must open and send manually.</p>
+        <p className="mt-1">{adminNextCopy.signature.whatsappHandoff.manualSendDescription}</p>
       </div>
     );
   }
@@ -374,11 +375,11 @@ export function SignatureWhatsAppHandoffStatus({
       >
         <div className="flex items-center gap-2 font-medium">
           <XCircle className="size-3.5" />
-          WhatsApp handoff was not created
+          {adminNextCopy.signature.whatsappHandoff.errorTitle}
         </div>
         <p className="mt-1">{state.message}</p>
         <p className="mt-1 text-muted-foreground">
-          Not sent, not reserved, not paid, not confirmed.
+          {adminNextCopy.signature.whatsappHandoff.immutableBoundary}
         </p>
       </div>
     );
@@ -392,17 +393,17 @@ export function SignatureWhatsAppHandoffStatus({
       <div className="flex flex-wrap items-center gap-2">
         <CheckCircle2 className="size-4 text-[hsl(var(--bukeer-success))]" />
         <span className="font-semibold text-[hsl(var(--bukeer-success))]">
-          WhatsApp handoff created
+          {adminNextCopy.signature.whatsappHandoff.successTitle}
         </span>
-        <SignatureStatePill tone="humanLoop">Not sent</SignatureStatePill>
+        <SignatureStatePill tone="humanLoop">{adminNextCopy.signature.whatsappHandoff.notSentPill}</SignatureStatePill>
       </div>
       <p className="mt-2 text-muted-foreground">
-        Human must open and send manually. This is not reserved, not paid, not confirmed.
+        {adminNextCopy.signature.whatsappHandoff.successDescription}
       </p>
       <dl className="mt-3 grid gap-2 sm:grid-cols-3">
         <div className="rounded border border-border bg-background px-2 py-1.5">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Reference
+            {adminNextCopy.signature.whatsappHandoff.referenceLabel}
           </dt>
           <dd className="mt-0.5 break-words font-medium text-foreground">
             {state.result.referenceCode}
@@ -410,11 +411,12 @@ export function SignatureWhatsAppHandoffStatus({
         </div>
         <div className="rounded border border-border bg-background px-2 py-1.5">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            wa.me
+            {adminNextCopy.signature.whatsappHandoff.waMeLabel}
           </dt>
           <dd className="mt-0.5 break-words font-medium text-foreground">
             <a
               className="underline-offset-2 hover:underline"
+              data-testid="whatsapp-handoff-open"
               href={state.result.waMeUrl}
               rel="noopener noreferrer"
               target="_blank"
@@ -425,13 +427,13 @@ export function SignatureWhatsAppHandoffStatus({
         </div>
         <div className="rounded border border-border bg-background px-2 py-1.5">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Expires at
+            {adminNextCopy.signature.whatsappHandoff.expiresAtLabel}
           </dt>
           <dd className="mt-0.5 break-words font-medium text-foreground">
             {state.result.expiresAt ? (
               <time dateTime={state.result.expiresAt}>{state.result.expiresAt}</time>
             ) : (
-              'No expiry returned'
+              adminNextCopy.signature.whatsappHandoff.noExpiryFallback
             )}
           </dd>
         </div>
@@ -481,8 +483,8 @@ export function SignatureDraftActionCard({
     action.requiredHumanAction ??
     action.humanAction ??
     (action.requiresHumanReview
-      ? 'Human review is required before this draft can leave local review.'
-      : 'Review draft fields before any customer or supplier action.');
+      ? adminNextCopy.signature.draft.humanReviewRequired
+      : adminNextCopy.signature.draft.reviewDraftFields);
   const canCreateWhatsAppHandoff = Boolean(onCreateWhatsAppHandoff);
   const handoffButtonDisabled =
     whatsAppHandoffState.status === 'loading' || whatsAppHandoffState.status === 'success';
@@ -494,9 +496,7 @@ export function SignatureDraftActionCard({
     try {
       const result = await onCreateWhatsAppHandoff(action);
       setWhatsAppHandoffState({ status: 'success', result });
-      onSimulate?.(
-        `WhatsApp handoff created for draft ${action.id}. Not sent. Human must open and send manually.`
-      );
+      onSimulate?.(adminNextCopy.signature.draft.handoffCreatedAction);
     } catch (error) {
       setWhatsAppHandoffState({ status: 'error', message: handoffErrorMessage(error) });
     }
@@ -523,7 +523,7 @@ export function SignatureDraftActionCard({
             <SignatureStatePill tone={tone}>{draftActionStatusLabel(status)}</SignatureStatePill>
           </div>
           <h3 className="mt-2 text-base font-semibold">
-            {action.title ?? 'Draft action awaiting planner review'}
+            {action.title ?? adminNextCopy.signature.draft.awaitingReviewTitle}
           </h3>
           {action.description ?? action.rationale ? (
             <p className="mt-1 text-sm text-muted-foreground">
@@ -534,10 +534,11 @@ export function SignatureDraftActionCard({
         <button
           type="button"
           className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+          data-testid={`draft-action-trace-${action.id}`}
           onClick={() => onInspectTrace(action.traceId)}
         >
           <ShieldCheck className="size-3.5" />
-          Inspect trace
+          {adminNextCopy.signature.draft.inspectTraceAction}
         </button>
       </div>
 
@@ -545,7 +546,7 @@ export function SignatureDraftActionCard({
         <div className="flex items-start gap-2">
           <UserCheck className="mt-0.5 size-4 shrink-0 text-[hsl(var(--bukeer-human-loop))]" />
           <div>
-            <div className="text-sm font-semibold">Required human action</div>
+            <div className="text-sm font-semibold">{adminNextCopy.signature.draft.requiredHumanActionTitle}</div>
             <p className="mt-1 text-xs text-muted-foreground">{requiredHumanAction}</p>
           </div>
         </div>
@@ -553,7 +554,7 @@ export function SignatureDraftActionCard({
 
       <section className="mt-4">
         <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Editable fields
+          {adminNextCopy.signature.draft.editableFieldsTitle}
         </div>
         <div className="mt-2 grid gap-2">
           {fields.length > 0 ? (
@@ -565,7 +566,7 @@ export function SignatureDraftActionCard({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm font-medium">{draftActionFieldLabel(field)}</span>
                   {draftActionFieldRequired(field) ? (
-                    <SignatureStatePill tone="humanLoop">Required</SignatureStatePill>
+                    <SignatureStatePill tone="humanLoop">{adminNextCopy.signature.draft.requiredPill}</SignatureStatePill>
                   ) : null}
                 </div>
                 <div className="mt-1 break-words text-sm text-muted-foreground">
@@ -573,21 +574,21 @@ export function SignatureDraftActionCard({
                 </div>
                 {draftActionFieldStatus(field) ? (
                   <div className="mt-1 text-xs text-muted-foreground">
-                    Status: {draftActionStatusLabel(draftActionFieldStatus(field))}
+                    {adminNextCopy.signature.draft.statusLabel(draftActionStatusLabel(draftActionFieldStatus(field)))}
                   </div>
                 ) : null}
               </div>
             ))
           ) : (
             <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-              No editable fields were included in this draft payload.
+              {adminNextCopy.signature.draft.noEditableFields}
             </div>
           )}
         </div>
       </section>
 
       <div className="mt-4 rounded-md border border-border bg-background p-3 text-xs text-muted-foreground">
-        Safety boundary: not sent, not reserved, not paid, not confirmed.
+        {adminNextCopy.signature.draft.safetyBoundary}
       </div>
 
       {canCreateWhatsAppHandoff ? (
@@ -596,16 +597,17 @@ export function SignatureDraftActionCard({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 <MessageSquareText className="size-3.5" />
-                WhatsApp handoff
-                <SignatureStatePill tone="humanLoop">Manual send only</SignatureStatePill>
+                {adminNextCopy.signature.draft.whatsappHandoffTitle}
+                <SignatureStatePill tone="humanLoop">{adminNextCopy.signature.draft.manualSendOnlyPill}</SignatureStatePill>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Not sent. Human must open and send manually.
+                {adminNextCopy.signature.draft.manualSendDescription}
               </p>
             </div>
             <button
               type="button"
               className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-[hsl(var(--bukeer-human-loop)/0.38)] bg-[hsl(var(--bukeer-human-loop)/0.11)] px-2.5 text-xs font-medium text-[hsl(var(--bukeer-human-loop))] transition hover:bg-[hsl(var(--bukeer-human-loop)/0.17)] disabled:cursor-not-allowed disabled:opacity-60"
+              data-testid={`draft-action-whatsapp-handoff-${action.id}`}
               disabled={handoffButtonDisabled}
               onClick={createWhatsAppHandoff}
             >
@@ -615,10 +617,10 @@ export function SignatureDraftActionCard({
                 <MessageSquareText className="size-3.5" />
               )}
               {whatsAppHandoffState.status === 'loading'
-                ? 'Creating handoff'
+                ? adminNextCopy.signature.draft.creatingHandoffAction
                 : whatsAppHandoffState.status === 'success'
-                  ? 'WhatsApp handoff created'
-                  : 'Create WhatsApp handoff'}
+                  ? adminNextCopy.signature.draft.handoffCreatedAction
+                  : adminNextCopy.signature.draft.createHandoffAction}
             </button>
           </div>
           {whatsAppHandoffState.status !== 'idle' ? (
@@ -631,36 +633,35 @@ export function SignatureDraftActionCard({
         <button
           type="button"
           className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-[hsl(var(--bukeer-live)/0.34)] bg-[hsl(var(--bukeer-live)/0.10)] px-2.5 text-xs font-medium text-[hsl(var(--bukeer-live))] transition hover:bg-[hsl(var(--bukeer-live)/0.16)]"
+          data-testid={`draft-action-review-${action.id}`}
           onClick={() =>
-            onSimulate?.(
-              `Reviewed draft ${action.id} locally. No send, reservation, payment or confirmation ran.`
-            )
+            onSimulate?.(adminNextCopy.signature.draft.reviewedMessage(action.id))
           }
         >
           <ClipboardCheck className="size-3.5" />
-          Review locally
+          {adminNextCopy.signature.draft.reviewAction}
         </button>
         <button
           type="button"
           className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+          data-testid={`draft-action-edit-${action.id}`}
           onClick={() =>
-            onSimulate?.(
-              `Opened local edit state for draft ${action.id}. No production write was executed.`
-            )
+            onSimulate?.(adminNextCopy.signature.draft.editMessage(action.id))
           }
         >
           <Pencil className="size-3.5" />
-          Edit locally
+          {adminNextCopy.signature.draft.editAction}
         </button>
         <button
           type="button"
           className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 text-xs font-medium text-destructive transition hover:bg-destructive/15"
+          data-testid={`draft-action-discard-${action.id}`}
           onClick={() =>
-            onSimulate?.(`Discarded draft ${action.id} locally. No production record was deleted.`)
+            onSimulate?.(adminNextCopy.signature.draft.discardMessage(action.id))
           }
         >
           <Trash2 className="size-3.5" />
-          Discard locally
+          {adminNextCopy.signature.draft.discardAction}
         </button>
       </div>
     </article>
@@ -691,13 +692,13 @@ export function SignatureDraftActionPanel({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Draft-only actions
+            {adminNextCopy.signature.draft.panelEyebrow}
           </div>
           <h2 id="draft-actions-heading" className="mt-1 text-xl font-semibold">
-            Bukeer DraftAction review
+            {adminNextCopy.signature.draft.panelTitle}
           </h2>
         </div>
-        <SignatureStatePill tone="humanLoop">Local simulation only</SignatureStatePill>
+        <SignatureStatePill tone="humanLoop">{adminNextCopy.signature.draft.localSimulationPill}</SignatureStatePill>
       </div>
       <div className="space-y-3">
         {draftActions.map((action) => (
@@ -772,6 +773,7 @@ export function SignatureUiStatePanel({
           <button
             type="button"
             className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border px-3 text-sm font-medium transition hover:bg-muted"
+            data-testid={`signature-ui-state-action-${variant.state}`}
             onClick={onAction}
           >
             {variant.actionLabel}
@@ -822,12 +824,12 @@ export function SignaturePlannerHeader({
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <SignatureStatePill tone="structural">Human-Agent OS</SignatureStatePill>
-            <SignatureStatePill tone="humanLoop">Not ready to send</SignatureStatePill>
-            <SignatureStatePill tone="live">Trace available</SignatureStatePill>
+            <SignatureStatePill tone="structural">{adminNextCopy.signature.header.productPill}</SignatureStatePill>
+            <SignatureStatePill tone="humanLoop">{adminNextCopy.signature.header.blockedPill}</SignatureStatePill>
+            <SignatureStatePill tone="live">{adminNextCopy.signature.header.tracePill}</SignatureStatePill>
           </div>
           <h1 className="mt-3 text-2xl font-semibold tracking-normal md:text-3xl">
-            Planner Workbench
+            {adminNextCopy.signature.header.title}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {opportunity.leadName} - {opportunity.destination} - {opportunity.tripDates} -{' '}
@@ -837,9 +839,9 @@ export function SignaturePlannerHeader({
         <div className="flex flex-col gap-3 sm:items-end">
           {actions ? <div>{actions}</div> : null}
           <div className="grid grid-cols-3 gap-2 text-sm sm:w-[420px]">
-            <SignatureMetric label="Quoted" value={opportunity.valueLabel} tone="live" />
-            <SignatureMetric label="Margin" value={opportunity.marginLabel} tone="humanLoop" />
-            <SignatureMetric label="SLA" value={opportunity.slaLabel} tone="warning" />
+            <SignatureMetric label={adminNextCopy.signature.header.quotedLabel} value={opportunity.valueLabel} tone="live" />
+            <SignatureMetric label={adminNextCopy.signature.header.marginLabel} value={opportunity.marginLabel} tone="humanLoop" />
+            <SignatureMetric label={adminNextCopy.signature.header.slaLabel} value={opportunity.slaLabel} tone="warning" />
           </div>
         </div>
       </div>
@@ -864,17 +866,20 @@ export function SignatureTripRail({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Planner queue
+              {adminNextCopy.signature.rail.eyebrow}
             </div>
-            <div className="mt-1 text-base font-semibold">Bukeer travel desk</div>
+            <div className="mt-1 text-base font-semibold">{adminNextCopy.signature.rail.title}</div>
           </div>
           <Plane className="size-5 text-[hsl(var(--bukeer-structural))]" />
         </div>
         <div className="mt-4 flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-muted-foreground">
           <Search className="size-4" />
-          Search trips...
+          {adminNextCopy.signature.rail.searchPlaceholder}
         </div>
-        <div className="mt-3 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+        <div
+          data-testid="signature-session-identity"
+          className="mt-3 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
+        >
           {session.displayName} - {session.role}
         </div>
       </div>
@@ -886,24 +891,43 @@ export function SignatureTripRail({
             <button
               key={opportunity.id}
               type="button"
+              data-testid={`signature-trip-rail-opportunity-${opportunity.id}`}
+              style={{ color: 'var(--bukeer-on-surface-color)' }}
               className={cx(
-                'flex w-full items-start gap-3 p-4 text-left transition hover:bg-background',
-                index === 0 && 'bg-background/80'
+                'bukeer-trip-rail-item flex w-full items-start gap-3 p-4 text-left transition hover:bg-[hsl(var(--bukeer-structural)/0.08)]',
+                index === 0 && 'bg-[hsl(var(--bukeer-structural)/0.14)]'
               )}
               onClick={() => onInspectTrace(traceIdForOpportunity(opportunity, index))}
             >
               <span className={cx('mt-1 h-2.5 w-2.5 shrink-0 rounded-full', dotClass(tone))} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{opportunity.leadName}</span>
-                <span className="block truncate text-xs text-muted-foreground">
+                <span
+                  className="block truncate font-semibold"
+                  data-testid={`trip-rail-lead-${index}`}
+                  style={{ color: 'var(--bukeer-on-surface-color)' }}
+                >
+                  {opportunity.leadName}
+                </span>
+                <span
+                  className="bukeer-trip-rail-muted block truncate text-xs"
+                  style={{ color: 'var(--bukeer-on-surface-muted-color)' }}
+                >
                   {opportunity.destination}
                 </span>
-                <span className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span
+                  className="bukeer-trip-rail-muted mt-2 flex flex-wrap items-center gap-2 text-xs"
+                  style={{ color: 'var(--bukeer-on-surface-muted-color)' }}
+                >
                   <span>{opportunity.slaLabel}</span>
                   <span>{opportunity.missingDataCount} missing</span>
                 </span>
               </span>
-              <span className="text-sm font-semibold">{opportunity.valueLabel}</span>
+              <span
+                className="text-sm font-semibold"
+                style={{ color: 'var(--bukeer-on-surface-color)' }}
+              >
+                {opportunity.valueLabel}
+              </span>
             </button>
           );
         })}
@@ -925,11 +949,11 @@ export function SignatureBlockedBanner({
         <div className="flex gap-3">
           <Lock className="mt-0.5 size-4 shrink-0 text-[hsl(var(--bukeer-human-loop))]" />
           <div>
-            <div className="font-semibold">Public proposal send is blocked</div>
+            <div className="font-semibold">{adminNextCopy.signature.blockedBanner.title}</div>
             <p className="mt-1 text-sm text-muted-foreground">{reason}</p>
           </div>
         </div>
-        <SignatureStatePill tone="humanLoop">{missingCount} fields missing</SignatureStatePill>
+        <SignatureStatePill tone="humanLoop">{adminNextCopy.signature.blockedBanner.missingFieldsPill(missingCount)}</SignatureStatePill>
       </div>
     </section>
   );
@@ -949,19 +973,20 @@ export function SignatureItineraryManifest({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Client itinerary state
+            {adminNextCopy.signature.manifest.eyebrow}
           </div>
           <h2 id="manifest-heading" className="mt-1 text-xl font-semibold">
-            Itinerary Manifest
+            {adminNextCopy.signature.manifest.title}
           </h2>
         </div>
         <button
           type="button"
           className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-[hsl(var(--bukeer-live)/0.34)] bg-[hsl(var(--bukeer-live)/0.10)] px-3 text-sm font-medium text-[hsl(var(--bukeer-live))] transition hover:bg-[hsl(var(--bukeer-live)/0.16)]"
+          data-testid="signature-itinerary-manifest-trace"
           onClick={() => onInspectTrace(traceId)}
         >
           <ShieldCheck className="size-4" />
-          Inspect trace
+          {adminNextCopy.signature.manifest.inspectTraceAction}
         </button>
       </div>
 
@@ -1014,15 +1039,16 @@ export function SignatureItineraryManifestRow({
           <div className="text-right">
             <div className="font-semibold">{segment.priceLabel}</div>
             <div className="text-xs text-[hsl(var(--bukeer-live))]">
-              {segment.marginLabel} margin
+              {adminNextCopy.signature.manifest.marginLabel(segment.marginLabel)}
             </div>
           </div>
           <button
             type="button"
             className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+            data-testid={`signature-itinerary-segment-trace-${segment.id}`}
             onClick={() => onInspectTrace(segment.traceId)}
           >
-            Inspect trace
+            {adminNextCopy.signature.manifest.inspectTraceAction}
           </button>
         </div>
       </div>
@@ -1042,9 +1068,9 @@ export function SignatureCopilotPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 font-semibold text-[hsl(var(--bukeer-live))]">
           <Sparkles className="size-4" />
-          Conversation Copilot
+          {adminNextCopy.signature.copilot.title}
         </div>
-        <SignatureStatePill tone="live">AI suggestion</SignatureStatePill>
+        <SignatureStatePill tone="live">{adminNextCopy.signature.copilot.suggestionPill}</SignatureStatePill>
       </div>
       <div className="mt-4 space-y-3">
         {suggestions.map((suggestion) => (
@@ -1063,9 +1089,10 @@ export function SignatureCopilotPanel({
               <button
                 type="button"
                 className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+                data-testid={`signature-copilot-trace-${suggestion.id}`}
                 onClick={() => onInspectTrace(suggestion.traceId)}
               >
-                Inspect trace
+                {adminNextCopy.signature.copilot.inspectTraceAction}
               </button>
               <span className="text-xs text-muted-foreground">{suggestion.autonomyLevel}</span>
             </div>
@@ -1090,11 +1117,11 @@ export function SignatureTracePreview({
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Governance
+            {adminNextCopy.signature.tracePreview.eyebrow}
           </div>
-          <h2 className="mt-1 font-semibold">Trace & approval chain</h2>
+          <h2 className="mt-1 font-semibold">{adminNextCopy.signature.tracePreview.title}</h2>
         </div>
-        <SignatureStatePill tone="humanLoop">Human loop</SignatureStatePill>
+        <SignatureStatePill tone="humanLoop">{adminNextCopy.signature.tracePreview.humanLoopPill}</SignatureStatePill>
       </div>
       <div className="mt-4 space-y-3">
         {traceEvents.slice(0, 4).map((event) => {
@@ -1127,9 +1154,10 @@ export function SignatureTracePreview({
       <button
         type="button"
         className="mt-4 inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium transition hover:bg-muted"
+        data-testid="signature-trace-list-inspect"
         onClick={() => onInspectTrace(traceId)}
       >
-        Inspect trace
+        {adminNextCopy.signature.tracePreview.inspectTraceAction}
       </button>
     </section>
   );
@@ -1147,11 +1175,11 @@ export function SignatureLiveFeedColumn({
       <div className="flex items-center justify-between">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Live feed
+            {adminNextCopy.signature.liveFeedPanel.eyebrow}
           </div>
-          <h2 className="mt-1 font-semibold">Supplier intelligence</h2>
+          <h2 className="mt-1 font-semibold">{adminNextCopy.signature.liveFeedPanel.title}</h2>
         </div>
-        <SignatureStatePill tone="live">Live</SignatureStatePill>
+        <SignatureStatePill tone="live">{adminNextCopy.signature.liveFeedPanel.livePill}</SignatureStatePill>
       </div>
       <div className="mt-4 space-y-3">
         {items.map((item) => (
@@ -1170,9 +1198,10 @@ export function SignatureLiveFeedColumn({
               <button
                 type="button"
                 className="text-xs font-semibold text-[hsl(var(--bukeer-structural))] hover:underline"
+                data-testid={`signature-live-feed-trace-${item.id}`}
                 onClick={() => onInspectTrace(item.traceId)}
               >
-                Inspect trace
+                {adminNextCopy.signature.liveFeedPanel.inspectTraceAction}
               </button>
             </div>
           </article>
@@ -1200,7 +1229,7 @@ export function SignatureMarginGuard({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 font-semibold">
           <AlertTriangle className="size-4 text-[hsl(var(--bukeer-human-loop))]" />
-          Margin guard
+          {adminNextCopy.signature.marginGuard.title}
         </div>
         <div className="font-semibold text-[hsl(var(--bukeer-human-loop))]">{margin}</div>
       </div>
@@ -1208,12 +1237,12 @@ export function SignatureMarginGuard({
         <div className="h-2 w-3/4 rounded-full bg-[hsl(var(--bukeer-warning))]" />
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-        <SignatureMetric label="Revenue" value={revenue} tone="structural" compact />
-        <SignatureMetric label="Cost" value={cost} tone="structural" compact />
-        <SignatureMetric label="Profit" value={profit} tone="live" compact />
+        <SignatureMetric label={adminNextCopy.signature.marginGuard.revenueLabel} value={revenue} tone="structural" compact />
+        <SignatureMetric label={adminNextCopy.signature.marginGuard.costLabel} value={cost} tone="structural" compact />
+        <SignatureMetric label={adminNextCopy.signature.marginGuard.profitLabel} value={profit} tone="live" compact />
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Target margin: {target}. Manager approval is required before any customer-facing send.
+        {adminNextCopy.signature.marginGuard.targetDescription(target)}
       </p>
     </section>
   );
@@ -1224,7 +1253,7 @@ export function SignatureMissingDataChecklist({ items }: { items: string[] }) {
     <section className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center gap-2 font-semibold text-[hsl(var(--bukeer-human-loop))]">
         <CircleDot className="size-4" />
-        Missing data
+        {adminNextCopy.signature.missingData.title}
       </div>
       <div className="mt-3 space-y-3">
         {items.map((item) => (
@@ -1283,12 +1312,12 @@ export function SignatureApprovalCommandBar({
           <UserCheck className="mt-0.5 size-4 shrink-0 text-[hsl(var(--bukeer-human-loop))]" />
           <div className="min-w-0 text-sm">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">Approval required</span>
+              <span className="font-semibold">{adminNextCopy.signature.approvalBar.requiredTitle}</span>
               <span className="text-muted-foreground">{approval.proposedAction}</span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span>Risk: {approval.riskFlags.join(', ')}</span>
-              <span>Permission: {approval.requiredPermission}</span>
+              <span>{adminNextCopy.signature.approvalBar.riskLabel(approval.riskFlags.join(', '))}</span>
+              <span>{adminNextCopy.signature.approvalBar.permissionLabel(approval.requiredPermission)}</span>
               <span>{approval.slaLabel}</span>
             </div>
           </div>
@@ -1297,25 +1326,28 @@ export function SignatureApprovalCommandBar({
           <button
             type="button"
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border px-3 text-sm font-medium transition hover:bg-muted"
+            data-testid={`signature-approval-trace-${approval.id}`}
             onClick={() => onInspectTrace(approval.traceId)}
           >
             <MessageSquareText className="size-4" />
-            Inspect trace
+            {adminNextCopy.signature.approvalBar.inspectTraceAction}
           </button>
           <button
             type="button"
             className="inline-flex h-9 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 px-3 text-sm font-medium text-destructive transition hover:bg-destructive/15"
-            onClick={() => onSimulate('Rejected locally. No production write was executed.')}
+            data-testid={`signature-approval-reject-${approval.id}`}
+            onClick={() => onSimulate(adminNextCopy.signature.approvalBar.rejectedMessage)}
           >
-            Reject
+            {adminNextCopy.signature.approvalBar.rejectAction}
           </button>
           <button
             type="button"
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-[hsl(var(--bukeer-live))] px-3 text-sm font-semibold text-white transition hover:opacity-90"
-            onClick={() => onSimulate('Approved locally for prototype review. Execution remains blocked.')}
+            data-testid={`signature-approval-approve-${approval.id}`}
+            onClick={() => onSimulate(adminNextCopy.signature.approvalBar.approvedMessage)}
           >
             <CheckCircle2 className="size-4" />
-            Approve once
+            {adminNextCopy.signature.approvalBar.approveOnceAction}
           </button>
         </div>
       </div>
