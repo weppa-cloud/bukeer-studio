@@ -17,6 +17,7 @@ type SupabaseReadQuery<T> = PromiseLike<SupabaseRpcResponse<T>>;
 
 interface SupabaseReadFilter<T> extends SupabaseReadQuery<T> {
   eq(column: string, value: unknown): SupabaseReadFilter<T>;
+  in(column: string, values: readonly unknown[]): SupabaseReadFilter<T>;
   limit(count: number): SupabaseReadFilter<T>;
 }
 
@@ -25,7 +26,9 @@ interface SupabaseReadBuilder {
 }
 
 export interface AdminNextProductsReadonlySupabaseClient {
-  from(table: 'account_hotels' | 'account_activities'): SupabaseReadBuilder;
+  from(
+    table: 'account_hotels' | 'account_activities' | 'images',
+  ): SupabaseReadBuilder;
 }
 
 export interface ProductsAdapter {
@@ -144,6 +147,14 @@ interface ReadonlyActivityPriceRow {
   is_active?: boolean | null;
 }
 
+interface ReadonlyImageOverrideRow {
+  id?: string | null;
+  entity_id?: string | null;
+  url?: string | null;
+  order_index?: NumericValue;
+  created_at?: string | null;
+}
+
 interface RateSummary {
   activePricedCount: number;
   minPrice: number | null;
@@ -151,6 +162,7 @@ interface RateSummary {
 
 const READONLY_PRODUCT_LIMIT = 25;
 const READONLY_DETAIL_RATE_LIMIT = 6;
+const READONLY_GALLERY_IMAGE_LIMIT = 5000;
 const DEFAULT_CURRENCY = '$';
 const CATEGORY_KEYS = {
   all: 'all',
@@ -201,9 +213,19 @@ class ReadonlyProductsAdapter implements ProductsAdapter {
     assertReadableResponse('account_hotels', hotelsResponse.error);
     assertReadableResponse('account_activities', activitiesResponse.error);
 
+    const hotels = hotelsResponse.data ?? [];
+    const activities = activitiesResponse.data ?? [];
+    const imagesResponse = await readImageOverrides(
+      this.supabase,
+      this.accountId,
+      [...hotels, ...activities].map((row) => row.id),
+    );
+    assertReadableResponse('images', imagesResponse.error);
+
     return buildReadonlyProductsFixture(
-      hotelsResponse.data ?? [],
-      activitiesResponse.data ?? [],
+      hotels,
+      activities,
+      imagesResponse.data ?? [],
     );
   }
 }
@@ -236,14 +258,43 @@ function readAccountActivities(
     .limit(READONLY_PRODUCT_LIMIT);
 }
 
+function readImageOverrides(
+  supabase: AdminNextProductsReadonlySupabaseClient,
+  accountId: string,
+  entityIds: readonly string[],
+): SupabaseReadQuery<ReadonlyImageOverrideRow[]> {
+  if (entityIds.length === 0) {
+    return Promise.resolve({ data: [], error: null });
+  }
+
+  return supabase
+    .from('images')
+    .select<
+      ReadonlyImageOverrideRow[]
+    >('id, entity_id, url, order_index, created_at')
+    .eq('account_id', accountId)
+    .in('entity_id', entityIds)
+    .limit(READONLY_GALLERY_IMAGE_LIMIT);
+}
+
 function buildReadonlyProductsFixture(
   hotels: readonly ReadonlyHotelRow[],
   activities: readonly ReadonlyActivityRow[],
+  imageOverrides: readonly ReadonlyImageOverrideRow[] = [],
 ): ProductsFixture {
-  const hotelProducts = hotels.map(mapHotelRowToProduct);
-  const activityProducts = activities.map(mapActivityRowToProduct);
+  const imageOverrideMap = groupImageOverridesByEntity(imageOverrides);
+  const hotelProducts = hotels.map((hotel) =>
+    mapHotelRowToProduct(hotel, imageOverrideMap),
+  );
+  const activityProducts = activities.map((activity) =>
+    mapActivityRowToProduct(activity, imageOverrideMap),
+  );
   const products = [...hotelProducts, ...activityProducts];
-  const selectedSource = findDefaultSelectedSource(hotels, activities);
+  const selectedSource = findDefaultSelectedSource(
+    hotels,
+    activities,
+    imageOverrideMap,
+  );
   const selectedProduct =
     products.find((product) => product.id === selectedSource?.id) ??
     products[0] ??
@@ -252,6 +303,7 @@ function buildReadonlyProductsFixture(
     selectedProduct,
     selectedSource?.type === 'hotel' ? selectedSource.row : undefined,
     selectedSource?.type === 'activity' ? selectedSource.row : undefined,
+    imageOverrideMap,
   );
   const rates = buildSelectedRates(
     selectedSource?.type === 'hotel' ? selectedSource.row : undefined,
@@ -274,6 +326,7 @@ function buildReadonlyProductsFixture(
 function findDefaultSelectedSource(
   hotels: readonly ReadonlyHotelRow[],
   activities: readonly ReadonlyActivityRow[],
+  imageOverrideMap: ReadonlyMap<string, readonly string[]>,
 ):
   | { type: 'hotel'; id: string; row: ReadonlyHotelRow }
   | { type: 'activity'; id: string; row: ReadonlyActivityRow }
@@ -281,7 +334,7 @@ function findDefaultSelectedSource(
   const pricedHotelWithGallery = hotels.find(
     (hotel) =>
       summarizeRates(hotel.account_rates ?? []).activePricedCount > 0 &&
-      hasHotelGallery(hotel),
+      hasHotelGallery(hotel, imageOverrideMap),
   );
   if (pricedHotelWithGallery) {
     return {
@@ -294,7 +347,8 @@ function findDefaultSelectedSource(
   const pricedActivityWithGallery = activities.find(
     (activity) =>
       summarizeActivityOptions(activity.activity_options ?? [])
-        .activePricedCount > 0 && hasActivityGallery(activity),
+        .activePricedCount > 0 &&
+      hasActivityGallery(activity, imageOverrideMap),
   );
   if (pricedActivityWithGallery) {
     return {
@@ -328,21 +382,32 @@ function findDefaultSelectedSource(
   return null;
 }
 
-function hasHotelGallery(row: ReadonlyHotelRow): boolean {
+function hasHotelGallery(
+  row: ReadonlyHotelRow,
+  imageOverrideMap: ReadonlyMap<string, readonly string[]>,
+): boolean {
   return (
+    (imageOverrideMap.get(row.id)?.length ?? 0) > 0 ||
     extractPhotoUrls(row.hotel_photos).length > 0 ||
     extractPhotoUrls(firstRelation(row.master_hotels)?.photos).length > 0
   );
 }
 
-function hasActivityGallery(row: ReadonlyActivityRow): boolean {
+function hasActivityGallery(
+  row: ReadonlyActivityRow,
+  imageOverrideMap: ReadonlyMap<string, readonly string[]>,
+): boolean {
   return (
+    (imageOverrideMap.get(row.id)?.length ?? 0) > 0 ||
     extractPhotoUrls(row.master_photos).length > 0 ||
     extractPhotoUrls(firstRelation(row.master_activities)?.photos).length > 0
   );
 }
 
-function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
+function mapHotelRowToProduct(
+  row: ReadonlyHotelRow,
+  imageOverrideMap: ReadonlyMap<string, readonly string[]>,
+): ProductRecord {
   const master = firstRelation(row.master_hotels);
   const providerContact = firstRelation(row.contacts);
   const rateSummary = summarizeRates(row.account_rates ?? []);
@@ -393,12 +458,20 @@ function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
     priceUnit: productsFixture.products[0].priceUnit,
     rateState: rateCount > 0 ? 'active' : 'review',
     features: productsFixture.products[0].features.slice(0, 3),
-    imageCount: countMedia(row.hotel_photos ?? master?.photos),
+    imageCount: buildEffectiveGalleryUrls(
+      row.id,
+      imageOverrideMap,
+      row.hotel_photos,
+      master?.photos,
+    ).length,
     tone: rateCount > 0 ? 'primary' : 'warning',
   };
 }
 
-function mapActivityRowToProduct(row: ReadonlyActivityRow): ProductRecord {
+function mapActivityRowToProduct(
+  row: ReadonlyActivityRow,
+  imageOverrideMap: ReadonlyMap<string, readonly string[]>,
+): ProductRecord {
   const master = firstRelation(row.master_activities);
   const providerContact = firstRelation(row.contacts);
   const rateSummary = summarizeActivityOptions(row.activity_options ?? []);
@@ -441,7 +514,12 @@ function mapActivityRowToProduct(row: ReadonlyActivityRow): ProductRecord {
     priceUnit: productsFixture.products[1].priceUnit,
     rateState: optionCount > 0 ? 'active' : 'review',
     features: productsFixture.products[1].features.slice(0, 3),
-    imageCount: countMedia(row.master_photos ?? master?.photos),
+    imageCount: buildEffectiveGalleryUrls(
+      row.id,
+      imageOverrideMap,
+      row.master_photos,
+      master?.photos,
+    ).length,
     tone: optionCount > 0 ? 'live' : 'warning',
   };
 }
@@ -450,6 +528,7 @@ function buildSelectedProduct(
   product: ProductRecord,
   hotel?: ReadonlyHotelRow,
   activity?: ReadonlyActivityRow,
+  imageOverrideMap: ReadonlyMap<string, readonly string[]> = new Map(),
 ): ProductsFixture['selected'] {
   const sourceDescription = firstNonEmpty(
     hotel?.custom_description,
@@ -467,7 +546,12 @@ function buildSelectedProduct(
     firstRelation(activity?.contacts)?.email,
     productsFixture.selected.providerEmail,
   );
-  const galleryImages = buildSelectedGalleryImages(product, hotel, activity);
+  const galleryImages = buildSelectedGalleryImages(
+    product,
+    hotel,
+    activity,
+    imageOverrideMap,
+  );
 
   return {
     ...productsFixture.selected,
@@ -487,21 +571,82 @@ function buildSelectedGalleryImages(
   product: ProductRecord,
   hotel?: ReadonlyHotelRow,
   activity?: ReadonlyActivityRow,
+  imageOverrideMap: ReadonlyMap<string, readonly string[]> = new Map(),
 ): ProductGalleryImage[] {
   const master = firstRelation(hotel?.master_hotels);
   const activityMaster = firstRelation(activity?.master_activities);
-  const urls = uniqueStrings([
-    ...extractPhotoUrls(hotel?.hotel_photos),
-    ...extractPhotoUrls(master?.photos),
-    ...extractPhotoUrls(activity?.master_photos),
-    ...extractPhotoUrls(activityMaster?.photos),
-  ]).slice(0, 10);
+  const sourceRow = hotel ?? activity;
+  const overrideUrls = sourceRow
+    ? uniqueStrings(imageOverrideMap.get(sourceRow.id) ?? [])
+    : [];
+  const source: ProductGalleryImage['source'] =
+    overrideUrls.length > 0 ? 'override' : 'master';
+  const urls =
+    overrideUrls.length > 0
+      ? overrideUrls.slice(0, 10)
+      : uniqueStrings([
+          ...extractPhotoUrls(hotel?.hotel_photos),
+          ...extractPhotoUrls(master?.photos),
+          ...extractPhotoUrls(activity?.master_photos),
+          ...extractPhotoUrls(activityMaster?.photos),
+        ]).slice(0, 10);
 
   return urls.map((url, index) => ({
     url,
     alt: `${product.name} ${index + 1}`,
-    source: 'master',
+    source,
   }));
+}
+
+function groupImageOverridesByEntity(
+  rows: readonly ReadonlyImageOverrideRow[],
+): ReadonlyMap<string, readonly string[]> {
+  const grouped = new Map<string, ReadonlyImageOverrideRow[]>();
+
+  for (const row of rows) {
+    const entityId = firstNonEmpty(row.entity_id);
+    const url = firstNonEmpty(row.url);
+    if (!entityId || !url) continue;
+
+    const existing = grouped.get(entityId) ?? [];
+    existing.push(row);
+    grouped.set(entityId, existing);
+  }
+
+  return new Map(
+    Array.from(grouped.entries()).map(([entityId, entityRows]) => [
+      entityId,
+      uniqueStrings(
+        entityRows
+          .slice()
+          .sort(compareImageOverrideRows)
+          .map((row) => firstNonEmpty(row.url))
+          .filter((url): url is string => Boolean(url)),
+      ),
+    ]),
+  );
+}
+
+function buildEffectiveGalleryUrls(
+  entityId: string,
+  imageOverrideMap: ReadonlyMap<string, readonly string[]>,
+  ...fallbackValues: readonly JsonValue[]
+): string[] {
+  const overrideUrls = uniqueStrings(imageOverrideMap.get(entityId) ?? []);
+  if (overrideUrls.length > 0) return overrideUrls;
+
+  return uniqueStrings(fallbackValues.flatMap(extractPhotoUrls));
+}
+
+function compareImageOverrideRows(
+  left: ReadonlyImageOverrideRow,
+  right: ReadonlyImageOverrideRow,
+): number {
+  return (
+    compareNullableNumbers(readNumber(left.order_index), readNumber(right.order_index)) ||
+    String(left.created_at ?? '').localeCompare(String(right.created_at ?? '')) ||
+    String(left.id ?? '').localeCompare(String(right.id ?? ''))
+  );
 }
 
 function adminNextCopyGalleryStatus(count: number): string {
@@ -730,6 +875,17 @@ function comparePriceAsc(
   right: ReadonlyAccountRateRow | ReadonlyActivityPriceRow,
 ): number {
   return (readNumber(left.price) ?? 0) - (readNumber(right.price) ?? 0);
+}
+
+function compareNullableNumbers(
+  left: number | null,
+  right: number | null,
+): number {
+  if (left == null && right == null) return 0;
+  if (left == null) return 1;
+  if (right == null) return -1;
+
+  return left - right;
 }
 
 function formatMargin(

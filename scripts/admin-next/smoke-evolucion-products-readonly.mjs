@@ -46,6 +46,8 @@ async function main() {
     expectedSelectedRateCount: readonlyContext.expectedSelectedRateCount,
     expectedSelectedGalleryCount:
       readonlyContext.expectedSelectedGalleryCount,
+    expectedSelectedGallerySource:
+      readonlyContext.expectedSelectedGallerySource,
     firstExpectedProductId: readonlyContext.firstExpectedProductId,
     expectedHotelCount: readonlyContext.expectedHotelCount,
     expectedActivityCount: readonlyContext.expectedActivityCount,
@@ -169,19 +171,37 @@ async function resolveReadonlyContext() {
       `Could not read account_activities: ${activitiesResponse.error.message}`,
     );
   }
-
   const hotelRows = hotelsResponse.data ?? [];
   const activityRows = activitiesResponse.data ?? [];
+  const productIds = [...hotelRows, ...activityRows].map((row) => row.id);
+  const imagesResponse =
+    productIds.length > 0
+      ? await supabase
+          .from('images')
+          .select('id, entity_id, url, order_index, created_at')
+          .eq('account_id', accountId)
+          .in('entity_id', productIds)
+          .limit(5000)
+      : { data: [], error: null };
+  if (imagesResponse.error) {
+    throw new Error(`Could not read images: ${imagesResponse.error.message}`);
+  }
+  const imageOverrideMap = groupImageOverridesByEntity(
+    imagesResponse.data ?? [],
+  );
   const expectedActiveHotelCount = hotelRows.filter(hasActiveHotelRate).length;
   const expectedActiveActivityCount = activityRows.filter(
     hasActiveActivityPrice,
   ).length;
   const pricedHotelWithGalleryRow = hotelRows.find(
-    (row) => countActiveHotelRates(row) > 0 && countHotelPhotos(row) > 0,
+    (row) =>
+      countActiveHotelRates(row) > 0 &&
+      countHotelPhotos(row, imageOverrideMap) > 0,
   );
   const pricedActivityWithGalleryRow = activityRows.find(
     (row) =>
-      countActiveActivityPrices(row) > 0 && countActivityPhotos(row) > 0,
+      countActiveActivityPrices(row) > 0 &&
+      countActivityPhotos(row, imageOverrideMap) > 0,
   );
   const pricedHotelRow = hotelRows.find(
     (row) => countActiveHotelRates(row) > 0,
@@ -205,17 +225,28 @@ async function resolveReadonlyContext() {
       : countActiveActivityPrices(selectedReadonlyRow),
     6,
   );
+  const selectedOverrideRows = selectedReadonlyRow
+    ? (imageOverrideMap.get(selectedReadonlyRow.id) ?? [])
+    : [];
   const selectedGalleryRows = !selectedReadonlyRow
     ? []
-    : selectedReadonlyRowIsHotel
-      ? extractPhotoUrls(firstRelation(selectedReadonlyRow.master_hotels)?.photos)
-      : extractPhotoUrls(
-          firstRelation(selectedReadonlyRow.master_activities)?.photos,
-        );
+    : selectedOverrideRows.length > 0
+      ? selectedOverrideRows
+      : selectedReadonlyRowIsHotel
+        ? extractPhotoUrls(firstRelation(selectedReadonlyRow.master_hotels)?.photos)
+        : extractPhotoUrls(
+            firstRelation(selectedReadonlyRow.master_activities)?.photos,
+          );
   const expectedSelectedGalleryCount = Math.min(
     new Set(selectedGalleryRows).size,
     5,
   );
+  const expectedSelectedGallerySource =
+    expectedSelectedGalleryCount === 0
+      ? null
+      : selectedOverrideRows.length > 0
+        ? 'override'
+        : 'master';
 
   return {
     email,
@@ -229,6 +260,7 @@ async function resolveReadonlyContext() {
       expectedActiveHotelCount + expectedActiveActivityCount,
     expectedSelectedRateCount,
     expectedSelectedGalleryCount,
+    expectedSelectedGallerySource,
     firstExpectedProductId: hotelRows[0]?.id ?? activityRows[0]?.id ?? null,
   };
 }
@@ -295,11 +327,62 @@ function countActiveActivityPrices(row) {
     ).length;
 }
 
-function countHotelPhotos(row) {
+function groupImageOverridesByEntity(rows) {
+  const grouped = new Map();
+
+  for (const row of rows) {
+    const entityId = typeof row?.entity_id === 'string' ? row.entity_id : '';
+    const url = typeof row?.url === 'string' ? row.url.trim() : '';
+    if (!entityId || !url) continue;
+
+    grouped.set(entityId, [...(grouped.get(entityId) ?? []), row]);
+  }
+
+  return new Map(
+    Array.from(grouped.entries()).map(([entityId, entityRows]) => [
+      entityId,
+      uniqueStrings(
+        entityRows
+          .slice()
+          .sort(compareImageOverrideRows)
+          .map((row) => row.url?.trim())
+          .filter(Boolean),
+      ),
+    ]),
+  );
+}
+
+function uniqueStrings(values) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function compareImageOverrideRows(left, right) {
+  return (
+    compareNullableNumbers(readNullableNumber(left?.order_index), readNullableNumber(right?.order_index)) ||
+    String(left?.created_at ?? '').localeCompare(String(right?.created_at ?? '')) ||
+    String(left?.id ?? '').localeCompare(String(right?.id ?? ''))
+  );
+}
+
+function compareNullableNumbers(left, right) {
+  if (left == null && right == null) return 0;
+  if (left == null) return 1;
+  if (right == null) return -1;
+
+  return left - right;
+}
+
+function countHotelPhotos(row, imageOverrideMap) {
+  const overrideRows = imageOverrideMap.get(row?.id) ?? [];
+  if (overrideRows.length > 0) return overrideRows.length;
+
   return extractPhotoUrls(firstRelation(row?.master_hotels)?.photos).length;
 }
 
-function countActivityPhotos(row) {
+function countActivityPhotos(row, imageOverrideMap) {
+  const overrideRows = imageOverrideMap.get(row?.id) ?? [];
+  if (overrideRows.length > 0) return overrideRows.length;
+
   return extractPhotoUrls(firstRelation(row?.master_activities)?.photos).length;
 }
 
@@ -308,13 +391,17 @@ function isActivePricedRow(row) {
 }
 
 function readNumber(value) {
+  return readNullableNumber(value) ?? 0;
+}
+
+function readNullableNumber(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   if (typeof value === 'string') {
     const parsed = Number(value.trim().replaceAll(',', ''));
-    return Number.isFinite(parsed) ? parsed : 0;
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
-  return 0;
+  return null;
 }
 
 function extractRoleName(roleValue) {
@@ -399,6 +486,7 @@ async function runReadonlyProductsSmoke({
   expectedActiveProductCount,
   expectedSelectedRateCount,
   expectedSelectedGalleryCount,
+  expectedSelectedGallerySource,
   firstExpectedProductId,
   expectedHotelCount,
   expectedActivityCount,
@@ -456,6 +544,12 @@ async function runReadonlyProductsSmoke({
     const selectedGalleryImageCount = await page
       .locator('[data-testid^="admin-next-products-gallery-image-"]')
       .count();
+    const selectedGallerySource =
+      selectedGalleryImageCount > 0
+        ? await page
+            .locator('[data-testid="admin-next-products-gallery-image-0"]')
+            .getAttribute('data-gallery-source')
+        : null;
     const firstExpectedProductVisible = firstExpectedProductId
       ? await page
           .locator(
@@ -509,6 +603,11 @@ async function runReadonlyProductsSmoke({
         `Expected ${expectedSelectedGalleryCount} selected readonly gallery images, got ${selectedGalleryImageCount}`,
       );
     }
+    if (selectedGallerySource !== expectedSelectedGallerySource) {
+      throw new Error(
+        `Expected selected readonly gallery source ${expectedSelectedGallerySource}, got ${selectedGallerySource}`,
+      );
+    }
     if (!firstExpectedProductVisible) {
       throw new Error(
         'First readonly catalog row was not visible in Products UI.',
@@ -534,10 +633,12 @@ async function runReadonlyProductsSmoke({
       expectedActiveProductCount,
       expectedSelectedRateCount,
       expectedSelectedGalleryCount,
+      expectedSelectedGallerySource,
       productCount,
       activeProductCount,
       selectedRateCount,
       selectedGalleryImageCount,
+      selectedGallerySource,
       firstExpectedProductVisible,
       hasToolbar,
       hasDetail,

@@ -125,6 +125,25 @@ describe('products adapter', () => {
         ],
         error: null,
       },
+      images: {
+        data: [
+          {
+            id: 'image-override-2',
+            entity_id: 'hotel-live-1',
+            url: 'override-two.jpg',
+            order_index: 1,
+            created_at: '2026-01-02T00:00:00Z',
+          },
+          {
+            id: 'image-override-1',
+            entity_id: 'hotel-live-1',
+            url: 'override-one.jpg',
+            order_index: 0,
+            created_at: '2026-01-01T00:00:00Z',
+          },
+        ],
+        error: null,
+      },
     });
     const adapter = createProductsAdapter({
       mode: 'readonly',
@@ -154,6 +173,15 @@ describe('products adapter', () => {
           ['is_active', true],
         ],
         limit: 25,
+      },
+      {
+        table: 'images',
+        columns: expect.stringContaining('order_index'),
+        filters: [
+          ['account_id', 'acct-1'],
+          ['entity_id:in', ['hotel-live-1', 'activity-live-1']],
+        ],
+        limit: 5000,
       },
     ]);
     expect(fixture.categories).toEqual([
@@ -200,14 +228,14 @@ describe('products adapter', () => {
         galleryStatus: '2 de 10 imagenes',
         galleryImages: [
           {
-            url: 'one.jpg',
+            url: 'override-one.jpg',
             alt: 'Casa Baru Preferred 1',
-            source: 'master',
+            source: 'override',
           },
           {
-            url: 'two.jpg',
+            url: 'override-two.jpg',
             alt: 'Casa Baru Preferred 2',
-            source: 'master',
+            source: 'override',
           },
         ],
       }),
@@ -238,6 +266,7 @@ describe('products adapter', () => {
       supabase: createReadonlySupabaseMock({
         account_hotels: { data: null, error: { message: 'permission denied' } },
         account_activities: { data: [], error: null },
+        images: { data: [], error: null },
       }),
       accountId: 'acct-1',
     });
@@ -254,6 +283,10 @@ function createReadonlySupabaseMock(rows: {
     error: { message?: string } | null;
   };
   account_activities: {
+    data: unknown[] | null;
+    error: { message?: string } | null;
+  };
+  images?: {
     data: unknown[] | null;
     error: { message?: string } | null;
   };
@@ -274,7 +307,7 @@ function createReadonlySupabaseMock(rows: {
 
   return {
     calls,
-    from(table: 'account_hotels' | 'account_activities') {
+    from(table: 'account_hotels' | 'account_activities' | 'images') {
       return {
         select(columns: string) {
           const call: {
@@ -289,6 +322,10 @@ function createReadonlySupabaseMock(rows: {
               call.filters.push([column, value]);
               return query;
             },
+            in(column: string, values: readonly unknown[]) {
+              call.filters.push([`${column}:in`, values]);
+              return query;
+            },
             limit(count: number) {
               call.limit = count;
               return query;
@@ -297,7 +334,9 @@ function createReadonlySupabaseMock(rows: {
               resolve: (value: unknown) => unknown,
               reject?: (reason: unknown) => unknown,
             ) {
-              return Promise.resolve(rows[table]).then(resolve, reject);
+              return Promise.resolve(
+                rows[table] ?? { data: [], error: null },
+              ).then(resolve, reject);
             },
           };
 
