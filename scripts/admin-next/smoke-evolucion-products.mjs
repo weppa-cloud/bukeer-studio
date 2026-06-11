@@ -132,6 +132,27 @@ async function runPlaywrightSmoke(targetUrl) {
     const hasAiPanel = await page.getByTestId('admin-next-products-ai-panel').isVisible();
     const screenshot = path.join(outputDir, 'products-evolucion-light.png');
     await page.screenshot({ path: screenshot, fullPage: false });
+    await page.getByTestId('admin-next-products-search-input').fill('traslado');
+    await page.getByTestId('admin-next-products-city-option-cartagena').click();
+    await page.getByTestId('admin-next-products-provider-option-marsol').click();
+    await page.getByTestId('admin-next-products-tariff-option-review').click();
+    await page.getByTestId('admin-next-products-price-option-budget').click();
+    const filteredProductCount = await page.locator('[data-testid^="admin-next-product-card-"]').count();
+    const filterUrl = new URL(page.url());
+    const hasFilterQuery =
+      filterUrl.searchParams.get('q') === 'traslado' &&
+      filterUrl.searchParams.get('city') === 'cartagena' &&
+      filterUrl.searchParams.get('provider') === 'marsol' &&
+      filterUrl.searchParams.get('tariff') === 'review' &&
+      filterUrl.searchParams.get('price') === 'budget';
+    const filtersScreenshot = path.join(outputDir, 'products-filters-evolucion-light.png');
+    await page.screenshot({ path: filtersScreenshot, fullPage: false });
+    await page.getByTestId('admin-next-products-clear-filters').click();
+    const clearedUrl = new URL(page.url());
+    const filtersCleared = ['q', 'city', 'provider', 'tariff', 'price'].every(
+      (key) => !clearedUrl.searchParams.has(key),
+    );
+
     await page.getByTestId('admin-next-products-import').click();
     await page.getByTestId('admin-next-products-import-csv-modal').waitFor({ timeout: 10_000 });
     const hasImportCsvModal = await page.getByTestId('admin-next-products-import-csv-modal').isVisible();
@@ -176,6 +197,9 @@ async function runPlaywrightSmoke(targetUrl) {
     if (productCount < 3 || !hasToolbar || !hasDetail || !hasGallery || !hasRates || !hasAiPanel) {
       throw new Error('Products required surfaces are not visible.');
     }
+    if (filteredProductCount !== 1 || !hasFilterQuery || !filtersCleared) {
+      throw new Error('Products URL-as-state filters are not working.');
+    }
     if (
       !hasImportCsvModal ||
       !hasImportDropzone ||
@@ -205,6 +229,9 @@ async function runPlaywrightSmoke(targetUrl) {
       hasGallery,
       hasRates,
       hasAiPanel,
+      filteredProductCount,
+      hasFilterQuery,
+      filtersCleared,
       hasImportCsvModal,
       hasImportDropzone,
       importStepCount,
@@ -216,7 +243,7 @@ async function runPlaywrightSmoke(targetUrl) {
       hasGalleryModal,
       galleryTileCount,
       consoleMessages,
-      screenshots: [screenshot, importCsvScreenshot, rateModalScreenshot, galleryModalScreenshot],
+      screenshots: [screenshot, filtersScreenshot, importCsvScreenshot, rateModalScreenshot, galleryModalScreenshot],
     };
   } finally {
     await browser.close();

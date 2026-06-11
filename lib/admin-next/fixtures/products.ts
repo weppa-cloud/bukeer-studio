@@ -10,11 +10,14 @@ export type ProductRecord = {
   type: string;
   location: string;
   provider: string;
+  providerKey: string;
   status: string;
   rating: string;
   reviews: number;
   fromPrice: string;
+  priceAmount: number;
   priceUnit: string;
+  rateState: 'active' | 'review';
   features: string[];
   imageCount: number;
   tone: 'primary' | 'live' | 'warning';
@@ -68,11 +71,14 @@ export const productsFixture: ProductsFixture = {
       type: 'Hotel',
       location: 'Baru, Cartagena',
       provider: 'Hotel Las Islas',
+      providerKey: 'hotel-las-islas',
       status: 'Activo',
       rating: '4.9',
       reviews: 212,
       fromPrice: '$1.450.000',
+      priceAmount: 1450000,
       priceUnit: 'noche',
+      rateState: 'active',
       features: ['Desayuno', 'Playa privada', 'Spa'],
       imageCount: 6,
       tone: 'primary',
@@ -83,11 +89,14 @@ export const productsFixture: ProductsFixture = {
       type: 'Actividad',
       location: 'San Andres Isla',
       provider: 'Sea Tours San Andres',
+      providerKey: 'sea-tours',
       status: 'Activo',
       rating: '4.8',
       reviews: 148,
       fromPrice: '$180.000',
+      priceAmount: 180000,
       priceUnit: 'persona',
+      rateState: 'active',
       features: ['Lancha', 'Almuerzo', 'Guia'],
       imageCount: 4,
       tone: 'live',
@@ -98,11 +107,14 @@ export const productsFixture: ProductsFixture = {
       type: 'Traslado',
       location: 'Cartagena',
       provider: 'Transportes Marsol',
+      providerKey: 'marsol',
       status: 'Revisar tarifa',
       rating: '4.6',
       reviews: 89,
       fromPrice: '$120.000',
+      priceAmount: 120000,
       priceUnit: 'servicio',
+      rateState: 'review',
       features: ['Privado', '3 pax', 'Equipaje'],
       imageCount: 2,
       tone: 'warning',
@@ -115,6 +127,7 @@ export const productsFixture: ProductsFixture = {
     type: 'Hotel',
     location: 'Baru, Cartagena',
     provider: 'Hotel Las Islas',
+    providerKey: 'hotel-las-islas',
     providerNit: 'NIT 900.412.318',
     providerEmail: 'reservas@hotellasislas.com',
     providerPhone: '+57 605 693 0440',
@@ -122,7 +135,9 @@ export const productsFixture: ProductsFixture = {
     rating: '4.9',
     reviews: 212,
     fromPrice: '$1.450.000',
+    priceAmount: 1450000,
     priceUnit: 'noche',
+    rateState: 'active',
     features: ['Desayuno', 'Playa privada', 'Spa', 'Wifi', 'Kids club'],
     imageCount: 6,
     galleryStatus: '6 de 10 imagenes',

@@ -48,6 +48,21 @@ const toneClasses: Record<ProductRecord['tone'], string> = {
 };
 
 type ProductModal = 'import-csv' | 'new-product' | 'new-hotel' | 'new-rate' | 'edit-product' | 'gallery' | null;
+type ProductFilters = {
+  q: string;
+  city: string;
+  provider: string;
+  tariff: string;
+  price: string;
+};
+
+const emptyProductFilters: ProductFilters = {
+  q: '',
+  city: '',
+  provider: '',
+  tariff: '',
+  price: '',
+};
 
 export function ProductsModule({
   session,
@@ -65,6 +80,20 @@ export function ProductsModule({
   };
 }) {
   const [activeModal, setActiveModal] = useState<ProductModal>(null);
+  const [filters, setFilters] = useState<ProductFilters>(() => readProductFiltersFromUrl());
+  const filteredProducts = filterProducts(fixture.products, filters);
+  const selectedProduct = buildSelectedProduct(fixture, filteredProducts);
+
+  const updateFilters = (patch: Partial<ProductFilters>) => {
+    const nextFilters = { ...filters, ...patch };
+    setFilters(nextFilters);
+    writeProductFiltersToUrl(nextFilters);
+  };
+
+  const clearFilters = () => {
+    setFilters(emptyProductFilters);
+    writeProductFiltersToUrl(emptyProductFilters);
+  };
 
   return (
     <AdminShell session={session} activeKey="products">
@@ -80,10 +109,16 @@ export function ProductsModule({
               onImportCsv={() => setActiveModal('import-csv')}
               onNewProduct={() => setActiveModal('new-product')}
             />
-            <ProductsToolbar fixture={fixture} />
+            <ProductsToolbar
+              filters={filters}
+              fixture={fixture}
+              onClearFilters={clearFilters}
+              onFilterChange={updateFilters}
+              resultCount={filteredProducts.length}
+            />
             <div className="grid gap-4 xl:grid-cols-[minmax(280px,0.82fr)_minmax(360px,0.98fr)]">
-              <ProductsGrid products={fixture.products} selectedId={fixture.selected.id} />
-              <ProductDetail fixture={fixture} openModal={setActiveModal} />
+              <ProductsGrid products={filteredProducts} selectedId={selectedProduct.id} />
+              <ProductDetail fixture={{ ...fixture, selected: selectedProduct }} openModal={setActiveModal} />
             </div>
           </div>
           <ProductsAiPanel signals={fixture.signals} />
@@ -97,6 +132,78 @@ export function ProductsModule({
       </section>
     </AdminShell>
   );
+}
+
+function readProductFiltersFromUrl(): ProductFilters {
+  if (typeof window === 'undefined') return emptyProductFilters;
+  const params = new URLSearchParams(window.location.search);
+
+  return {
+    q: params.get('q') ?? '',
+    city: params.get('city') ?? '',
+    provider: params.get('provider') ?? '',
+    tariff: params.get('tariff') ?? '',
+    price: params.get('price') ?? '',
+  };
+}
+
+function writeProductFiltersToUrl(filters: ProductFilters) {
+  if (typeof window === 'undefined') return;
+  const params = new URLSearchParams(window.location.search);
+  (Object.keys(filters) as Array<keyof ProductFilters>).forEach((key) => {
+    const value = filters[key];
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+  });
+  const query = params.toString();
+  const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
+  window.history.replaceState(null, '', nextUrl);
+}
+
+function filterProducts(products: ProductRecord[], filters: ProductFilters) {
+  const priceRange = adminNextCopy.products.priceRangeOptions.find((option) => option.key === filters.price);
+  const normalizedQuery = filters.q.trim().toLowerCase();
+
+  return products.filter((product) => {
+    const textMatch = normalizedQuery
+      ? [product.name, product.type, product.location, product.provider].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        )
+      : true;
+    const cityMatch = filters.city
+      ? filters.city === 'cartagena'
+        ? product.location.toLowerCase().includes('cartagena') || product.location.toLowerCase().includes('baru')
+        : product.location.toLowerCase().includes('san andres')
+      : true;
+    const providerMatch = filters.provider ? product.providerKey === filters.provider : true;
+    const tariffMatch = filters.tariff ? product.rateState === filters.tariff : true;
+    const minPrice = priceRange && 'min' in priceRange ? priceRange.min : 0;
+    const maxPrice = priceRange && 'max' in priceRange ? priceRange.max : Number.MAX_SAFE_INTEGER;
+    const priceMatch = priceRange ? !(product.priceAmount < minPrice || product.priceAmount > maxPrice) : true;
+
+    return textMatch && cityMatch && providerMatch && tariffMatch && priceMatch;
+  });
+}
+
+function buildSelectedProduct(fixture: ProductsFixture, products: ProductRecord[]): ProductsFixture['selected'] {
+  const selected = products.find((product) => product.id === fixture.selected.id);
+  if (selected) return fixture.selected;
+
+  const fallback = products[0];
+  if (!fallback) return fixture.selected;
+
+  return {
+    ...fixture.selected,
+    ...fallback,
+    code: fallback.id.toUpperCase(),
+    description: fallback.features.join(' · '),
+    galleryStatus: adminNextCopy.products.galleryStatusLabel(fallback.imageCount),
+    masterCatalogStatus: fixture.selected.masterCatalogStatus,
+    operationalDetails: fixture.selected.operationalDetails,
+  };
 }
 
 function ProductsHeader({
@@ -140,31 +247,134 @@ function ProductsHeader({
   );
 }
 
-function ProductsToolbar({ fixture }: { fixture: ProductsFixture }) {
+function ProductsToolbar({
+  filters,
+  fixture,
+  onClearFilters,
+  onFilterChange,
+  resultCount,
+}: {
+  filters: ProductFilters;
+  fixture: ProductsFixture;
+  onClearFilters: () => void;
+  onFilterChange: (patch: Partial<ProductFilters>) => void;
+  resultCount: number;
+}) {
+  const hasFilters = Object.values(filters).some(Boolean);
+
   return (
     <div className="rounded-lg border bg-card p-3 text-card-foreground" data-testid="admin-next-products-toolbar">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex h-10 min-w-0 items-center gap-2 rounded-md border bg-background px-3 text-sm text-muted-foreground lg:w-[360px]">
+        <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border bg-background px-3 text-sm text-muted-foreground lg:w-[360px]">
           <Search className="size-4" />
-          <span className="truncate">{adminNextCopy.products.searchPlaceholder}</span>
-        </div>
+          <input
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            data-testid="admin-next-products-search-input"
+            onChange={(event) => onFilterChange({ q: event.target.value })}
+            placeholder={adminNextCopy.products.searchPlaceholder}
+            type="search"
+            value={filters.q}
+          />
+        </label>
         <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="inline-flex h-9 items-center rounded-md border bg-muted px-3 text-xs font-semibold text-muted-foreground"
+            data-testid="admin-next-products-result-count"
+          >
+            {adminNextCopy.products.resultsLabel(resultCount)}
+          </span>
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-xs font-semibold text-muted-foreground"
+            className={cn(
+              'inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-xs font-semibold text-muted-foreground',
+              filters.city && 'border-primary/40 bg-primary/10 text-primary',
+            )}
             data-testid="admin-next-products-city-filter"
+            onClick={() => onFilterChange({ city: filters.city ? '' : 'cartagena' })}
             type="button"
           >
             <MapPin className="size-4" />
-            {adminNextCopy.products.cityFilterLabel}
+            {filters.city
+              ? adminNextCopy.products.cityFilterOptions.find((option) => option.key === filters.city)?.label
+              : adminNextCopy.products.cityFilterLabel}
           </button>
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-xs font-semibold text-muted-foreground"
+            className={cn(
+              'inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-xs font-semibold text-muted-foreground',
+              filters.price && 'border-primary/40 bg-primary/10 text-primary',
+            )}
             data-testid="admin-next-products-price-filter"
+            onClick={() => onFilterChange({ price: filters.price ? '' : 'budget' })}
             type="button"
           >
             <SlidersHorizontal className="size-4" />
-            {adminNextCopy.products.priceFilterLabel}
+            {filters.price
+              ? adminNextCopy.products.priceRangeOptions.find((option) => option.key === filters.price)?.label
+              : adminNextCopy.products.priceFilterLabel}
           </button>
+        </div>
+      </div>
+      <div
+        className="mt-3 grid gap-3 rounded-lg border bg-background p-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+        data-testid="admin-next-products-advanced-filters"
+      >
+        <FilterGroup
+          activeKey={filters.city}
+          icon={<MapPin className="size-3.5" />}
+          label={adminNextCopy.products.cityFilterLabel}
+          onSelect={(key) => onFilterChange({ city: filters.city === key ? '' : key })}
+          options={adminNextCopy.products.cityFilterOptions}
+          testIdPrefix="admin-next-products-city-option"
+        />
+        <FilterGroup
+          activeKey={filters.provider}
+          icon={<Building2 className="size-3.5" />}
+          label={adminNextCopy.products.providerFilterLabel}
+          onSelect={(key) => onFilterChange({ provider: filters.provider === key ? '' : key })}
+          options={adminNextCopy.products.providerFilterOptions}
+          testIdPrefix="admin-next-products-provider-option"
+        />
+        <FilterGroup
+          activeKey={filters.tariff}
+          icon={<WalletCards className="size-3.5" />}
+          label={adminNextCopy.products.tariffFilterLabel}
+          onSelect={(key) => onFilterChange({ tariff: filters.tariff === key ? '' : key })}
+          options={adminNextCopy.products.tariffFilterOptions}
+          testIdPrefix="admin-next-products-tariff-option"
+        />
+        <div className="lg:col-span-3">
+          <div className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <SlidersHorizontal className="size-3.5" />
+              {adminNextCopy.products.priceFilterLabel}
+            </span>
+            <span data-testid="admin-next-products-url-state-label">{adminNextCopy.products.urlStateLabel}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {adminNextCopy.products.priceRangeOptions.map((option) => (
+              <button
+                className={cn(
+                  'inline-flex h-8 items-center rounded-md border bg-card px-3 text-xs font-semibold text-muted-foreground',
+                  filters.price === option.key && 'border-primary/40 bg-primary/10 text-primary',
+                )}
+                data-testid={`admin-next-products-price-option-${option.key}`}
+                key={option.key}
+                onClick={() => onFilterChange({ price: filters.price === option.key ? '' : option.key })}
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+            {hasFilters && (
+              <button
+                className="inline-flex h-8 items-center rounded-md border bg-background px-3 text-xs font-semibold text-muted-foreground"
+                data-testid="admin-next-products-clear-filters"
+                onClick={onClearFilters}
+                type="button"
+              >
+                {adminNextCopy.products.clearFiltersAction}
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <div className="mt-3 flex gap-1 overflow-x-auto border-b">
@@ -203,6 +413,48 @@ function ProductsGrid({
       {products.map((product) => (
         <ProductCard isSelected={product.id === selectedId} key={product.id} product={product} />
       ))}
+    </div>
+  );
+}
+
+function FilterGroup({
+  activeKey,
+  icon,
+  label,
+  options,
+  testIdPrefix,
+  onSelect,
+}: {
+  activeKey: string;
+  icon: React.ReactNode;
+  label: string;
+  options: ReadonlyArray<{ key: string; label: string; count: number }>;
+  testIdPrefix: string;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-2 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            className={cn(
+              'inline-flex h-8 items-center gap-1 rounded-md border bg-card px-2.5 text-xs font-semibold text-muted-foreground',
+              activeKey === option.key && 'border-primary/40 bg-primary/10 text-primary',
+            )}
+            data-testid={`${testIdPrefix}-${option.key}`}
+            key={option.key}
+            onClick={() => onSelect(option.key)}
+            type="button"
+          >
+            {option.label}
+            <span className="rounded-md border bg-background px-1.5 py-0.5 text-[11px]">{option.count}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

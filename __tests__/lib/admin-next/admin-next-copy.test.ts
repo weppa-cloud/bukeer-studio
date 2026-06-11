@@ -60,6 +60,16 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.products.title).toBe('Productos');
     expect(adminNextCopy.products.manageImagesAction(6)).toBe('Gestionar imagenes · 6');
     expect(adminNextCopy.products.activeRatesLabel(3)).toBe('3 vigentes');
+    expect(adminNextCopy.products.resultsLabel(2)).toBe('2 productos visibles');
+    expect(adminNextCopy.products.cityFilterOptions.map((option) => option.key)).toEqual([
+      'cartagena',
+      'san-andres',
+    ]);
+    expect(adminNextCopy.products.priceRangeOptions.map((option) => option.key)).toEqual([
+      'budget',
+      'mid',
+      'premium',
+    ]);
     expect(adminNextCopy.products.importCsvResultLabel(3)).toBe('3 productos preparados');
     expect(adminNextCopy.products.importCsvMappings).toHaveLength(6);
     expect(adminNextCopy.products.importCsvPreviewRows).toHaveLength(3);
