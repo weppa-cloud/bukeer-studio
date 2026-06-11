@@ -12,6 +12,7 @@ const PHASE0_ALLOWLIST = [
   /^app\/admin\/products\//,
   /^app\/admin\/dashboard\//,
   /^app\/admin\/settings\//,
+  /^app\/api\/admin-next\//,
   /^app\/admin\/prototype\/planner-workbench\/page\.tsx$/,
   /^app\/admin\/prototype\/planner-workbench\/smoke\//,
   /^app\/admin\/prototype\/planner-workbench\/smoke\/page\.tsx$/,
@@ -22,6 +23,7 @@ const PHASE0_ALLOWLIST = [
   /^jest\.config\.js$/,
   /^lib\/admin-next\/admin-next-copy\.ts$/,
   /^lib\/admin-next\/evolucion-theme\.ts$/,
+  /^lib\/admin-next\/products-catalog-resolver\.ts$/,
   /^lib\/admin-next\/fixtures\/account\.ts$/,
   /^lib\/admin-next\/fixtures\/agenda\.ts$/,
   /^lib\/admin-next\/fixtures\/contacts\.ts$/,
@@ -40,6 +42,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/app\/admin-next-dashboard-page\.test\.tsx$/,
   /^__tests__\/app\/admin-next-settings-page\.test\.tsx$/,
   /^__tests__\/app\/login-page\.test\.tsx$/,
+  /^__tests__\/api\/admin-next-.*\.test\.ts$/,
   /^__tests__\/components\/admin-next\/account-module\.test\.tsx$/,
   /^__tests__\/components\/admin-next\/agenda-module\.test\.tsx$/,
   /^__tests__\/components\/admin-next\/signature-ui\.test\.tsx$/,
@@ -49,6 +52,7 @@ const PHASE0_ALLOWLIST = [
   /^__tests__\/components\/admin-next\/settings-module\.test\.tsx$/,
   /^__tests__\/lib\/admin-next\/admin-next-copy\.test\.ts$/,
   /^__tests__\/lib\/admin-next\/evolucion-theme\.test\.ts$/,
+  /^__tests__\/lib\/admin-next\/products-catalog-resolver\.test\.ts$/,
 ];
 
 const KNOWN_MIXED_FILES = new Set(['package.json']);

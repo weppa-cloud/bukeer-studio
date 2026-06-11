@@ -31,7 +31,8 @@ async function main() {
   const targetUrl = new URL(route, baseUrl).toString();
   await waitForHttp(targetUrl);
 
-  const result = await runPlaywrightSmoke(targetUrl);
+  const catalogResolverApiBoundary = await verifyCatalogResolverApiBoundary(baseUrl);
+  const result = await runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary);
   console.log(JSON.stringify(result, null, 2));
 }
 
@@ -101,7 +102,30 @@ async function waitForHttp(url) {
   throw new Error(`Timed out waiting for ${url}: ${lastError?.message}`);
 }
 
-async function runPlaywrightSmoke(targetUrl) {
+async function verifyCatalogResolverApiBoundary(baseUrl) {
+  const response = await fetch(new URL('/api/admin-next/products/catalog-resolver', baseUrl), {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      rows: [{ id: 'smoke-row-1', sourceName: 'Hotel Las Islas' }],
+    }),
+  });
+  const body = await response.json().catch(() => null);
+  const code = body?.error?.code ?? null;
+
+  if (response.status !== 401 || code !== 'UNAUTHORIZED') {
+    throw new Error(`Products catalog resolver API boundary failed: HTTP ${response.status} ${code}`);
+  }
+
+  return {
+    status: response.status,
+    code,
+  };
+}
+
+async function runPlaywrightSmoke(targetUrl, catalogResolverApiBoundary) {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   const consoleMessages = [];
@@ -244,6 +268,7 @@ async function runPlaywrightSmoke(targetUrl) {
       importStepCount,
       importPreviewRowCount,
       catalogResolutionCount,
+      catalogResolverApiBoundary,
       hasNewProductModal,
       hasNewHotelModal,
       hasNewRateModal,
