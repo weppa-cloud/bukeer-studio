@@ -46,15 +46,15 @@ import { cn } from '@/lib/utils';
 import { AdminShell } from './admin-shell';
 
 const toneClasses: Record<ProductRecord['tone'], string> = {
-  primary: 'border-primary/30 bg-primary/10 text-primary',
-  live: 'border-secondary/30 bg-secondary/10 text-secondary',
-  warning: 'border-[hsl(var(--bukeer-warning))]/30 bg-[hsl(var(--bukeer-warning)/0.12)] text-[hsl(var(--bukeer-warning))]',
+  primary: 'border-primary/30 bg-primary/10 text-foreground',
+  live: 'border-secondary/30 bg-secondary/10 text-foreground',
+  warning: 'border-[hsl(var(--bukeer-warning))]/30 bg-[hsl(var(--bukeer-warning)/0.12)] text-foreground',
 };
 
 const resolverActionClasses: Record<ProductCatalogResolution['action'], string> = {
-  link: 'border-secondary/30 bg-secondary/10 text-secondary',
-  create: 'border-primary/30 bg-primary/10 text-primary',
-  rate_required: 'border-[hsl(var(--bukeer-warning))]/30 bg-[hsl(var(--bukeer-warning)/0.12)] text-[hsl(var(--bukeer-warning))]',
+  link: 'border-secondary/30 bg-secondary/10 text-foreground',
+  create: 'border-primary/30 bg-primary/10 text-foreground',
+  rate_required: 'border-[hsl(var(--bukeer-warning))]/30 bg-[hsl(var(--bukeer-warning)/0.12)] text-foreground',
 };
 
 type ProductModal = 'import-csv' | 'new-product' | 'new-hotel' | 'new-rate' | 'edit-product' | 'gallery' | null;
@@ -299,7 +299,7 @@ function ProductsToolbar({
           <button
             className={cn(
               'inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-xs font-semibold text-muted-foreground',
-              filters.city && 'border-primary/40 bg-primary/10 text-primary',
+              filters.city && 'border-primary bg-primary text-primary-foreground',
             )}
             data-testid="admin-next-products-city-filter"
             onClick={() => onFilterChange({ city: filters.city ? '' : 'cartagena' })}
@@ -313,7 +313,7 @@ function ProductsToolbar({
           <button
             className={cn(
               'inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-xs font-semibold text-muted-foreground',
-              filters.price && 'border-primary/40 bg-primary/10 text-primary',
+              filters.price && 'border-primary bg-primary text-primary-foreground',
             )}
             data-testid="admin-next-products-price-filter"
             onClick={() => onFilterChange({ price: filters.price ? '' : 'budget' })}
@@ -367,7 +367,7 @@ function ProductsToolbar({
               <button
                 className={cn(
                   'inline-flex h-8 items-center rounded-md border bg-card px-3 text-xs font-semibold text-muted-foreground',
-                  filters.price === option.key && 'border-primary/40 bg-primary/10 text-primary',
+                  filters.price === option.key && 'border-primary bg-primary text-primary-foreground',
                 )}
                 data-testid={`admin-next-products-price-option-${option.key}`}
                 key={option.key}
@@ -456,7 +456,7 @@ function FilterGroup({
           <button
             className={cn(
               'inline-flex h-8 items-center gap-1 rounded-md border bg-card px-2.5 text-xs font-semibold text-muted-foreground',
-              activeKey === option.key && 'border-primary/40 bg-primary/10 text-primary',
+              activeKey === option.key && 'border-primary bg-primary text-primary-foreground',
             )}
             data-testid={`${testIdPrefix}-${option.key}`}
             key={option.key}
@@ -545,11 +545,11 @@ function ProductDetail({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold tracking-normal">{product.name}</h2>
-              <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+              <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold text-foreground">
                 {product.status}
               </span>
               <span
-                className="rounded-md border border-secondary/30 bg-secondary/10 px-2 py-1 text-xs font-semibold text-secondary"
+                className="rounded-md border border-secondary/30 bg-secondary/10 px-2 py-1 text-xs font-semibold text-foreground"
                 data-testid="admin-next-products-catalog-contract"
               >
                 {adminNextCopy.products.catalogContractLabel}
@@ -1025,7 +1025,7 @@ function NewProductModal({
             <button
               className={cn(
                 'min-h-32 rounded-lg border bg-background p-4 text-left',
-                type.active && 'border-primary/40 bg-primary/10 text-primary',
+                type.active && 'border-primary bg-primary text-primary-foreground',
               )}
               data-testid={`admin-next-products-type-${type.label.toLowerCase()}`}
               key={type.label}
@@ -1034,7 +1034,7 @@ function NewProductModal({
               <Icon className="size-5" />
               <div className="mt-4 text-base font-semibold">{type.label}</div>
               {type.active && (
-                <div className="mt-3 inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold">
+                <div className="mt-3 inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold text-foreground">
                   <Check className="size-3.5" />
                   {adminNextCopy.products.activeRateLabel}
                 </div>
@@ -1099,7 +1099,7 @@ function NewHotelModal({
           <div
             className={cn(
               'rounded-md border bg-background px-3 py-2 text-sm font-semibold text-muted-foreground',
-              index === 0 && 'border-primary/40 bg-primary/10 text-primary',
+              index === 0 && 'border-primary bg-primary text-primary-foreground',
             )}
             key={step}
           >
@@ -1115,7 +1115,7 @@ function NewHotelModal({
         </ModalSection>
         <ModalSection icon={<MapPinned className="size-4" />} title={adminNextCopy.products.sectionLocation}>
           <ModalField label={adminNextCopy.products.locationSearchLabel} value={product.location} />
-          <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
+          <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-foreground">
             {adminNextCopy.products.selectedLocation}: {product.location}
           </div>
         </ModalSection>
@@ -1133,7 +1133,7 @@ function NewHotelModal({
             data-rate-required="true"
             data-testid="admin-next-products-rate-required-gate"
           >
-            <div className="font-semibold text-[hsl(var(--bukeer-warning))]">
+            <div className="font-semibold text-foreground">
               {adminNextCopy.products.rateRequiredGateTitle}
             </div>
             <p className="mt-1 text-muted-foreground">
@@ -1322,7 +1322,7 @@ function GalleryManagerModal({ fixture, onClose }: { fixture: ProductsFixture; o
               <GripVertical className="size-4 text-muted-foreground" />
             </div>
             <div className="mt-2 flex items-center justify-between gap-2">
-              <span className={cn('rounded-md border px-2 py-1 text-[11px] font-semibold', index === 1 ? 'border-primary/30 bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
+              <span className={cn('rounded-md border px-2 py-1 text-[11px] font-semibold', index === 1 ? 'border-primary/30 bg-primary/10 text-foreground' : 'bg-muted text-muted-foreground')}>
                 {index === 1 ? adminNextCopy.products.primaryImageLabel : product.type}
               </span>
               <button
@@ -1425,8 +1425,8 @@ function ImportMetric({
       <div
         className={cn(
           'text-lg font-semibold',
-          tone === 'success' && 'text-secondary',
-          tone === 'warning' && 'text-[hsl(var(--bukeer-warning))]',
+          tone === 'success' && 'text-foreground',
+          tone === 'warning' && 'text-foreground',
         )}
       >
         {value}
@@ -1451,7 +1451,7 @@ function RateMetric({
       <div
         className={cn(
           'mt-1 truncate text-xs font-semibold',
-          tone === 'success' && 'text-secondary',
+          tone === 'success' && 'text-foreground',
         )}
       >
         {value}

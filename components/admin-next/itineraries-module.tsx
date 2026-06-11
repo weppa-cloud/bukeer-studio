@@ -683,7 +683,7 @@ function MobilePrototypePanel({
                   className={cn(
                     'h-12 rounded-md px-1 text-[10px] font-semibold',
                     selectedScreen.id === screen.id
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground',
                   )}
                   data-active={selectedScreen.id === screen.id}
@@ -866,14 +866,14 @@ function ToneBadge({ tone, children }: { tone: ItineraryTone; children: React.Re
 function filterButtonClass(active: boolean) {
   return cn(
     'h-8 rounded-md border px-3 text-xs font-semibold',
-    active ? 'border-primary/40 bg-primary/10 text-primary' : 'bg-background text-muted-foreground',
+    active ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-muted-foreground',
   );
 }
 
 function viewButtonClass(active: boolean) {
   return cn(
     'inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold',
-    active ? 'border-primary/40 bg-primary/10 text-primary' : 'bg-background text-muted-foreground',
+    active ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-muted-foreground',
   );
 }
 
@@ -918,15 +918,15 @@ function statusTone(status: ItineraryStatus): ItineraryTone {
 function toneClass(tone: ItineraryTone) {
   switch (tone) {
     case 'success':
-      return 'border-[hsl(var(--bukeer-success)/0.32)] bg-[hsl(var(--bukeer-success)/0.12)] text-[hsl(var(--bukeer-success))]';
+      return 'border-[hsl(var(--bukeer-success)/0.32)] bg-[hsl(var(--bukeer-success)/0.12)] text-foreground';
     case 'warning':
-      return 'border-[hsl(var(--bukeer-warning)/0.32)] bg-[hsl(var(--bukeer-warning)/0.12)] text-[hsl(var(--bukeer-warning))]';
+      return 'border-[hsl(var(--bukeer-warning)/0.32)] bg-[hsl(var(--bukeer-warning)/0.12)] text-foreground';
     case 'danger':
-      return 'border-destructive/30 bg-destructive/10 text-destructive';
+      return 'border-destructive/30 bg-destructive/10 text-foreground';
     case 'live':
-      return 'border-[hsl(var(--bukeer-live)/0.32)] bg-[hsl(var(--bukeer-live)/0.12)] text-[hsl(var(--bukeer-live))]';
+      return 'border-[hsl(var(--bukeer-live)/0.32)] bg-[hsl(var(--bukeer-live)/0.12)] text-foreground';
     case 'primary':
     default:
-      return 'border-primary/30 bg-primary/10 text-primary';
+      return 'border-primary/30 bg-primary/10 text-foreground';
   }
 }

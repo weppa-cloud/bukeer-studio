@@ -27,6 +27,7 @@ const requiredScripts = [
   'admin-next:smoke:evolucion:worker',
   'admin-next:smoke:evolucion:itineraries',
   'admin-next:visual-qa:evolucion',
+  'admin-next:lighthouse:evolucion',
   'build:worker',
   'typecheck',
 ];

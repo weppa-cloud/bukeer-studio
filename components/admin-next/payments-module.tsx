@@ -217,7 +217,7 @@ function Controls({
               className={cn(
                 'h-8 rounded-md border px-3 text-xs font-semibold',
                 method.key === selectedMethod
-                  ? 'border-primary/40 bg-primary/10 text-primary'
+                  ? 'border-primary bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground',
               )}
               data-active={method.key === selectedMethod}
@@ -237,7 +237,7 @@ function Controls({
             className={cn(
               'h-8 rounded-md border px-3 text-xs font-semibold',
               batch.key === selectedBatch
-                ? 'border-primary/40 bg-primary/10 text-primary'
+                ? 'border-primary bg-primary text-primary-foreground'
                 : 'bg-background text-muted-foreground',
             )}
             data-active={batch.key === selectedBatch}
@@ -552,15 +552,15 @@ function formatCurrency(amountMinor: number, currency: string): string {
 function toneClass(tone: PaymentTone) {
   switch (tone) {
     case 'success':
-      return 'border-[hsl(var(--bukeer-success)/0.32)] bg-[hsl(var(--bukeer-success)/0.12)] text-[hsl(var(--bukeer-success))]';
+      return 'border-[hsl(var(--bukeer-success)/0.32)] bg-[hsl(var(--bukeer-success)/0.12)] text-foreground';
     case 'warning':
-      return 'border-[hsl(var(--bukeer-warning)/0.32)] bg-[hsl(var(--bukeer-warning)/0.12)] text-[hsl(var(--bukeer-warning))]';
+      return 'border-[hsl(var(--bukeer-warning)/0.32)] bg-[hsl(var(--bukeer-warning)/0.12)] text-foreground';
     case 'danger':
-      return 'border-destructive/30 bg-destructive/10 text-destructive';
+      return 'border-destructive/30 bg-destructive/10 text-foreground';
     case 'live':
-      return 'border-[hsl(var(--bukeer-live)/0.32)] bg-[hsl(var(--bukeer-live)/0.12)] text-[hsl(var(--bukeer-live))]';
+      return 'border-[hsl(var(--bukeer-live)/0.32)] bg-[hsl(var(--bukeer-live)/0.12)] text-foreground';
     case 'primary':
     default:
-      return 'border-primary/30 bg-primary/10 text-primary';
+      return 'border-primary/30 bg-primary/10 text-foreground';
   }
 }

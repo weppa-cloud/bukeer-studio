@@ -401,13 +401,13 @@ function initialsFor(name: string): string {
 function toneBadgeClass(tone: DashboardKpi['tone'] | DashboardReceivable['tone']) {
   switch (tone) {
     case 'success':
-      return 'border-[var(--bukeer-success)]/30 bg-[var(--bukeer-success)]/10 text-[var(--bukeer-success)]';
+      return 'border-[var(--bukeer-success)]/30 bg-[var(--bukeer-success)]/10 text-foreground';
     case 'warning':
-      return 'border-[var(--bukeer-human-loop)]/30 bg-[var(--bukeer-human-loop)]/10 text-[var(--bukeer-human-loop)]';
+      return 'border-[var(--bukeer-human-loop)]/30 bg-[var(--bukeer-human-loop)]/10 text-foreground';
     case 'danger':
-      return 'border-destructive/30 bg-destructive/10 text-destructive';
+      return 'border-destructive/30 bg-destructive/10 text-foreground';
     case 'live':
-      return 'border-[var(--bukeer-live)]/30 bg-[var(--bukeer-live)]/10 text-[var(--bukeer-live)]';
+      return 'border-[var(--bukeer-live)]/30 bg-[var(--bukeer-live)]/10 text-foreground';
     default:
       return 'border-border bg-muted text-muted-foreground';
   }
@@ -418,15 +418,15 @@ function avatarToneClass(
 ) {
   switch (tone) {
     case 'success':
-      return 'bg-[var(--bukeer-success)]/10 text-[var(--bukeer-success)]';
+      return 'border border-[var(--bukeer-success)]/30 bg-[var(--bukeer-success)]/10 text-foreground';
     case 'warning':
-      return 'bg-[var(--bukeer-human-loop)]/10 text-[var(--bukeer-human-loop)]';
+      return 'border border-[var(--bukeer-human-loop)]/30 bg-[var(--bukeer-human-loop)]/10 text-foreground';
     case 'danger':
-      return 'bg-destructive/10 text-destructive';
+      return 'border border-destructive/30 bg-destructive/10 text-foreground';
     case 'live':
-      return 'bg-[var(--bukeer-live)]/10 text-[var(--bukeer-live)]';
+      return 'border border-[var(--bukeer-live)]/30 bg-[var(--bukeer-live)]/10 text-foreground';
     case 'primary':
-      return 'bg-primary/10 text-primary';
+      return 'border border-primary/30 bg-primary/10 text-foreground';
     default:
       return 'bg-muted text-muted-foreground';
   }
