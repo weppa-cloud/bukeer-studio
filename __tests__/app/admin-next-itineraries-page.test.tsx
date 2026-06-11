@@ -107,6 +107,15 @@ describe('/admin/itineraries auth boundary', () => {
             itineraries: expect.arrayContaining([
               expect.objectContaining({ id: 'it-2647' }),
             ]),
+            details: expect.objectContaining({
+              'it-2651': expect.objectContaining({
+                services: expect.any(Array),
+                passengers: expect.any(Array),
+                suppliers: expect.any(Array),
+                payments: expect.any(Array),
+                preview: expect.any(Array),
+              }),
+            }),
           }),
           evolucionTheme: expect.objectContaining({
             presetSlug: 'evolucion',

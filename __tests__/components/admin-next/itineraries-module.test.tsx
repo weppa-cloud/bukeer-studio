@@ -3,7 +3,9 @@ import { ItinerariesModule } from '@/components/admin-next/itineraries-module';
 import { itinerariesFixture } from '@/lib/admin-next/fixtures/itineraries';
 
 const replace = jest.fn();
-const mockSearchParams = new URLSearchParams('view=kanban&status=won&owner=daniel');
+const mockSearchParams = new URLSearchParams(
+  'view=kanban&status=won&owner=daniel&selected=it-2651&tab=payments',
+);
 
 jest.mock('next/navigation', () => ({
   usePathname: () => '/admin/itineraries',
@@ -47,8 +49,18 @@ describe('ItinerariesModule', () => {
     expect(markup).toContain('data-active-view="kanban"');
     expect(markup).toContain('data-active-status="won"');
     expect(markup).toContain('data-active-owner="daniel"');
+    expect(markup).toContain('data-selected-itinerary="it-2651"');
+    expect(markup).toContain('data-active-tab="payments"');
     expect(markup).toContain('data-visible-itineraries="1"');
     expect(markup).toContain('data-kanban-columns="5"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-detail"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-tab-services"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-tab-passengers"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-tab-suppliers"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-tab-payments"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-tab-preview"');
+    expect(markup).toContain('data-testid="admin-next-itinerary-tab-panel-payments"');
+    expect(markup).toContain('admin-next-itinerary-payment-locked-it-2651-pay-1');
     expect(markup).toContain('data-testid="admin-next-itineraries-kanban"');
     expect(markup).toContain('data-testid="admin-next-itineraries-kanban-won"');
     expect(markup).toContain('data-testid="admin-next-itineraries-ai-panel"');

@@ -68,6 +68,18 @@ export const adminNextCopy = {
     servicesLabel: (count: number) => `${count} servicios`,
     paymentsLabel: (paid: number, total: number) => `${paid}/${total} cuotas`,
     openDetailAction: 'Abrir detalle',
+    detailTitle: 'Detalle operativo',
+    detailSubtitle:
+      'Servicios, pasajeros, proveedores, pagos y vista previa comparten el mismo deep-link.',
+    detailSelectedLabel: 'Seleccionado',
+    lockedPaymentLabel: 'Bloqueada',
+    detailTabLabels: {
+      services: 'Servicios',
+      passengers: 'Pasajeros',
+      suppliers: 'Proveedores',
+      payments: 'Pagos',
+      preview: 'Vista previa',
+    },
     statusLabels: {
       draft: 'Borrador',
       quoted: 'Cotizado',

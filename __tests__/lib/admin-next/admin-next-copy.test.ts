@@ -41,6 +41,14 @@ describe('adminNextCopy', () => {
     expect(adminNextCopy.itineraries.listAction).toBe('Lista');
     expect(adminNextCopy.itineraries.kanbanAction).toBe('Kanban');
     expect(adminNextCopy.itineraries.statusLabels.won).toBe('Confirmado');
+    expect(Object.keys(adminNextCopy.itineraries.detailTabLabels)).toEqual([
+      'services',
+      'passengers',
+      'suppliers',
+      'payments',
+      'preview',
+    ]);
+    expect(adminNextCopy.itineraries.lockedPaymentLabel).toBe('Bloqueada');
     expect(adminNextCopy.itineraries.paxLabel(4)).toBe('4 pax');
     expect(adminNextCopy.itineraries.paymentsLabel(1, 3)).toBe('1/3 cuotas');
   });

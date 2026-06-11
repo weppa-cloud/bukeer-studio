@@ -9,6 +9,7 @@ import {
   CreditCard,
   Eye,
   List,
+  LockKeyhole,
   PlaneTakeoff,
   Plus,
   Search,
@@ -18,6 +19,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import type {
   ItinerariesFixture,
+  ItineraryDetailItem,
+  ItineraryDetailTab,
   ItineraryStatus,
   ItinerarySummary,
   ItineraryTone,
@@ -29,6 +32,14 @@ import { AdminShell } from './admin-shell';
 const DEFAULT_VIEW: ItineraryViewMode = 'list';
 const DEFAULT_STATUS = 'all';
 const DEFAULT_OWNER = 'all';
+const DEFAULT_DETAIL_TAB: ItineraryDetailTab = 'services';
+const DETAIL_TABS: ItineraryDetailTab[] = [
+  'services',
+  'passengers',
+  'suppliers',
+  'payments',
+  'preview',
+];
 
 export function ItinerariesModule({
   session,
@@ -65,6 +76,14 @@ export function ItinerariesModule({
 
     return matchesStatus && matchesOwner;
   });
+  const selectedId = resolvedSearchParams.get('selected');
+  const selectedItinerary =
+    fixture.itineraries.find((itinerary) => itinerary.id === selectedId) ??
+    visibleItineraries[0] ??
+    fixture.itineraries[0];
+  const selectedDetail = selectedItinerary ? fixture.details[selectedItinerary.id] : null;
+  const tabParam = resolvedSearchParams.get('tab');
+  const activeDetailTab = isDetailTab(tabParam) ? tabParam : DEFAULT_DETAIL_TAB;
 
   const replaceQuery = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(resolvedSearchParams.toString());
@@ -87,6 +106,8 @@ export function ItinerariesModule({
         data-active-view={selectedView}
         data-active-status={selectedStatus}
         data-active-owner={selectedOwner}
+        data-selected-itinerary={selectedItinerary?.id ?? ''}
+        data-active-tab={activeDetailTab}
         data-visible-itineraries={visibleItineraries.length}
         data-kanban-columns={fixture.statuses.length}
         style={evolucionTheme.styles.light}
@@ -103,6 +124,14 @@ export function ItinerariesModule({
               onStatusChange={(status) => replaceQuery({ status })}
               onOwnerChange={(owner) => replaceQuery({ owner })}
             />
+            {selectedItinerary && selectedDetail ? (
+              <ItineraryDetailPanel
+                activeTab={activeDetailTab}
+                detailItems={selectedDetail[activeDetailTab]}
+                itinerary={selectedItinerary}
+                onTabChange={(tab) => replaceQuery({ selected: selectedItinerary.id, tab })}
+              />
+            ) : null}
             {selectedView === 'kanban' ? (
               <KanbanBoard fixture={fixture} itineraries={visibleItineraries} />
             ) : (
@@ -232,6 +261,91 @@ function Controls({
           >
             {owner.label}
           </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ItineraryDetailPanel({
+  activeTab,
+  detailItems,
+  itinerary,
+  onTabChange,
+}: {
+  activeTab: ItineraryDetailTab;
+  detailItems: ItineraryDetailItem[];
+  itinerary: ItinerarySummary;
+  onTabChange: (tab: ItineraryDetailTab) => void;
+}) {
+  return (
+    <section
+      className="rounded-lg border bg-card p-4 text-card-foreground"
+      data-active-tab={activeTab}
+      data-itinerary-id={itinerary.id}
+      data-testid="admin-next-itinerary-detail"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+            {adminNextCopy.itineraries.detailSelectedLabel}
+          </div>
+          <h2 className="mt-1 text-xl font-semibold tracking-normal">
+            {adminNextCopy.itineraries.detailTitle} · {itinerary.code}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {itinerary.title} · {adminNextCopy.itineraries.detailSubtitle}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ToneBadge tone={statusTone(itinerary.status)}>
+            {adminNextCopy.itineraries.statusLabels[itinerary.status]}
+          </ToneBadge>
+          <ToneBadge tone={itinerary.marginTone}>
+            {adminNextCopy.itineraries.marginLabel} {itinerary.margin}
+          </ToneBadge>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2" role="tablist">
+        {DETAIL_TABS.map((tab) => (
+          <button
+            aria-selected={activeTab === tab}
+            className={filterButtonClass(activeTab === tab)}
+            data-active={activeTab === tab}
+            data-testid={`admin-next-itinerary-tab-${tab}`}
+            key={tab}
+            role="tab"
+            type="button"
+            onClick={() => onTabChange(tab)}
+          >
+            {adminNextCopy.itineraries.detailTabLabels[tab]}
+          </button>
+        ))}
+      </div>
+      <div
+        className="mt-4 grid gap-3 md:grid-cols-2"
+        data-testid={`admin-next-itinerary-tab-panel-${activeTab}`}
+        role="tabpanel"
+      >
+        {detailItems.map((item) => (
+          <article className="rounded-lg border bg-background p-4" key={item.id}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">{item.label}</h3>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+              </div>
+              <ToneBadge tone={item.tone}>{item.value}</ToneBadge>
+            </div>
+            {item.locked ? (
+              <div
+                className="mt-3 inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary"
+                data-testid={`admin-next-itinerary-payment-locked-${item.id}`}
+              >
+                <LockKeyhole className="size-3.5" />
+                {adminNextCopy.itineraries.lockedPaymentLabel}
+              </div>
+            ) : null}
+          </article>
         ))}
       </div>
     </section>
@@ -427,6 +541,10 @@ function viewButtonClass(active: boolean) {
 
 function isStatusKey(fixture: ItinerariesFixture, value: string): value is ItineraryStatus | 'all' {
   return value === DEFAULT_STATUS || fixture.statuses.some((status) => status.id === value);
+}
+
+function isDetailTab(value: string | null): value is ItineraryDetailTab {
+  return DETAIL_TABS.some((tab) => tab === value);
 }
 
 function statusTone(status: ItineraryStatus): ItineraryTone {

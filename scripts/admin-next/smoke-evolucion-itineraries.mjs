@@ -11,7 +11,8 @@ import {
   newAdminNextSmokePage,
 } from './smoke-auth-headers.mjs';
 
-const route = '/admin/itineraries/smoke?view=list&status=all&owner=all';
+const route =
+  '/admin/itineraries/smoke?view=list&status=all&owner=all&selected=it-2651&tab=services';
 const externalBaseUrl = process.env.ADMIN_NEXT_ITINERARIES_SMOKE_BASE_URL;
 const outputDir =
   process.env.ADMIN_NEXT_ITINERARIES_SMOKE_OUTPUT_DIR ||
@@ -139,12 +140,29 @@ async function runPlaywrightSmoke(targetUrl) {
     const initialView = await root.getAttribute('data-active-view');
     const initialStatus = await root.getAttribute('data-active-status');
     const initialOwner = await root.getAttribute('data-active-owner');
+    const selectedItinerary = await root.getAttribute('data-selected-itinerary');
+    const initialTab = await root.getAttribute('data-active-tab');
     const initialCount = await root.getAttribute('data-visible-itineraries');
     const kanbanColumns = await root.getAttribute('data-kanban-columns');
     const hasList = await page.getByTestId('admin-next-itineraries-list').isVisible();
+    const hasDetail = await page.getByTestId('admin-next-itinerary-detail').isVisible();
+    const hasServicesTab = await page
+      .getByTestId('admin-next-itinerary-tab-panel-services')
+      .isVisible();
     const hasAiPanel = await page.getByTestId('admin-next-itineraries-ai-panel').isVisible();
     const initialScreenshot = path.join(outputDir, 'itineraries-list-evolucion-light.png');
     await page.screenshot({ path: initialScreenshot, fullPage: false });
+
+    await page.getByTestId('admin-next-itinerary-tab-payments').click();
+    await page.waitForURL(/tab=payments/);
+    const paymentsTab = await root.getAttribute('data-active-tab');
+    const hasPaymentsTab = await page
+      .getByTestId('admin-next-itinerary-tab-panel-payments')
+      .isVisible();
+    const hasLockedPayment = await page
+      .locator('[data-testid^="admin-next-itinerary-payment-locked-"]')
+      .first()
+      .isVisible();
 
     await page.getByTestId('admin-next-itineraries-view-kanban').click();
     await page.waitForURL(/view=kanban/);
@@ -193,13 +211,18 @@ async function runPlaywrightSmoke(targetUrl) {
       initialView !== 'list' ||
       initialStatus !== 'all' ||
       initialOwner !== 'all' ||
+      selectedItinerary !== 'it-2651' ||
+      initialTab !== 'services' ||
       initialCount !== '5' ||
       kanbanColumns !== '5'
     ) {
       throw new Error('Initial itineraries URL state did not hydrate correctly.');
     }
-    if (!hasList || !hasAiPanel) {
-      throw new Error('Itineraries list or AI panel did not render.');
+    if (!hasList || !hasDetail || !hasServicesTab || !hasAiPanel) {
+      throw new Error('Itineraries list, detail or AI panel did not render.');
+    }
+    if (paymentsTab !== 'payments' || !hasPaymentsTab || !hasLockedPayment) {
+      throw new Error('Itinerary detail payments tab did not expose locked paid installments.');
     }
     if (
       updatedView !== 'kanban' ||
@@ -227,8 +250,15 @@ async function runPlaywrightSmoke(targetUrl) {
       initialView,
       initialStatus,
       initialOwner,
+      selectedItinerary,
+      initialTab,
       initialCount,
       kanbanColumns,
+      paymentsTab,
+      hasDetail,
+      hasServicesTab,
+      hasPaymentsTab,
+      hasLockedPayment,
       updatedView,
       updatedStatus,
       updatedOwner,
