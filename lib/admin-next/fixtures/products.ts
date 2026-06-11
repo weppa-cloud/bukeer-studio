@@ -32,6 +32,12 @@ export type ProductRate = {
   sale: string;
 };
 
+export type ProductGalleryImage = {
+  url: string;
+  alt: string;
+  source: 'master' | 'override';
+};
+
 export type ProductSignal = {
   id: string;
   label: string;
@@ -58,6 +64,7 @@ export type ProductsFixture = {
     providerNit: string;
     providerEmail: string;
     providerPhone: string;
+    galleryImages: ProductGalleryImage[];
     operationalDetails: Array<{ label: string; value: string }>;
   };
   rates: ProductRate[];
@@ -140,6 +147,7 @@ export const productsFixture: ProductsFixture = {
     providerNit: 'NIT 900.412.318',
     providerEmail: 'reservas@hotellasislas.com',
     providerPhone: '+57 605 693 0440',
+    galleryImages: [],
     status: 'Activo',
     rating: '4.9',
     reviews: 212,

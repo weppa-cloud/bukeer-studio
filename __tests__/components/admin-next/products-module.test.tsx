@@ -18,7 +18,19 @@ describe('ProductsModule', () => {
             adminNextPrototype: true,
           },
         }}
-        fixture={productsFixture}
+        fixture={{
+          ...productsFixture,
+          selected: {
+            ...productsFixture.selected,
+            galleryImages: [
+              {
+                url: 'https://cdn.example.test/hotel.jpg',
+                alt: 'Hotel Las Islas 1',
+                source: 'master',
+              },
+            ],
+          },
+        }}
         dataSourceMode="readonly"
         evolucionTheme={{
           presetSlug: 'evolucion',
@@ -43,6 +55,10 @@ describe('ProductsModule', () => {
     expect(markup).toContain('data-rate-state="active"');
     expect(markup).toContain('data-testid="admin-next-products-detail"');
     expect(markup).toContain('data-testid="admin-next-products-gallery"');
+    expect(markup).toContain(
+      'data-testid="admin-next-products-gallery-image-0"',
+    );
+    expect(markup).toContain('data-gallery-source="master"');
     expect(markup).toContain('data-testid="admin-next-products-rates"');
     expect(markup).toContain(
       'data-testid="admin-next-products-catalog-contract"',

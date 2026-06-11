@@ -125,6 +125,7 @@ export const adminNextCopy = {
     galleryTitle: 'Galeria',
     manageImagesAction: (count: number) => `Gestionar imagenes · ${count}`,
     galleryStatusLabel: (count: number) => `${count} de 10 imagenes`,
+    galleryNoImagesStatus: 'Sin fotos maestro/override disponibles',
     catalogContractLabel: 'Catalogo V2',
     catalogContractValue: 'Resolver maestro/propio activo',
     mainImageLabel: 'Principal',

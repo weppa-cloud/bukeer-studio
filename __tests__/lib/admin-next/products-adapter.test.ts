@@ -197,6 +197,19 @@ describe('products adapter', () => {
         code: 'HOTEL-LIVE-1',
         description: 'Hotel frente al mar',
         providerEmail: 'reservas@example.test',
+        galleryStatus: '2 de 10 imagenes',
+        galleryImages: [
+          {
+            url: 'one.jpg',
+            alt: 'Casa Baru Preferred 1',
+            source: 'master',
+          },
+          {
+            url: 'two.jpg',
+            alt: 'Casa Baru Preferred 2',
+            source: 'master',
+          },
+        ],
       }),
     );
     expect(fixture.rates).toEqual([

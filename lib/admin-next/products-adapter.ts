@@ -1,7 +1,9 @@
 import type { AdminDataSourceMode } from '@bukeer/admin-contract';
+import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import {
   productsFixture,
   type ProductCategory,
+  type ProductGalleryImage,
   type ProductRecord,
   type ProductsFixture,
 } from '@/lib/admin-next/fixtures/products';
@@ -276,6 +278,32 @@ function findDefaultSelectedSource(
   | { type: 'hotel'; id: string; row: ReadonlyHotelRow }
   | { type: 'activity'; id: string; row: ReadonlyActivityRow }
   | null {
+  const pricedHotelWithGallery = hotels.find(
+    (hotel) =>
+      summarizeRates(hotel.account_rates ?? []).activePricedCount > 0 &&
+      hasHotelGallery(hotel),
+  );
+  if (pricedHotelWithGallery) {
+    return {
+      type: 'hotel',
+      id: pricedHotelWithGallery.id,
+      row: pricedHotelWithGallery,
+    };
+  }
+
+  const pricedActivityWithGallery = activities.find(
+    (activity) =>
+      summarizeActivityOptions(activity.activity_options ?? [])
+        .activePricedCount > 0 && hasActivityGallery(activity),
+  );
+  if (pricedActivityWithGallery) {
+    return {
+      type: 'activity',
+      id: pricedActivityWithGallery.id,
+      row: pricedActivityWithGallery,
+    };
+  }
+
   const pricedHotel = hotels.find(
     (hotel) => summarizeRates(hotel.account_rates ?? []).activePricedCount > 0,
   );
@@ -298,6 +326,20 @@ function findDefaultSelectedSource(
   }
 
   return null;
+}
+
+function hasHotelGallery(row: ReadonlyHotelRow): boolean {
+  return (
+    extractPhotoUrls(row.hotel_photos).length > 0 ||
+    extractPhotoUrls(firstRelation(row.master_hotels)?.photos).length > 0
+  );
+}
+
+function hasActivityGallery(row: ReadonlyActivityRow): boolean {
+  return (
+    extractPhotoUrls(row.master_photos).length > 0 ||
+    extractPhotoUrls(firstRelation(row.master_activities)?.photos).length > 0
+  );
 }
 
 function mapHotelRowToProduct(row: ReadonlyHotelRow): ProductRecord {
@@ -425,6 +467,7 @@ function buildSelectedProduct(
     firstRelation(activity?.contacts)?.email,
     productsFixture.selected.providerEmail,
   );
+  const galleryImages = buildSelectedGalleryImages(product, hotel, activity);
 
   return {
     ...productsFixture.selected,
@@ -434,7 +477,43 @@ function buildSelectedProduct(
     providerEmail: sourceEmail,
     providerNit: productsFixture.selected.providerNit,
     providerPhone: productsFixture.selected.providerPhone,
+    galleryImages,
+    galleryStatus: adminNextCopyGalleryStatus(galleryImages.length),
+    masterCatalogStatus: buildMasterCatalogStatus(galleryImages),
   };
+}
+
+function buildSelectedGalleryImages(
+  product: ProductRecord,
+  hotel?: ReadonlyHotelRow,
+  activity?: ReadonlyActivityRow,
+): ProductGalleryImage[] {
+  const master = firstRelation(hotel?.master_hotels);
+  const activityMaster = firstRelation(activity?.master_activities);
+  const urls = uniqueStrings([
+    ...extractPhotoUrls(hotel?.hotel_photos),
+    ...extractPhotoUrls(master?.photos),
+    ...extractPhotoUrls(activity?.master_photos),
+    ...extractPhotoUrls(activityMaster?.photos),
+  ]).slice(0, 10);
+
+  return urls.map((url, index) => ({
+    url,
+    alt: `${product.name} ${index + 1}`,
+    source: 'master',
+  }));
+}
+
+function adminNextCopyGalleryStatus(count: number): string {
+  return adminNextCopy.products.galleryStatusLabel(count);
+}
+
+function buildMasterCatalogStatus(
+  galleryImages: readonly ProductGalleryImage[],
+): string {
+  return galleryImages.length > 0
+    ? productsFixture.selected.masterCatalogStatus
+    : adminNextCopy.products.galleryNoImagesStatus;
 }
 
 function buildSelectedRates(
@@ -546,17 +625,50 @@ function joinLocation(
 }
 
 function countMedia(value: JsonValue): number {
-  if (Array.isArray(value)) return value.length;
+  return extractPhotoUrls(value).length;
+}
+
+function extractPhotoUrls(value: JsonValue): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(extractPhotoUrlFromItem);
+  }
 
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>;
     for (const key of ['images', 'photos', 'gallery']) {
       const candidate = record[key];
-      if (Array.isArray(candidate)) return candidate.length;
+      if (Array.isArray(candidate)) return candidate.flatMap(extractPhotoUrlFromItem);
     }
   }
 
-  return 0;
+  return [];
+}
+
+function extractPhotoUrlFromItem(value: unknown): string[] {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    return normalized ? [normalized] : [];
+  }
+
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const resolvedUrl = firstNonEmpty(
+      asString(record.url),
+      asString(record.thumbnail),
+      asString(record.src),
+    );
+    return resolvedUrl ? [resolvedUrl] : [];
+  }
+
+  return [];
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
 }
 
 function readNumber(value: NumericValue): number | null {

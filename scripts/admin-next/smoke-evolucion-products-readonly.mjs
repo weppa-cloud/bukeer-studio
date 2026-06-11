@@ -44,6 +44,8 @@ async function main() {
     expectedProductCount: readonlyContext.expectedProductCount,
     expectedActiveProductCount: readonlyContext.expectedActiveProductCount,
     expectedSelectedRateCount: readonlyContext.expectedSelectedRateCount,
+    expectedSelectedGalleryCount:
+      readonlyContext.expectedSelectedGalleryCount,
     firstExpectedProductId: readonlyContext.firstExpectedProductId,
     expectedHotelCount: readonlyContext.expectedHotelCount,
     expectedActivityCount: readonlyContext.expectedActivityCount,
@@ -141,14 +143,16 @@ async function resolveReadonlyContext() {
   const [hotelsResponse, activitiesResponse] = await Promise.all([
     supabase
       .from('account_hotels')
-      .select('id, account_rates(id, price, is_active)')
+      .select(
+        'id, master_hotels(photos), account_rates(id, price, is_active)',
+      )
       .eq('account_id', accountId)
       .eq('is_active', true)
       .limit(25),
     supabase
       .from('account_activities')
       .select(
-        'id, activity_options(id, is_active, activity_prices(id, price, is_active))',
+        'id, master_activities(photos), activity_options(id, is_active, activity_prices(id, price, is_active))',
       )
       .eq('account_id', accountId)
       .eq('is_active', true)
@@ -172,21 +176,45 @@ async function resolveReadonlyContext() {
   const expectedActiveActivityCount = activityRows.filter(
     hasActiveActivityPrice,
   ).length;
+  const pricedHotelWithGalleryRow = hotelRows.find(
+    (row) => countActiveHotelRates(row) > 0 && countHotelPhotos(row) > 0,
+  );
+  const pricedActivityWithGalleryRow = activityRows.find(
+    (row) =>
+      countActiveActivityPrices(row) > 0 && countActivityPhotos(row) > 0,
+  );
   const pricedHotelRow = hotelRows.find(
     (row) => countActiveHotelRates(row) > 0,
   );
   const pricedActivityRow = activityRows.find(
     (row) => countActiveActivityPrices(row) > 0,
   );
+  const selectedReadonlyRow =
+    pricedHotelWithGalleryRow ??
+    pricedActivityWithGalleryRow ??
+    pricedHotelRow ??
+    pricedActivityRow ??
+    hotelRows[0] ??
+    activityRows[0];
+  const selectedReadonlyRowIsHotel = Boolean(
+    selectedReadonlyRow && 'account_rates' in selectedReadonlyRow,
+  );
   const expectedSelectedRateCount = Math.min(
-    pricedHotelRow
-      ? countActiveHotelRates(pricedHotelRow)
-      : pricedActivityRow
-        ? countActiveActivityPrices(pricedActivityRow)
-        : hotelRows[0]
-          ? countActiveHotelRates(hotelRows[0])
-          : countActiveActivityPrices(activityRows[0]),
+    selectedReadonlyRowIsHotel
+      ? countActiveHotelRates(selectedReadonlyRow)
+      : countActiveActivityPrices(selectedReadonlyRow),
     6,
+  );
+  const selectedGalleryRows = !selectedReadonlyRow
+    ? []
+    : selectedReadonlyRowIsHotel
+      ? extractPhotoUrls(firstRelation(selectedReadonlyRow.master_hotels)?.photos)
+      : extractPhotoUrls(
+          firstRelation(selectedReadonlyRow.master_activities)?.photos,
+        );
+  const expectedSelectedGalleryCount = Math.min(
+    new Set(selectedGalleryRows).size,
+    5,
   );
 
   return {
@@ -200,8 +228,45 @@ async function resolveReadonlyContext() {
     expectedActiveProductCount:
       expectedActiveHotelCount + expectedActiveActivityCount,
     expectedSelectedRateCount,
+    expectedSelectedGalleryCount,
     firstExpectedProductId: hotelRows[0]?.id ?? activityRows[0]?.id ?? null,
   };
+}
+
+function firstRelation(value) {
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+}
+
+function extractPhotoUrls(value) {
+  if (Array.isArray(value)) return value.flatMap(extractPhotoUrlFromItem);
+
+  if (value && typeof value === 'object') {
+    for (const key of ['images', 'photos', 'gallery']) {
+      if (Array.isArray(value[key])) {
+        return value[key].flatMap(extractPhotoUrlFromItem);
+      }
+    }
+  }
+
+  return [];
+}
+
+function extractPhotoUrlFromItem(value) {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    return normalized ? [normalized] : [];
+  }
+
+  if (value && typeof value === 'object') {
+    const url = typeof value.url === 'string' ? value.url.trim() : '';
+    const thumbnail =
+      typeof value.thumbnail === 'string' ? value.thumbnail.trim() : '';
+    const src = typeof value.src === 'string' ? value.src.trim() : '';
+    const resolved = url || thumbnail || src;
+    return resolved ? [resolved] : [];
+  }
+
+  return [];
 }
 
 function hasActiveHotelRate(row) {
@@ -228,6 +293,14 @@ function countActiveActivityPrices(row) {
         ? option.activity_prices.filter((price) => isActivePricedRow(price))
         : [],
     ).length;
+}
+
+function countHotelPhotos(row) {
+  return extractPhotoUrls(firstRelation(row?.master_hotels)?.photos).length;
+}
+
+function countActivityPhotos(row) {
+  return extractPhotoUrls(firstRelation(row?.master_activities)?.photos).length;
 }
 
 function isActivePricedRow(row) {
@@ -325,6 +398,7 @@ async function runReadonlyProductsSmoke({
   expectedProductCount,
   expectedActiveProductCount,
   expectedSelectedRateCount,
+  expectedSelectedGalleryCount,
   firstExpectedProductId,
   expectedHotelCount,
   expectedActivityCount,
@@ -379,6 +453,9 @@ async function runReadonlyProductsSmoke({
     const selectedRateCount = await page
       .locator('[data-testid^="admin-next-products-rate-menu-"]')
       .count();
+    const selectedGalleryImageCount = await page
+      .locator('[data-testid^="admin-next-products-gallery-image-"]')
+      .count();
     const firstExpectedProductVisible = firstExpectedProductId
       ? await page
           .locator(
@@ -427,6 +504,11 @@ async function runReadonlyProductsSmoke({
         `Expected ${expectedSelectedRateCount} selected readonly rates, got ${selectedRateCount}`,
       );
     }
+    if (selectedGalleryImageCount !== expectedSelectedGalleryCount) {
+      throw new Error(
+        `Expected ${expectedSelectedGalleryCount} selected readonly gallery images, got ${selectedGalleryImageCount}`,
+      );
+    }
     if (!firstExpectedProductVisible) {
       throw new Error(
         'First readonly catalog row was not visible in Products UI.',
@@ -451,9 +533,11 @@ async function runReadonlyProductsSmoke({
       expectedProductCount,
       expectedActiveProductCount,
       expectedSelectedRateCount,
+      expectedSelectedGalleryCount,
       productCount,
       activeProductCount,
       selectedRateCount,
+      selectedGalleryImageCount,
       firstExpectedProductVisible,
       hasToolbar,
       hasDetail,

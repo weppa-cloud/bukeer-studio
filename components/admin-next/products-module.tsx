@@ -598,6 +598,9 @@ function GalleryPanel({
   product: ProductsFixture['selected'];
   onManageImages: () => void;
 }) {
+  const [mainImage, ...secondaryImages] = product.galleryImages;
+  const visibleSecondaryImages = secondaryImages.slice(0, 4);
+
   return (
     <section className="rounded-lg border bg-card p-4 text-card-foreground" data-testid="admin-next-products-gallery">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -616,15 +619,37 @@ function GalleryPanel({
         </button>
       </div>
       <div className="mt-4 grid gap-2 md:grid-cols-[1.4fr_repeat(2,0.55fr)]">
-        <div className="relative flex min-h-48 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-          <Image className="size-10" />
+        <div className="relative flex min-h-48 items-center justify-center overflow-hidden rounded-lg border bg-muted text-muted-foreground">
+          {mainImage ? (
+            <img
+              alt={mainImage.alt}
+              className="h-full min-h-48 w-full object-cover"
+              data-gallery-source={mainImage.source}
+              data-testid="admin-next-products-gallery-image-0"
+              loading="lazy"
+              src={mainImage.url}
+            />
+          ) : (
+            <Image className="size-10" />
+          )}
           <span className="absolute left-3 top-3 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
             {adminNextCopy.products.mainImageLabel}
           </span>
         </div>
         {[1, 2, 3, 4].map((index) => (
-          <div className="flex min-h-24 items-center justify-center rounded-lg border bg-background text-muted-foreground" key={index}>
-            <Image className="size-5" />
+          <div className="flex min-h-24 items-center justify-center overflow-hidden rounded-lg border bg-background text-muted-foreground" key={index}>
+            {visibleSecondaryImages[index - 1] ? (
+              <img
+                alt={visibleSecondaryImages[index - 1].alt}
+                className="h-full min-h-24 w-full object-cover"
+                data-gallery-source={visibleSecondaryImages[index - 1].source}
+                data-testid={`admin-next-products-gallery-image-${index}`}
+                loading="lazy"
+                src={visibleSecondaryImages[index - 1].url}
+              />
+            ) : (
+              <Image className="size-5" />
+            )}
           </div>
         ))}
       </div>
