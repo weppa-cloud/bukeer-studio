@@ -55,6 +55,7 @@ describe('adminNextCopy', () => {
       'itinerary',
       'checkout',
     ]);
+    expect(adminNextCopy.itineraries.mobilePrototypeTitle).toBe('Móvil');
     expect(adminNextCopy.itineraries.installmentStatusLabels.paid).toBe('Pagada');
     expect(adminNextCopy.itineraries.paxLabel(4)).toBe('4 pax');
     expect(adminNextCopy.itineraries.paymentsLabel(1, 3)).toBe('1/3 cuotas');

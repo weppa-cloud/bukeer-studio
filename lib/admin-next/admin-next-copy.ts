@@ -84,6 +84,10 @@ export const adminNextCopy = {
     publicProposalSubtitle:
       'Landing compartible de 3 páginas para revisar antes de enviar al cliente.',
     publicShareUrlLabel: 'URL pública',
+    mobilePrototypeTitle: 'Móvil',
+    mobilePrototypeSubtitle:
+      'Deck de 11 pantallas con bottom-nav de 5 destinos y contexto operativo.',
+    mobileBottomNavLabel: 'Bottom nav',
     publicPageLabels: {
       cover: 'Portada',
       itinerary: 'Dia a dia',

@@ -136,6 +136,10 @@ describe('/admin/itineraries auth boundary', () => {
                 ]),
               }),
             }),
+            mobileScreens: expect.arrayContaining([
+              expect.objectContaining({ id: 'home' }),
+              expect.objectContaining({ id: 'profile' }),
+            ]),
           }),
           evolucionTheme: expect.objectContaining({
             presetSlug: 'evolucion',

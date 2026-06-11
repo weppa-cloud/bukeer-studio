@@ -9,6 +9,18 @@ export type ItineraryDetailTab =
 export type ItineraryPaymentMethod = 'card' | 'bank_transfer' | 'cash';
 export type ItineraryInstallmentStatus = 'paid' | 'pending' | 'overdue';
 export type ItineraryPublicPage = 'cover' | 'itinerary' | 'checkout';
+export type ItineraryMobileScreen =
+  | 'home'
+  | 'search'
+  | 'itinerary'
+  | 'services'
+  | 'passengers'
+  | 'suppliers'
+  | 'payments'
+  | 'preview'
+  | 'chat'
+  | 'notifications'
+  | 'profile';
 export type ItineraryTone = 'primary' | 'success' | 'warning' | 'danger' | 'live';
 
 export type ItinerarySummary = {
@@ -98,6 +110,14 @@ export type ItineraryPublicProposal = {
   pages: ItineraryPublicProposalPage[];
 };
 
+export type ItineraryMobileScreenSpec = {
+  id: ItineraryMobileScreen;
+  label: string;
+  title: string;
+  summary: string;
+  tone: ItineraryTone;
+};
+
 export type ItinerariesFixture = {
   statuses: ItineraryColumn[];
   owners: Array<{
@@ -108,6 +128,7 @@ export type ItinerariesFixture = {
   details: Record<string, ItineraryDetail>;
   paymentPlans: Record<string, ItineraryPaymentPlan>;
   publicProposals: Record<string, ItineraryPublicProposal>;
+  mobileScreens: ItineraryMobileScreenSpec[];
   signals: ItinerarySignal[];
 };
 
@@ -455,6 +476,85 @@ export const itinerariesFixture: ItinerariesFixture = {
   publicProposals: Object.fromEntries(
     itinerarySummaries.map((itinerary) => [itinerary.id, createPublicProposal(itinerary)]),
   ) as Record<string, ItineraryPublicProposal>,
+  mobileScreens: [
+    {
+      id: 'home',
+      label: 'Inicio',
+      title: 'Resumen',
+      summary: 'KPIs compactos, siguiente servicio y riesgos principales.',
+      tone: 'primary',
+    },
+    {
+      id: 'search',
+      label: 'Buscar',
+      title: 'Busqueda',
+      summary: 'Clientes, destinos e itinerarios con entrada rapida.',
+      tone: 'live',
+    },
+    {
+      id: 'itinerary',
+      label: 'Itinerario',
+      title: 'Detalle',
+      summary: 'Cabecera del viaje, estado comercial y margen.',
+      tone: 'primary',
+    },
+    {
+      id: 'services',
+      label: 'Servicios',
+      title: 'Servicios',
+      summary: 'Agenda operativa en tarjetas apiladas.',
+      tone: 'success',
+    },
+    {
+      id: 'passengers',
+      label: 'Pasajeros',
+      title: 'Pasajeros',
+      summary: 'Datos faltantes, documentos y rooming list.',
+      tone: 'warning',
+    },
+    {
+      id: 'suppliers',
+      label: 'Proveedores',
+      title: 'Proveedores',
+      summary: 'Reservas, pagos agrupados y contactos.',
+      tone: 'warning',
+    },
+    {
+      id: 'payments',
+      label: 'Pagos',
+      title: 'Pagos',
+      summary: 'Cuotas, metodo, fee y total a pagar.',
+      tone: 'primary',
+    },
+    {
+      id: 'preview',
+      label: 'Preview',
+      title: 'Propuesta',
+      summary: 'Vista cliente de 3 paginas en formato movil.',
+      tone: 'success',
+    },
+    {
+      id: 'chat',
+      label: 'Chat',
+      title: 'Conversacion',
+      summary: 'Handoff WhatsApp y notas del agente.',
+      tone: 'live',
+    },
+    {
+      id: 'notifications',
+      label: 'Alertas',
+      title: 'Alertas',
+      summary: 'Vencimientos, aprobaciones y bloqueos.',
+      tone: 'danger',
+    },
+    {
+      id: 'profile',
+      label: 'Perfil',
+      title: 'Perfil',
+      summary: 'Cuenta, firma y preferencias del asesor.',
+      tone: 'primary',
+    },
+  ],
   signals: [
     {
       id: 'paid-immutability',

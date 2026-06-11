@@ -25,6 +25,8 @@ import type {
   ItineraryPaymentPlan,
   ItineraryPublicPage,
   ItineraryPublicProposal,
+  ItineraryMobileScreen,
+  ItineraryMobileScreenSpec,
   ItineraryStatus,
   ItinerarySummary,
   ItineraryTone,
@@ -39,6 +41,7 @@ const DEFAULT_OWNER = 'all';
 const DEFAULT_DETAIL_TAB: ItineraryDetailTab = 'services';
 const DEFAULT_PAYMENT_METHOD: ItineraryPaymentMethod = 'card';
 const DEFAULT_PUBLIC_PAGE: ItineraryPublicPage = 'cover';
+const DEFAULT_MOBILE_SCREEN: ItineraryMobileScreen = 'home';
 const DETAIL_TABS: ItineraryDetailTab[] = [
   'services',
   'passengers',
@@ -105,6 +108,10 @@ export function ItinerariesModule({
   const selectedPublicPage = isPublicPage(publicPageParam)
     ? publicPageParam
     : DEFAULT_PUBLIC_PAGE;
+  const mobileScreenParam = resolvedSearchParams.get('mobileScreen');
+  const selectedMobileScreen = isMobileScreen(fixture, mobileScreenParam)
+    ? mobileScreenParam
+    : DEFAULT_MOBILE_SCREEN;
 
   const replaceQuery = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(resolvedSearchParams.toString());
@@ -131,6 +138,8 @@ export function ItinerariesModule({
         data-active-tab={activeDetailTab}
         data-payment-method={selectedPaymentMethod}
         data-public-page={selectedPublicPage}
+        data-mobile-screen={selectedMobileScreen}
+        data-mobile-screens={fixture.mobileScreens.length}
         data-visible-itineraries={visibleItineraries.length}
         data-kanban-columns={fixture.statuses.length}
         style={evolucionTheme.styles.light}
@@ -161,6 +170,11 @@ export function ItinerariesModule({
                 onTabChange={(tab) => replaceQuery({ selected: selectedItinerary.id, tab })}
               />
             ) : null}
+            <MobilePrototypePanel
+              activeScreen={selectedMobileScreen}
+              screens={fixture.mobileScreens}
+              onScreenChange={(mobileScreen) => replaceQuery({ mobileScreen })}
+            />
             {selectedView === 'kanban' ? (
               <KanbanBoard fixture={fixture} itineraries={visibleItineraries} />
             ) : (
@@ -599,6 +613,99 @@ function ItineraryList({ itineraries }: { itineraries: ItinerarySummary[] }) {
   );
 }
 
+function MobilePrototypePanel({
+  activeScreen,
+  screens,
+  onScreenChange,
+}: {
+  activeScreen: ItineraryMobileScreen;
+  screens: ItineraryMobileScreenSpec[];
+  onScreenChange: (screen: ItineraryMobileScreen) => void;
+}) {
+  const selectedScreen =
+    screens.find((screen) => screen.id === activeScreen) ?? screens[0];
+  const bottomNavScreens = screens.slice(0, 5);
+
+  return (
+    <section
+      className="rounded-lg border bg-card p-4 text-card-foreground"
+      data-active-mobile-screen={selectedScreen.id}
+      data-mobile-screen-count={screens.length}
+      data-testid="admin-next-itinerary-mobile-prototype"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-normal">
+            {adminNextCopy.itineraries.mobilePrototypeTitle}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {adminNextCopy.itineraries.mobilePrototypeSubtitle}
+          </p>
+        </div>
+        <ToneBadge tone={selectedScreen.tone}>{selectedScreen.label}</ToneBadge>
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex flex-wrap gap-2">
+          {screens.map((screen) => (
+            <button
+              className={filterButtonClass(selectedScreen.id === screen.id)}
+              data-active={selectedScreen.id === screen.id}
+              data-testid={`admin-next-itinerary-mobile-screen-${screen.id}`}
+              key={screen.id}
+              type="button"
+              onClick={() => onScreenChange(screen.id)}
+            >
+              {screen.label}
+            </button>
+          ))}
+        </div>
+        <div className="mx-auto w-full max-w-[320px] rounded-[28px] border bg-background p-3 shadow-sm">
+          <div className="rounded-[22px] border bg-card p-4">
+            <div className="mx-auto h-1.5 w-16 rounded-full bg-muted" />
+            <div className="mt-6 min-h-[240px] rounded-lg border bg-background p-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+                {selectedScreen.label}
+              </div>
+              <h3 className="mt-2 text-xl font-semibold">{selectedScreen.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {selectedScreen.summary}
+              </p>
+              <div className="mt-4">
+                <ToneBadge tone={selectedScreen.tone}>{selectedScreen.id}</ToneBadge>
+              </div>
+            </div>
+            <div
+              className="mt-3 grid grid-cols-5 gap-1 rounded-lg border bg-background p-1"
+              data-testid="admin-next-itinerary-mobile-bottom-nav"
+            >
+              {bottomNavScreens.map((screen) => (
+                <button
+                  className={cn(
+                    'h-12 rounded-md px-1 text-[10px] font-semibold',
+                    selectedScreen.id === screen.id
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground',
+                  )}
+                  data-active={selectedScreen.id === screen.id}
+                  data-testid={`admin-next-itinerary-mobile-bottom-${screen.id}`}
+                  key={screen.id}
+                  type="button"
+                  onClick={() => onScreenChange(screen.id)}
+                >
+                  {screen.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-center text-[10px] font-semibold text-muted-foreground">
+              {adminNextCopy.itineraries.mobileBottomNavLabel}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ItineraryRow({ itinerary }: { itinerary: ItinerarySummary }) {
   return (
     <article
@@ -784,6 +891,13 @@ function isPaymentMethod(value: string | null): value is ItineraryPaymentMethod 
 
 function isPublicPage(value: string | null): value is ItineraryPublicPage {
   return PUBLIC_PAGES.some((page) => page === value);
+}
+
+function isMobileScreen(
+  fixture: ItinerariesFixture,
+  value: string | null,
+): value is ItineraryMobileScreen {
+  return fixture.mobileScreens.some((screen) => screen.id === value);
 }
 
 function statusTone(status: ItineraryStatus): ItineraryTone {

@@ -129,7 +129,7 @@ async function runPlaywrightSmoke(targetUrl) {
 
   try {
     const response = await page.goto(targetUrl, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
       timeout: 30_000,
     });
     const root = page.locator('[data-testid="admin-next-itineraries-root"]');
@@ -210,12 +210,22 @@ async function runPlaywrightSmoke(targetUrl) {
     });
     mobilePage.on('pageerror', (error) => pageErrors.push(`mobile: ${error.message}`));
     await mobilePage.goto(targetUrl, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
       timeout: 30_000,
     });
     const mobileRoot = mobilePage.locator('[data-testid="admin-next-itineraries-root"]');
     await mobileRoot.waitFor({ timeout: 20_000 });
     const hasMobileRoot = await mobileRoot.isVisible();
+    const mobileScreenCount = await mobileRoot.getAttribute('data-mobile-screens');
+    await mobilePage.getByTestId('admin-next-itinerary-mobile-screen-profile').click();
+    await mobilePage.waitForURL(/mobileScreen=profile/);
+    const updatedMobileScreen = await mobileRoot.getAttribute('data-mobile-screen');
+    const hasMobilePrototype = await mobilePage
+      .getByTestId('admin-next-itinerary-mobile-prototype')
+      .isVisible();
+    const hasMobileBottomNav = await mobilePage
+      .getByTestId('admin-next-itinerary-mobile-bottom-nav')
+      .isVisible();
     const mobileScreenshot = path.join(outputDir, 'itineraries-mobile-evolucion-light.png');
     await mobilePage.screenshot({ path: mobileScreenshot, fullPage: false });
 
@@ -264,7 +274,15 @@ async function runPlaywrightSmoke(targetUrl) {
     ) {
       throw new Error(`Itineraries URL state did not update correctly: ${updatedUrl}`);
     }
-    if (!hasKanban || !wonColumn || !hasMobileRoot) {
+    if (
+      !hasKanban ||
+      !wonColumn ||
+      !hasMobileRoot ||
+      mobileScreenCount !== '11' ||
+      updatedMobileScreen !== 'profile' ||
+      !hasMobilePrototype ||
+      !hasMobileBottomNav
+    ) {
       throw new Error('Itineraries required kanban/mobile surfaces are not visible.');
     }
     if (pageErrors.length > 0) {
@@ -305,6 +323,10 @@ async function runPlaywrightSmoke(targetUrl) {
       wonColumn,
       hasAiPanel,
       hasMobileRoot,
+      mobileScreenCount,
+      updatedMobileScreen,
+      hasMobilePrototype,
+      hasMobileBottomNav,
       consoleMessages,
       screenshots: [initialScreenshot, updatedScreenshot, mobileScreenshot],
     };

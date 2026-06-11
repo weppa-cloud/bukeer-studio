@@ -161,7 +161,7 @@ function startPreview() {
       if (settled) return;
       settled = true;
       reject(new Error(`Timed out waiting for OpenNext preview:\n${output}`));
-    }, 45_000);
+    }, 90_000);
 
     preview = spawn(
       'npx',
