@@ -38,16 +38,36 @@
   la materialización exacta del prototipo. Si theme-sdk y prototipo divergen, **gana el prototipo**
   y se ajusta el preset, no al revés.
 
-## Clases base disponibles (no reinventar)
+## Clases disponibles — COBERTURA COMPLETA (235/237 del prototipo)
+
+`evolucion.css` contiene **TODAS** las clases del sistema Evolución de los 7 CSS del prototipo
+(`bukeer-themes/iti/lists/detail/extra/forms/mobile.css`). Las únicas 2 ausentes son `.t-cab` y
+`.t-brisa` (direcciones de diseño rechazadas — exclusión intencional). Construir cualquier
+pantalla o modal nuevo es solo escribir el markup del prototipo; el CSS ya está.
 
 - Layout: `.bk .t-evo .light/.dark`, `.side`, `.main`, `.topbar`, `.content`, `.page-head`
-- Componentes: `.card`, `.card-head`, `.btn primary|outline|ghost`, `.chip purple|teal|orange|green|red`,
-  `.fchip(.on)`, `.av s24|s32|s40 teal|orange|green`, `.searchbox`, `.kbd`, `.iconbtn(.ping)`,
-  `.linklike`, `.progress`, `.trow`, `.legend`, `.chart`
-- Formularios: `.fgroup`, `.flabel`, `.finput`, `.fdrop(.open) > .fdrop-pop > .fdrop-opt`, `.fdrop-sec`,
-  `.fdrop-apply`, `.empty-card`
-- Por módulo: `.kpis/.kpi`, `.dash-grid/.dash-col`, `.conv/.conv-list/.thread/.crm-panel/.msg/.composer`,
-  `.contact-grid/.contact-card`, `.ptabs/.ptab/.prod-grid/.prod-card`
+- Base: `.card`, `.btn primary|outline|ghost`, `.chip purple|teal|orange|green|red`, `.fchip(.on)`,
+  `.av s24|s32|s40|s54`, `.searchbox`, `.kbd`, `.iconbtn(.ping)`, `.linklike`, `.progress(-lg)`, `.trow`
+- Dashboard: `.kpis/.kpi`, `.dash-grid/.dash-col`, `.chart`, `.legend`
+- Conversaciones: `.conv/.conv-list/.conv-item/.thread/.msg(.in|.out|.note)/.composer/.ai-pill/.crm-panel/.panel-sec/.iti-mini/.ch-badge`
+- Contactos/Productos: `.contact-grid/.contact-card`, `.ptabs/.ptab`, `.prod-grid/.prod-card`
+- Itinerarios: `.vtoggle`, `.iti-list/.iti-row/.mchips/.iti-fin/.feebadge/.amt2`, kanban `.kb*`
+- Detalle itinerario: `.iti-hero/.stat/.iti-tabs/.iti-grid/.svc-day/.svc-card/.svc-ico/.sum-row/.margin-box`
+- Pagos: `.bal-grid/.bal-cell/.cuota/.pm-row/.pm-ico/.toggle`
+- Modales: `.modal-veil/.modal(.w720)/.modal-head/.modal-body/.modal-foot/.fgrid2/.m-results`
+- Formularios (DS Flutter): `.fsec/.fphone/.addr-row/.addr-add/.stepper/.rate-sum/.loc-sel/.mb-cols/.frange/.ckbox/.fgroup/.flabel/.finput/.fdrop*(.fdrop-new)`
+- Proveedores/galería: `.prv-card/.prv-head/.prv-svc/.prv-foot`, `.gal-grid/.gal-tile/.gal-add`, `.pd-gallery/.pd-main/.pd-thumbs`
+- Agenda: `.ag-list/.ag-group/.ag-head/.ag-date/.ag-item/.ag-badges`
+- Reportes: `.rep-grid/.rep-card`, `.grp/.grp-head/.grp-row`, `.hbar-row`
+- Configuración: `.set-grid/.set-nav/.set-item/.set-body/.kvgrid/.logo-tile/.user-row/.mx-row` (matriz permisos)
+- Pasajeros/Proveedores/Preview: `.px-row`, `.pr-row`, `.pv-doc/.pv-hero/.pv-day/.pv-item/.pv-thumb`
+- Vista pública: `.pub*/.pv2-*` · ⌘K: `.cmdk*` · Notificaciones: `.notif-*` · Vacíos: `.empty-card`
+- Móvil 390×844: `.mb/.m-*` (status bar, bottom-nav con FAB, bottom sheets, chat, tiles)
+- Styleguide: `.tok/.swatches/.sw/.type-spec/.darkstrip` (lámina de especímenes)
+
+**Deltas deliberados vs prototipo** (únicos): `overflow: hidden → auto` en contenedores de scroll
+reales (listas, msgs, modal-body, kanban) — el prototipo era un canvas fijo 1440×900; y
+`position: absolute → fixed` en veils de modal/⌘K/notificaciones para viewport real.
 
 ## Pantallas pendientes (fuente exacta en el prototipo)
 
