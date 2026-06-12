@@ -8,6 +8,13 @@ on:
       - "**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - "qa-screenshots/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "qa-screenshots/**"
   workflow_dispatch:
 
 concurrency:
