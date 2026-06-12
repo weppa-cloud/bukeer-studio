@@ -1,44 +1,49 @@
 #!/usr/bin/env node
 
-import { spawn, execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
-import { chromium } from '@playwright/test';
+import { spawn, execFileSync } from "node:child_process";
+import { existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { chromium } from "@playwright/test";
 import {
   adminNextSmokeHeaders,
   adminNextSmokeToken,
   newAdminNextSmokePage,
-} from './smoke-auth-headers.mjs';
+} from "./smoke-auth-headers.mjs";
 
 const modules = [
-  ['dashboard', '/admin/dashboard/smoke', 'admin-next-dashboard-root'],
-  ['contacts', '/admin/contacts/smoke', 'admin-next-contacts-root'],
-  ['agenda', '/admin/agenda/smoke', 'admin-next-agenda-root'],
-  ['account', '/admin/account/smoke', 'admin-next-account-root'],
-  ['settings', '/admin/settings/smoke', 'admin-next-settings-root'],
-  ['products', '/admin/products/smoke', 'admin-next-products-root'],
-  ['conversations', '/admin/conversations/smoke', 'admin-next-conversations-root'],
-  ['reports', '/admin/reports/smoke', 'admin-next-reports-root'],
-  ['payments', '/admin/payments/smoke', 'admin-next-payments-root'],
+  ["dashboard", "/admin/dashboard/smoke", "admin-next-dashboard-root"],
+  ["contacts", "/admin/contacts/smoke", "admin-next-contacts-root"],
+  ["agenda", "/admin/agenda/smoke", "admin-next-agenda-root"],
+  ["account", "/admin/account/smoke", "admin-next-account-root"],
+  ["settings", "/admin/settings/smoke", "admin-next-settings-root"],
+  ["products", "/admin/products/smoke", "admin-next-products-root"],
   [
-    'itineraries',
-    '/admin/itineraries/smoke?view=list&status=all&owner=all&selected=it-2651&tab=services',
-    'admin-next-itineraries-root',
+    "conversations",
+    "/admin/conversations/smoke",
+    "admin-next-conversations-root",
+  ],
+  ["reports", "/admin/reports/smoke", "admin-next-reports-root"],
+  ["payments", "/admin/payments/smoke", "admin-next-payments-root"],
+  ["package-kits", "/admin/package-kits/smoke", "admin-next-package-kits-root"],
+  [
+    "itineraries",
+    "/admin/itineraries/smoke?view=list&status=all&owner=all&selected=it-2651&tab=services",
+    "admin-next-itineraries-root",
   ],
 ];
 
 const viewports = [
-  ['desktop', { width: 1440, height: 960 }],
-  ['mobile', { width: 390, height: 844 }],
+  ["desktop", { width: 1440, height: 960 }],
+  ["mobile", { width: 390, height: 844 }],
 ];
 
 const externalBaseUrl = process.env.ADMIN_NEXT_VISUAL_QA_BASE_URL;
 const outputDir =
   process.env.ADMIN_NEXT_VISUAL_QA_OUTPUT_DIR ||
-  'output/playwright/admin-next/visual-qa';
+  "output/playwright/admin-next/visual-qa";
 const shouldStartServer = !externalBaseUrl;
-const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID');
+const buildIdPath = path.join(process.cwd(), ".next", "BUILD_ID");
 
 let sessionName = null;
 let port = null;
@@ -47,7 +52,7 @@ let server = null;
 async function main() {
   if (shouldStartServer && !existsSync(buildIdPath)) {
     throw new Error(
-      'Missing .next production build. Run `npm run build -- --no-lint` before visual QA.',
+      "Missing .next production build. Run `npm run build -- --no-lint` before visual QA.",
     );
   }
 
@@ -78,10 +83,10 @@ async function main() {
     await browser.close();
   }
 
-  const failed = results.filter((result) => result.status !== 'pass');
+  const failed = results.filter((result) => result.status !== "pass");
   const summary = {
-    status: failed.length === 0 ? 'pass' : 'fail',
-    scope: 'admin-next-evolucion-visual-qa',
+    status: failed.length === 0 ? "pass" : "fail",
+    scope: "admin-next-evolucion-visual-qa",
     generatedAt: new Date().toISOString(),
     baseUrl,
     moduleCount: modules.length,
@@ -104,24 +109,25 @@ async function inspectModule(
   const consoleMessages = [];
   const pageErrors = [];
 
-  page.on('console', (message) => {
-    if (['error', 'warning'].includes(message.type())) {
+  page.on("console", (message) => {
+    if (["error", "warning"].includes(message.type())) {
       consoleMessages.push(`${message.type()}: ${message.text()}`);
     }
   });
-  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on("pageerror", (error) => pageErrors.push(error.message));
 
   try {
     const response = await page.goto(targetUrl, {
-      waitUntil: 'domcontentloaded',
+      waitUntil: "domcontentloaded",
       timeout: 30_000,
     });
     const root = page.getByTestId(rootTestId);
     await root.waitFor({ timeout: 20_000 });
 
     const pageTitle = await page.title();
-    const heading = (await page.locator('h1').first().textContent())?.trim() ?? null;
-    const preset = await root.getAttribute('data-theme-preset');
+    const heading =
+      (await page.locator("h1").first().textContent())?.trim() ?? null;
+    const preset = await root.getAttribute("data-theme-preset");
     const rootBox = await root.boundingBox();
     const frameworkOverlay = await hasFrameworkOverlay(page);
     const layout = await page.evaluate(() => ({
@@ -129,10 +135,10 @@ async function inspectModule(
       viewportWidth: window.innerWidth,
       bodyTextLength: document.body.innerText.trim().length,
       fontHeading: getComputedStyle(document.documentElement)
-        .getPropertyValue('--font-heading')
+        .getPropertyValue("--font-heading")
         .trim(),
       fontBody: getComputedStyle(document.documentElement)
-        .getPropertyValue('--font-body')
+        .getPropertyValue("--font-body")
         .trim(),
     }));
     const a11y = await collectA11yFindings(page);
@@ -143,25 +149,28 @@ async function inspectModule(
     await page.screenshot({ path: screenshot, fullPage: false });
 
     const failures = [];
-    if (!response?.ok()) failures.push(`http_status:${response?.status() ?? 'missing'}`);
-    if (preset !== 'evolucion') failures.push(`theme_preset:${preset ?? 'missing'}`);
-    if (!heading) failures.push('missing_h1');
+    if (!response?.ok())
+      failures.push(`http_status:${response?.status() ?? "missing"}`);
+    if (preset !== "evolucion")
+      failures.push(`theme_preset:${preset ?? "missing"}`);
+    if (!heading) failures.push("missing_h1");
     if (!rootBox || rootBox.width < 320 || rootBox.height < 320) {
-      failures.push('root_not_meaningful');
+      failures.push("root_not_meaningful");
     }
-    if (layout.bodyTextLength < 300) failures.push('blank_or_sparse_body');
+    if (layout.bodyTextLength < 300) failures.push("blank_or_sparse_body");
     if (layout.scrollWidth > layout.viewportWidth + 2) {
-      failures.push('horizontal_overflow');
+      failures.push("horizontal_overflow");
     }
-    if (!layout.fontHeading.includes('Outfit')) failures.push('font_heading_missing');
-    if (!layout.fontBody.includes('Readex')) failures.push('font_body_missing');
-    if (frameworkOverlay) failures.push('framework_overlay');
-    if (consoleMessages.length > 0) failures.push('console_warnings_or_errors');
-    if (pageErrors.length > 0) failures.push('page_errors');
-    if (a11y.findings.length > 0) failures.push('a11y_findings');
+    if (!layout.fontHeading.includes("Outfit"))
+      failures.push("font_heading_missing");
+    if (!layout.fontBody.includes("Readex")) failures.push("font_body_missing");
+    if (frameworkOverlay) failures.push("framework_overlay");
+    if (consoleMessages.length > 0) failures.push("console_warnings_or_errors");
+    if (pageErrors.length > 0) failures.push("page_errors");
+    if (a11y.findings.length > 0) failures.push("a11y_findings");
 
     return {
-      status: failures.length === 0 ? 'pass' : 'fail',
+      status: failures.length === 0 ? "pass" : "fail",
       module: moduleName,
       route,
       viewport: viewportName,
@@ -186,15 +195,15 @@ async function collectA11yFindings(page) {
   return page.evaluate(() => {
     const findings = [];
     const interactiveSelector = [
-      'button',
-      'a[href]',
-      'input',
-      'select',
-      'textarea',
+      "button",
+      "a[href]",
+      "input",
+      "select",
+      "textarea",
       '[role="button"]',
       '[role="link"]',
       '[tabindex]:not([tabindex="-1"])',
-    ].join(',');
+    ].join(",");
     const interactiveElements = Array.from(
       document.querySelectorAll(interactiveSelector),
     );
@@ -202,35 +211,35 @@ async function collectA11yFindings(page) {
     for (const element of interactiveElements) {
       const htmlElement = element;
       const disabled =
-        htmlElement.hasAttribute('disabled') ||
-        htmlElement.getAttribute('aria-hidden') === 'true';
+        htmlElement.hasAttribute("disabled") ||
+        htmlElement.getAttribute("aria-hidden") === "true";
       if (disabled) continue;
 
       const name = [
-        htmlElement.getAttribute('aria-label'),
-        htmlElement.getAttribute('title'),
+        htmlElement.getAttribute("aria-label"),
+        htmlElement.getAttribute("title"),
         htmlElement.textContent,
-        htmlElement.getAttribute('value'),
-        htmlElement.getAttribute('placeholder'),
+        htmlElement.getAttribute("value"),
+        htmlElement.getAttribute("placeholder"),
       ]
         .filter(Boolean)
-        .join(' ')
+        .join(" ")
         .trim();
 
       if (!name) {
         findings.push({
-          rule: 'interactive-accessible-name',
+          rule: "interactive-accessible-name",
           tag: htmlElement.tagName.toLowerCase(),
-          testId: htmlElement.getAttribute('data-testid'),
+          testId: htmlElement.getAttribute("data-testid"),
         });
       }
     }
 
-    for (const image of Array.from(document.querySelectorAll('img'))) {
-      if (!image.hasAttribute('alt')) {
+    for (const image of Array.from(document.querySelectorAll("img"))) {
+      if (!image.hasAttribute("alt")) {
         findings.push({
-          rule: 'image-alt',
-          src: image.getAttribute('src'),
+          rule: "image-alt",
+          src: image.getAttribute("src"),
         });
       }
     }
@@ -243,13 +252,13 @@ async function collectA11yFindings(page) {
 }
 
 async function hasFrameworkOverlay(page) {
-  const overlayText = await page.locator('body').innerText({ timeout: 5_000 });
+  const overlayText = await page.locator("body").innerText({ timeout: 5_000 });
   return [
-    'Unhandled Runtime Error',
-    'Build Error',
-    'Hydration failed',
-    'Application error',
-    'This page could not be found',
+    "Unhandled Runtime Error",
+    "Build Error",
+    "Hydration failed",
+    "Application error",
+    "This page could not be found",
   ].some((needle) => overlayText.includes(needle));
 }
 
@@ -258,23 +267,23 @@ async function startLocalServer() {
   sessionName = session.SESSION_NAME;
   port = session.PORT;
 
-  server = spawn('npm', ['start'], {
+  server = spawn("npm", ["start"], {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      ADMIN_NEXT_PROTOTYPE_ENABLED: 'true',
-      ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED: 'true',
+      ADMIN_NEXT_PROTOTYPE_ENABLED: "true",
+      ADMIN_NEXT_PROTOTYPE_SMOKE_ENABLED: "true",
       ADMIN_NEXT_PROTOTYPE_SMOKE_TOKEN: adminNextSmokeToken,
-      ADMIN_NEXT_DATA_SOURCE_MODE: 'fixture',
+      ADMIN_NEXT_DATA_SOURCE_MODE: "fixture",
       PORT: port,
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
-  server.stdout.on('data', (chunk) => {
+  server.stdout.on("data", (chunk) => {
     process.stdout.write(`[next-visual-qa:${sessionName}] ${chunk}`);
   });
-  server.stderr.on('data', (chunk) => {
+  server.stderr.on("data", (chunk) => {
     process.stderr.write(`[next-visual-qa:${sessionName}] ${chunk}`);
   });
 
@@ -282,13 +291,13 @@ async function startLocalServer() {
 }
 
 function acquireSession() {
-  const output = execFileSync('bash', ['scripts/session-acquire.sh'], {
+  const output = execFileSync("bash", ["scripts/session-acquire.sh"], {
     cwd: process.cwd(),
-    encoding: 'utf8',
+    encoding: "utf8",
   });
   const session = {};
 
-  for (const line of output.split('\n')) {
+  for (const line of output.split("\n")) {
     const match = line.match(/^export\s+([A-Z_]+)=(.+)$/);
     if (match) {
       session[match[1]] = match[2].trim();
@@ -309,7 +318,7 @@ async function waitForHttp(url) {
   while (Date.now() < deadline) {
     try {
       const response = await fetch(url, {
-        redirect: 'manual',
+        redirect: "manual",
         headers: adminNextSmokeHeaders(),
       });
       if (response.ok) return;
@@ -325,16 +334,18 @@ async function waitForHttp(url) {
 
 async function cleanup() {
   if (server && !server.killed) {
-    server.kill('SIGTERM');
+    server.kill("SIGTERM");
   }
   if (sessionName) {
     try {
-      execFileSync('bash', ['scripts/session-release.sh', sessionName], {
+      execFileSync("bash", ["scripts/session-release.sh", sessionName], {
         cwd: process.cwd(),
-        stdio: 'inherit',
+        stdio: "inherit",
       });
     } catch (error) {
-      process.stderr.write(`Could not release session ${sessionName}: ${error.message}\n`);
+      process.stderr.write(
+        `Could not release session ${sessionName}: ${error.message}\n`,
+      );
     }
   }
 }

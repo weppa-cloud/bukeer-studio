@@ -1,11 +1,12 @@
-import { getAdminNextSessionFlags } from './get-admin-session-context';
+import { getAdminNextSessionFlags } from "./get-admin-session-context";
 
 const ADMIN_NEXT_ENV_KEYS = [
-  'ADMIN_NEXT_PROTOTYPE_ENABLED',
-  'ADMIN_NEXT_BETA_READONLY_ENABLED',
-  'ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED',
-  'ADMIN_NEXT_BETA_ACCOUNT_IDS',
-  'ADMIN_NEXT_BETA_ROLES',
+  "ADMIN_NEXT_PROTOTYPE_ENABLED",
+  "ADMIN_NEXT_BETA_READONLY_ENABLED",
+  "ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED",
+  "ADMIN_NEXT_WRITES_ITINERARIES_ENABLED",
+  "ADMIN_NEXT_BETA_ACCOUNT_IDS",
+  "ADMIN_NEXT_BETA_ROLES",
 ] as const;
 
 const mutableEnv = process.env as Record<string, string | undefined>;
@@ -32,14 +33,14 @@ function restoreEnv() {
   }
 }
 
-describe('admin-next session flags', () => {
+describe("admin-next session flags", () => {
   afterEach(restoreEnv);
 
-  it('exposes closed beta-readonly state for anonymous or incomplete context', () => {
-    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = 'true';
-    process.env.ADMIN_NEXT_BETA_READONLY_ENABLED = 'true';
-    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = 'account-1';
-    process.env.ADMIN_NEXT_BETA_ROLES = 'admin';
+  it("exposes closed beta-readonly state for anonymous or incomplete context", () => {
+    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_READONLY_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = "account-1";
+    process.env.ADMIN_NEXT_BETA_ROLES = "admin";
 
     expect(getAdminNextSessionFlags()).toEqual({
       adminNextPrototype: true,
@@ -48,19 +49,20 @@ describe('admin-next session flags', () => {
       adminNextBetaRoleAllowed: false,
       adminNextBetaReadonly: false,
       adminNextExternalHandoff: false,
+      adminNextItineraryWrites: false,
     });
   });
 
-  it('exposes beta-readonly state only when prototype and allowlists match', () => {
-    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = 'true';
-    process.env.ADMIN_NEXT_BETA_READONLY_ENABLED = 'true';
-    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = 'account-1';
-    process.env.ADMIN_NEXT_BETA_ROLES = 'admin,owner';
+  it("exposes beta-readonly state only when prototype and allowlists match", () => {
+    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_READONLY_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = "account-1";
+    process.env.ADMIN_NEXT_BETA_ROLES = "admin,owner";
 
     expect(
       getAdminNextSessionFlags({
-        accountId: 'account-1',
-        role: 'owner',
+        accountId: "account-1",
+        role: "owner",
       }),
     ).toEqual({
       adminNextPrototype: true,
@@ -69,19 +71,20 @@ describe('admin-next session flags', () => {
       adminNextBetaRoleAllowed: true,
       adminNextBetaReadonly: true,
       adminNextExternalHandoff: false,
+      adminNextItineraryWrites: false,
     });
   });
 
-  it('keeps beta-readonly unavailable when the prototype route is disabled', () => {
-    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = 'false';
-    process.env.ADMIN_NEXT_BETA_READONLY_ENABLED = 'true';
-    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = 'account-1';
-    process.env.ADMIN_NEXT_BETA_ROLES = 'admin';
+  it("keeps beta-readonly unavailable when the prototype route is disabled", () => {
+    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = "false";
+    process.env.ADMIN_NEXT_BETA_READONLY_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = "account-1";
+    process.env.ADMIN_NEXT_BETA_ROLES = "admin";
 
     expect(
       getAdminNextSessionFlags({
-        accountId: 'account-1',
-        role: 'admin',
+        accountId: "account-1",
+        role: "admin",
       }),
     ).toEqual({
       adminNextPrototype: false,
@@ -90,46 +93,73 @@ describe('admin-next session flags', () => {
       adminNextBetaRoleAllowed: true,
       adminNextBetaReadonly: false,
       adminNextExternalHandoff: false,
+      adminNextItineraryWrites: false,
     });
   });
 
-  it('exposes external handoff only when prototype and beta allowlists match', () => {
-    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = 'true';
-    process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED = 'true';
-    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = 'account-1';
-    process.env.ADMIN_NEXT_BETA_ROLES = 'admin,owner';
+  it("exposes external handoff only when prototype and beta allowlists match", () => {
+    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = "true";
+    process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = "account-1";
+    process.env.ADMIN_NEXT_BETA_ROLES = "admin,owner";
 
     expect(
       getAdminNextSessionFlags({
-        accountId: 'account-1',
-        role: 'admin',
+        accountId: "account-1",
+        role: "admin",
       }).adminNextExternalHandoff,
     ).toBe(true);
     expect(
       getAdminNextSessionFlags({
-        accountId: 'account-2',
-        role: 'admin',
+        accountId: "account-2",
+        role: "admin",
       }).adminNextExternalHandoff,
     ).toBe(false);
     expect(
       getAdminNextSessionFlags({
-        accountId: 'account-1',
-        role: 'agent',
+        accountId: "account-1",
+        role: "agent",
       }).adminNextExternalHandoff,
     ).toBe(false);
   });
 
-  it('keeps external handoff unavailable when the prototype route is disabled', () => {
-    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = 'false';
-    process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED = 'true';
-    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = 'account-1';
-    process.env.ADMIN_NEXT_BETA_ROLES = 'admin';
+  it("keeps external handoff unavailable when the prototype route is disabled", () => {
+    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = "false";
+    process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = "account-1";
+    process.env.ADMIN_NEXT_BETA_ROLES = "admin";
 
     expect(
       getAdminNextSessionFlags({
-        accountId: 'account-1',
-        role: 'admin',
+        accountId: "account-1",
+        role: "admin",
       }).adminNextExternalHandoff,
+    ).toBe(false);
+  });
+
+  it("exposes itinerary writes only when prototype and beta allowlists match", () => {
+    process.env.ADMIN_NEXT_PROTOTYPE_ENABLED = "true";
+    process.env.ADMIN_NEXT_WRITES_ITINERARIES_ENABLED = "true";
+    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = "account-1";
+    process.env.ADMIN_NEXT_BETA_ROLES = "admin,owner";
+
+    expect(
+      getAdminNextSessionFlags({
+        accountId: "account-1",
+        role: "owner",
+      }).adminNextItineraryWrites,
+    ).toBe(true);
+    expect(
+      getAdminNextSessionFlags({
+        accountId: "account-2",
+        role: "owner",
+      }).adminNextItineraryWrites,
+    ).toBe(false);
+    expect(
+      getAdminNextSessionFlags({
+        accountId: "account-1",
+        role: "agent",
+      }).adminNextItineraryWrites,
     ).toBe(false);
   });
 });

@@ -19,17 +19,50 @@ export type SettingsIntegration = {
   detail: string;
 };
 
+export type SettingsUser = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastActivity: string;
+};
+
+export type SettingsPermissionRow = {
+  id: string;
+  permission: string;
+  category: string;
+  admin: boolean;
+  agent: boolean;
+  accounting: boolean;
+};
+
+export type SettingsSignal = {
+  id: string;
+  label: string;
+  detail: string;
+  tone: 'success' | 'warning' | 'danger' | 'live' | 'primary';
+};
+
 export type SettingsFixture = {
   agency: {
     name: string;
     website: string;
     locale: string;
     currency: string;
+    status?: string;
+    taxId?: string;
+    email?: string;
+    phone?: string;
   };
   businessRules: SettingsToggle[];
   billing: SettingsItem[];
   team: SettingsItem[];
   integrations: SettingsIntegration[];
+  users: SettingsUser[];
+  permissionMatrix: SettingsPermissionRow[];
+  signals: SettingsSignal[];
 };
 
 export const settingsFixture: SettingsFixture = {
@@ -105,6 +138,66 @@ export const settingsFixture: SettingsFixture = {
       name: 'Stripe',
       status: 'Pendiente',
       detail: 'Fee, webhooks y conciliacion requieren definicion final.',
+    },
+  ],
+  users: [
+    {
+      id: 'user-carolina',
+      userId: 'user-carolina',
+      name: 'Carolina Ruiz',
+      email: 'carolina@bukeer.test',
+      role: 'admin',
+      status: 'Activo',
+      lastActivity: 'Hoy',
+    },
+    {
+      id: 'user-daniel',
+      userId: 'user-daniel',
+      name: 'Daniel Perez',
+      email: 'daniel@bukeer.test',
+      role: 'agent',
+      status: 'Activo',
+      lastActivity: 'Ayer',
+    },
+  ],
+  permissionMatrix: [
+    {
+      id: 'admin-next-view',
+      permission: 'admin_next.view',
+      category: 'Admin Next',
+      admin: true,
+      agent: true,
+      accounting: true,
+    },
+    {
+      id: 'payments-manage',
+      permission: 'payments.manage',
+      category: 'Pagos',
+      admin: true,
+      agent: false,
+      accounting: true,
+    },
+    {
+      id: 'settings-manage',
+      permission: 'settings.manage',
+      category: 'Configuracion',
+      admin: true,
+      agent: false,
+      accounting: false,
+    },
+  ],
+  signals: [
+    {
+      id: 'rbac',
+      label: 'RBAC',
+      detail: 'Matriz de permisos visible por rol antes de habilitar escritura.',
+      tone: 'primary',
+    },
+    {
+      id: 'readonly',
+      label: 'Solo lectura',
+      detail: 'Los cambios de configuracion siguen bloqueados hasta paridad y UAT.',
+      tone: 'warning',
     },
   ],
 };

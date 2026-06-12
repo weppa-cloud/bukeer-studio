@@ -44,7 +44,8 @@ export type EvoIconName =
   | 'list'
   | 'kanban'
   | 'download'
-  | 'edit';
+  | 'edit'
+  | 'x';
 
 const PATHS: Record<EvoIconName, string> = {
   dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect>',
@@ -90,6 +91,7 @@ const PATHS: Record<EvoIconName, string> = {
   kanban: '<rect x="3" y="3" width="5.5" height="18" rx="1.5"></rect><rect x="9.25" y="3" width="5.5" height="12" rx="1.5"></rect><rect x="15.5" y="3" width="5.5" height="8" rx="1.5"></rect>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>',
   edit: '<path d="M21.17 6.83a2.85 2.83 0 0 0-4-4L3.5 16.5 2 22l5.5-1.5Z"></path>',
+  x: '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
 };
 
 export function EvoIcon({ name, size = 18 }: { name: EvoIconName; size?: number }) {

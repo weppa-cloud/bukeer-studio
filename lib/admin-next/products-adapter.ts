@@ -2,6 +2,7 @@ import type { AdminDataSourceMode } from '@bukeer/admin-contract';
 import { adminNextCopy } from '@/lib/admin-next/admin-next-copy';
 import {
   productsFixture,
+  type ProductDetail,
   type ProductCategory,
   type ProductGalleryImage,
   type ProductRecord,
@@ -34,6 +35,7 @@ export interface AdminNextProductsReadonlySupabaseClient {
 export interface ProductsAdapter {
   readonly mode: AdminDataSourceMode;
   getProducts(): Promise<ProductsFixture>;
+  getProductDetail(id: string): Promise<ProductDetail | null>;
 }
 
 export interface ProductsAdapterOptions {
@@ -194,6 +196,22 @@ class FixtureProductsAdapter implements ProductsAdapter {
   async getProducts(): Promise<ProductsFixture> {
     return productsFixture;
   }
+
+  async getProductDetail(id: string): Promise<ProductDetail | null> {
+    const product = productsFixture.products.find((item) => item.id === id);
+    if (!product) return null;
+
+    return {
+      selected: {
+        ...productsFixture.selected,
+        ...product,
+        code: product.id.toUpperCase(),
+      },
+      rates: productsFixture.rates,
+      signals: productsFixture.signals,
+      catalogResolutions: productsFixture.catalogResolutions,
+    };
+  }
 }
 
 class ReadonlyProductsAdapter implements ProductsAdapter {
@@ -228,12 +246,42 @@ class ReadonlyProductsAdapter implements ProductsAdapter {
       imagesResponse.data ?? [],
     );
   }
+
+  async getProductDetail(id: string): Promise<ProductDetail | null> {
+    const [hotelResponse, activityResponse] = await Promise.all([
+      readAccountHotelDetail(this.supabase, this.accountId, id),
+      readAccountActivityDetail(this.supabase, this.accountId, id),
+    ]);
+
+    assertReadableResponse('account_hotels', hotelResponse.error);
+    assertReadableResponse('account_activities', activityResponse.error);
+
+    const hotel = hotelResponse.data?.[0];
+    const activity = activityResponse.data?.[0];
+    if (!hotel && !activity) return null;
+
+    const imagesResponse = await readImageOverrides(this.supabase, this.accountId, [id]);
+    assertReadableResponse('images', imagesResponse.error);
+
+    const fixture = buildReadonlyProductsFixture(
+      hotel ? [hotel] : [],
+      activity ? [activity] : [],
+      imagesResponse.data ?? [],
+    );
+
+    return {
+      selected: fixture.selected,
+      rates: fixture.rates,
+      signals: fixture.signals,
+      catalogResolutions: fixture.catalogResolutions,
+    };
+  }
 }
 
 function readAccountHotels(
   supabase: AdminNextProductsReadonlySupabaseClient,
   accountId: string,
-): SupabaseReadQuery<ReadonlyHotelRow[]> {
+): SupabaseReadFilter<ReadonlyHotelRow[]> {
   return supabase
     .from('account_hotels')
     .select<
@@ -244,10 +292,18 @@ function readAccountHotels(
     .limit(READONLY_PRODUCT_LIMIT);
 }
 
+function readAccountHotelDetail(
+  supabase: AdminNextProductsReadonlySupabaseClient,
+  accountId: string,
+  id: string,
+): SupabaseReadFilter<ReadonlyHotelRow[]> {
+  return readAccountHotels(supabase, accountId).eq('id', id).limit(1);
+}
+
 function readAccountActivities(
   supabase: AdminNextProductsReadonlySupabaseClient,
   accountId: string,
-): SupabaseReadQuery<ReadonlyActivityRow[]> {
+): SupabaseReadFilter<ReadonlyActivityRow[]> {
   return supabase
     .from('account_activities')
     .select<
@@ -256,6 +312,14 @@ function readAccountActivities(
     .eq('account_id', accountId)
     .eq('is_active', true)
     .limit(READONLY_PRODUCT_LIMIT);
+}
+
+function readAccountActivityDetail(
+  supabase: AdminNextProductsReadonlySupabaseClient,
+  accountId: string,
+  id: string,
+): SupabaseReadFilter<ReadonlyActivityRow[]> {
+  return readAccountActivities(supabase, accountId).eq('id', id).limit(1);
 }
 
 function readImageOverrides(

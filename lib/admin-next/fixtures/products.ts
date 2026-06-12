@@ -72,6 +72,11 @@ export type ProductsFixture = {
   catalogResolutions: ProductCatalogResolution[];
 };
 
+export type ProductDetail = Pick<
+  ProductsFixture,
+  'selected' | 'rates' | 'signals' | 'catalogResolutions'
+>;
+
 export const productsFixture: ProductsFixture = {
   categories: [
     { key: 'all', label: 'Todos', count: 42 },

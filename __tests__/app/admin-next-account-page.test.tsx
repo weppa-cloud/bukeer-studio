@@ -1,39 +1,45 @@
-import AdminNextAccountPage from '@/app/admin/account/page';
-import { AccountModule } from '@/components/admin-next';
-import { getAdminSessionContext } from '@/lib/admin-next/session/get-admin-session-context';
+import AdminNextAccountPage from "@/app/admin/account/page";
+import { EvoAccount } from "@/components/admin-next/evolucion/evo-account";
+import { EvoShell } from "@/components/admin-next/evolucion/evo-shell";
+import { getAdminSessionContext } from "@/lib/admin-next/session/get-admin-session-context";
 
-jest.mock('next/navigation', () => ({
+jest.mock("next/navigation", () => ({
   notFound: jest.fn(() => {
-    throw new Error('NEXT_NOT_FOUND');
+    throw new Error("NEXT_NOT_FOUND");
   }),
   redirect: jest.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
 }));
 
-jest.mock('@/components/admin-next', () => ({
-  AccountModule: jest.fn(() => null),
+jest.mock("@/components/admin-next/evolucion/evo-shell", () => ({
+  EvoShell: jest.fn(({ children }) => children),
 }));
 
-jest.mock('@/lib/admin-next/session/get-admin-session-context', () => ({
+jest.mock("@/components/admin-next/evolucion/evo-account", () => ({
+  EvoAccount: jest.fn(() => null),
+}));
+
+jest.mock("@/lib/admin-next/session/get-admin-session-context", () => ({
   getAdminSessionContext: jest.fn(),
   hasAdminPermission: jest.requireActual(
-    '@/lib/admin-next/session/get-admin-session-context',
+    "@/lib/admin-next/session/get-admin-session-context",
   ).hasAdminPermission,
 }));
 
-const mockAccountModule = jest.mocked(AccountModule);
+const mockEvoShell = jest.mocked(EvoShell);
+const mockEvoAccount = jest.mocked(EvoAccount);
 const mockGetAdminSessionContext = jest.mocked(getAdminSessionContext);
 
 function authenticatedSession(overrides: Record<string, unknown> = {}) {
   return {
-    status: 'authenticated',
-    userId: 'user-1',
-    email: 'agent@bukeer.test',
-    accountId: 'account-1',
-    role: 'admin',
-    displayName: 'Agent One',
-    permissions: ['admin_next.view', 'planner.view', 'trace.view'],
+    status: "authenticated",
+    userId: "user-1",
+    email: "agent@bukeer.test",
+    accountId: "account-1",
+    role: "admin",
+    displayName: "Agent One",
+    permissions: ["admin_next.view", "planner.view", "trace.view"],
     flags: {
       adminNextPrototype: true,
       adminNextBetaReadonlyEnabled: false,
@@ -46,24 +52,25 @@ function authenticatedSession(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('/admin/account auth boundary', () => {
+describe("/admin/account auth boundary", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('redirects unauthenticated users to shared login with next', async () => {
+  it("redirects unauthenticated users to shared login with next", async () => {
     mockGetAdminSessionContext.mockResolvedValue({
-      status: 'unauthenticated',
+      status: "unauthenticated",
       flags: authenticatedSession().flags,
     } as never);
 
     await expect(AdminNextAccountPage()).rejects.toThrow(
-      'NEXT_REDIRECT:/login?next=/admin/account',
+      "NEXT_REDIRECT:/login?next=/admin/account",
     );
-    expect(mockAccountModule).not.toHaveBeenCalled();
+    expect(mockEvoShell).not.toHaveBeenCalled();
+    expect(mockEvoAccount).not.toHaveBeenCalled();
   });
 
-  it('hides the route when the prototype flag is disabled', async () => {
+  it("hides the route when the prototype flag is disabled", async () => {
     mockGetAdminSessionContext.mockResolvedValue(
       authenticatedSession({
         flags: {
@@ -73,22 +80,24 @@ describe('/admin/account auth boundary', () => {
       }) as never,
     );
 
-    await expect(AdminNextAccountPage()).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(mockAccountModule).not.toHaveBeenCalled();
+    await expect(AdminNextAccountPage()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(mockEvoShell).not.toHaveBeenCalled();
+    expect(mockEvoAccount).not.toHaveBeenCalled();
   });
 
-  it('enforces server-side Admin Next permission', async () => {
+  it("enforces server-side Admin Next permission", async () => {
     mockGetAdminSessionContext.mockResolvedValue(
       authenticatedSession({
-        permissions: ['planner.view'],
+        permissions: ["planner.view"],
       }) as never,
     );
 
-    await expect(AdminNextAccountPage()).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(mockAccountModule).not.toHaveBeenCalled();
+    await expect(AdminNextAccountPage()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(mockEvoShell).not.toHaveBeenCalled();
+    expect(mockEvoAccount).not.toHaveBeenCalled();
   });
 
-  it('renders account fixture with Evolucion theme styles', async () => {
+  it("renders account fixture inside the Evolucion shell", async () => {
     const session = authenticatedSession();
     mockGetAdminSessionContext.mockResolvedValue(session as never);
 
@@ -96,14 +105,21 @@ describe('/admin/account auth boundary', () => {
 
     expect(element).toEqual(
       expect.objectContaining({
-        type: mockAccountModule,
+        type: mockEvoShell,
         props: expect.objectContaining({
-          session,
+          accountLabel: "agent@bukeer.test",
+          activeKey: "config",
+          role: "admin",
+          userName: "Agent One",
+        }),
+      }),
+    );
+    expect(element.props.children).toEqual(
+      expect.objectContaining({
+        type: mockEvoAccount,
+        props: expect.objectContaining({
           fixture: expect.objectContaining({
-            profile: expect.objectContaining({ name: 'Carolina Ruiz' }),
-          }),
-          evolucionTheme: expect.objectContaining({
-            presetSlug: 'evolucion',
+            profile: expect.objectContaining({ name: "Carolina Ruiz" }),
           }),
         }),
       }),

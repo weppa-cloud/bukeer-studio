@@ -27,6 +27,7 @@ const smokeSession: Extract<AdminNextSessionContext, { status: 'authenticated' }
     adminNextBetaRoleAllowed: false,
     adminNextBetaReadonly: false,
     adminNextExternalHandoff: false,
+    adminNextItineraryWrites: false,
   },
 };
 

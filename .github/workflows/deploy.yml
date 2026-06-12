@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - '.github/ISSUE_TEMPLATE/**'
-      - 'qa-screenshots/**'
+      - "docs/**"
+      - "**/*.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "qa-screenshots/**"
   workflow_dispatch:
 
 concurrency:
@@ -24,8 +24,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: package-lock.json
 
       - name: Cache workspace node_modules
@@ -100,8 +100,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: package-lock.json
 
       - name: Cache workspace node_modules
@@ -200,6 +200,136 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  # ── Evolución core CRM/itinerarios + full F1-F17 — demo user parity gates against shared Supabase ─
+  e2e-evolucion:
+    if: vars.CI_QUALITY_PROVIDER == 'github' || vars.CI_QUALITY_PROVIDER == 'both'
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: true
+      E2E_BASE_URL: http://localhost:3000
+      E2E_DEMO_EMAIL: demo@demo.bukeer.com
+      E2E_DEMO_PASSWORD: ${{ secrets.E2E_DEMO_PASSWORD }}
+      E2E_DEMO_ACCOUNT_ID: ${{ secrets.E2E_DEMO_ACCOUNT_ID }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_URL: https://studio.bukeer.com
+      NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+      E2E_SKIP_ROUTE_PREWARM: "1"
+      NEXT_DEV_TURBO: "false"
+      ADMIN_NEXT_PROTOTYPE_ENABLED: "true"
+      ADMIN_NEXT_DATA_SOURCE_MODE: readonly
+      ADMIN_NEXT_BETA_READONLY_ENABLED: "true"
+      ADMIN_NEXT_BETA_ACCOUNT_IDS: ${{ secrets.E2E_DEMO_ACCOUNT_ID }}
+      ADMIN_NEXT_BETA_ROLES: admin,agent,accounting
+      ADMIN_NEXT_WRITES_ITINERARIES_ENABLED: "true"
+      ADMIN_NEXT_E2E_WRITE_ITINERARIES: "true"
+      ADMIN_NEXT_E2E_WRITE_ITINERARY_ITEMS: "true"
+      ADMIN_NEXT_E2E_WRITE_PASSENGERS: "true"
+      ADMIN_NEXT_E2E_WRITE_PAYMENTS: "true"
+      ADMIN_NEXT_E2E_WRITE_SUPPLIERS: "true"
+      PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/evolucion/results.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Cache workspace node_modules
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            packages/theme-sdk/node_modules
+            packages/website-contract/node_modules
+          key: deps-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'packages/*/package-lock.json') }}
+
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright (Chromium)
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Assert Evolución CI parity environment
+        run: npm run admin-next:assert-evolucion-ci-env
+
+      - name: Run Evolución core CRM/itinerarios suite
+        run: npm run test:e2e:evolucion:core:session -- --reporter=list,json,html
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/evolucion-core/results.json
+
+      - name: Assert Evolución core CRM/itinerarios has no unapproved skips
+        run: npm run admin-next:assert-evolucion-core-results -- playwright-report/evolucion-core/results.json
+        env:
+          EVOLUCION_ALLOWED_SKIPS: evolucion-f3-itinerary-create-modal.spec.ts::abre modal de creación y mantiene el submit cerrado sin flag de writes
+
+      - name: Generate Evolución core parity report
+        if: always()
+        run: npm run admin-next:report-evolucion-core-results -- playwright-report/evolucion-core/results.json
+
+      - name: Run Evolución F1-F17 suite
+        run: npm run test:e2e:evolucion:session -- --reporter=list,json,html
+
+      - name: Assert Evolución F1-F17 has no unapproved skips
+        run: npm run admin-next:assert-evolucion-results
+        env:
+          EVOLUCION_ALLOWED_SKIPS: evolucion-f3-itinerary-create-modal.spec.ts::abre modal de creación y mantiene el submit cerrado sin flag de writes
+
+      - name: Run F3 write-disabled guard lane
+        run: npm run test:e2e:evolucion:f3-guard:session -- --reporter=list,json,html
+
+      - name: Assert F3 write-disabled guard lane
+        run: npm run admin-next:assert-evolucion-results -- playwright-report/evolucion-f3-guarded/results.json
+        env:
+          EVOLUCION_EXPECTED_FLOWS: F3
+
+      - name: Generate Evolución parity report
+        if: always()
+        run: npm run admin-next:report-evolucion-results
+
+      - name: Upload Evolución Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolucion-f1-f17-playwright
+          path: |
+            playwright-report/
+            test-results/
+            reports/evolucion-core/
+            reports/evolucion-parity/
+          retention-days: 14
+
   # ── Pilot editor→render (EPIC #214 W4 #218) ────────────────────────
   # Runs only on workflow_dispatch to keep main-push latency low.
   # Uses workers: 1 + timeout 45 min per AC-W4-3 session-pool semantics.
@@ -213,8 +343,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: package-lock.json
 
       - name: Cache workspace node_modules
@@ -272,7 +402,7 @@ jobs:
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
           E2E_REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
           E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID_STAGING }}
-          ALLOW_SEED: '1'
+          ALLOW_SEED: "1"
           NEXT_PUBLIC_URL: https://studio.bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 
@@ -288,7 +418,7 @@ jobs:
 
   # ── Deploy production — automatic on main, manual on main only ─────
   deploy-production:
-    needs: [quality, e2e-smoke]
+    needs: [quality, e2e-smoke, e2e-evolucion]
     if: github.ref == 'refs/heads/main' && vars.CI_DEPLOY_PROVIDER == 'github'
     runs-on: ubuntu-latest
     steps:
@@ -296,8 +426,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: package-lock.json
 
       - name: Cache workspace node_modules

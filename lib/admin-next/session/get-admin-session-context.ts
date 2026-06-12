@@ -2,14 +2,15 @@ import type {
   AdminFeatureFlags,
   AdminPermission,
   AdminSessionContext,
-} from '@bukeer/admin-contract';
-import { getDashboardUserContext } from '@/lib/admin/user-context';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+} from "@bukeer/admin-contract";
+import { getDashboardUserContext } from "@/lib/admin/user-context";
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import {
   getAdminNextBetaReadonlyGate,
   getAdminNextExternalHandoffGate,
+  getAdminNextItineraryWritesGate,
   isAdminNextPrototypeEnabled,
-} from '@/lib/admin-next/flags';
+} from "@/lib/admin-next/flags";
 
 export type AdminNextSessionFlags = AdminFeatureFlags & {
   adminNextBetaReadonlyEnabled: boolean;
@@ -17,56 +18,62 @@ export type AdminNextSessionFlags = AdminFeatureFlags & {
   adminNextBetaRoleAllowed: boolean;
   adminNextBetaReadonly: boolean;
   adminNextExternalHandoff: boolean;
+  adminNextItineraryWrites: boolean;
 };
 
 export type AdminNextSessionContext =
   | WithAdminNextSessionFlags<
-      Extract<AdminSessionContext, { status: 'authenticated' }>
+      Extract<AdminSessionContext, { status: "authenticated" }>
     >
   | WithAdminNextSessionFlags<
-      Extract<AdminSessionContext, { status: 'missing_role' }>
+      Extract<AdminSessionContext, { status: "missing_role" }>
     >
   | WithAdminNextSessionFlags<
-      Extract<AdminSessionContext, { status: 'unauthenticated' }>
+      Extract<AdminSessionContext, { status: "unauthenticated" }>
     >;
 
 type WithAdminNextSessionFlags<T extends { flags: AdminFeatureFlags }> = Omit<
   T,
-  'flags'
+  "flags"
 > & {
   flags: AdminNextSessionFlags;
 };
 
 const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
   super_admin: [
-    'admin_next.view',
-    'planner.view',
-    'planner.suggest',
-    'planner.approve',
-    'payments.manage',
-    'trace.view',
-    'manager.view',
+    "admin_next.view",
+    "planner.view",
+    "planner.suggest",
+    "planner.approve",
+    "payments.manage",
+    "trace.view",
+    "manager.view",
   ],
   owner: [
-    'admin_next.view',
-    'planner.view',
-    'planner.suggest',
-    'planner.approve',
-    'payments.manage',
-    'trace.view',
-    'manager.view',
+    "admin_next.view",
+    "planner.view",
+    "planner.suggest",
+    "planner.approve",
+    "payments.manage",
+    "trace.view",
+    "manager.view",
   ],
   admin: [
-    'admin_next.view',
-    'planner.view',
-    'planner.suggest',
-    'planner.approve',
-    'payments.manage',
-    'trace.view',
-    'manager.view',
+    "admin_next.view",
+    "planner.view",
+    "planner.suggest",
+    "planner.approve",
+    "payments.manage",
+    "trace.view",
+    "manager.view",
   ],
-  agent: ['admin_next.view', 'planner.view', 'planner.suggest', 'trace.view'],
-  accounting: ['admin_next.view', 'planner.view', 'payments.manage', 'trace.view'],
+  agent: ["admin_next.view", "planner.view", "planner.suggest", "trace.view"],
+  accounting: [
+    "admin_next.view",
+    "planner.view",
+    "payments.manage",
+    "trace.view",
+  ],
 };
 
 export async function getAdminSessionContext(): Promise<AdminNextSessionContext> {
@@ -75,13 +82,13 @@ export async function getAdminSessionContext(): Promise<AdminNextSessionContext>
   const supabase = await createSupabaseServerClient();
   const ctx = await getDashboardUserContext(supabase);
 
-  if (ctx.status === 'unauthenticated') {
-    return { status: 'unauthenticated', flags: defaultFlags };
+  if (ctx.status === "unauthenticated") {
+    return { status: "unauthenticated", flags: defaultFlags };
   }
 
-  if (ctx.status === 'missing_role') {
+  if (ctx.status === "missing_role") {
     return {
-      status: 'missing_role',
+      status: "missing_role",
       userId: ctx.userId,
       email: ctx.email,
       displayName: ctx.displayName,
@@ -95,7 +102,7 @@ export async function getAdminSessionContext(): Promise<AdminNextSessionContext>
   });
 
   return {
-    status: 'authenticated',
+    status: "authenticated",
     userId: ctx.userId,
     email: ctx.email,
     accountId: ctx.accountId,
@@ -119,6 +126,10 @@ export function getAdminNextSessionFlags(input?: {
     accountId: input?.accountId,
     role: input?.role,
   });
+  const itineraryWritesGate = getAdminNextItineraryWritesGate({
+    accountId: input?.accountId,
+    role: input?.role,
+  });
 
   return {
     adminNextPrototype,
@@ -128,6 +139,8 @@ export function getAdminNextSessionFlags(input?: {
     adminNextBetaReadonly: adminNextPrototype && betaGate.betaReadonly,
     adminNextExternalHandoff:
       adminNextPrototype && externalHandoffGate.externalHandoff,
+    adminNextItineraryWrites:
+      adminNextPrototype && itineraryWritesGate.itineraryWrites,
   };
 }
 
@@ -139,5 +152,5 @@ export function hasAdminPermission(
   ctx: AdminSessionContext,
   permission: AdminPermission,
 ): boolean {
-  return ctx.status === 'authenticated' && ctx.permissions.includes(permission);
+  return ctx.status === "authenticated" && ctx.permissions.includes(permission);
 }

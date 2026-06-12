@@ -17,6 +17,13 @@ describe('products adapter', () => {
         }),
       ]),
     });
+    await expect(adapter.getProductDetail('prd-0148')).resolves.toMatchObject({
+      selected: {
+        id: 'prd-0148',
+        name: 'Hotel Las Islas',
+      },
+      rates: expect.any(Array),
+    });
   });
 
   it('maps readonly catalog table rows into the Products contract', async () => {
@@ -258,6 +265,41 @@ describe('products adapter', () => {
         sale: '$950.000',
       },
     ]);
+
+    await expect(adapter.getProductDetail('hotel-live-1')).resolves.toMatchObject({
+      selected: {
+        id: 'hotel-live-1',
+        name: 'Casa Baru Preferred',
+        galleryImages: [
+          expect.objectContaining({ url: 'override-one.jpg' }),
+          expect.objectContaining({ url: 'override-two.jpg' }),
+        ],
+      },
+      rates: [
+        expect.objectContaining({
+          id: 'rate-hotel-2',
+          sale: '$720.000',
+        }),
+        expect.objectContaining({
+          id: 'rate-hotel-1',
+          sale: '$950.000',
+        }),
+      ],
+    });
+  });
+
+  it('returns null when readonly product detail is missing', async () => {
+    const adapter = createProductsAdapter({
+      mode: 'readonly',
+      supabase: createReadonlySupabaseMock({
+        account_hotels: { data: [], error: null },
+        account_activities: { data: [], error: null },
+        images: { data: [], error: null },
+      }),
+      accountId: 'acct-1',
+    });
+
+    await expect(adapter.getProductDetail('missing-product')).resolves.toBeNull();
   });
 
   it('throws when readonly table reads return an error', async () => {

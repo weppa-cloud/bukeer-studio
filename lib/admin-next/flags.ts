@@ -1,9 +1,9 @@
 import {
   AdminDataSourceModeSchema,
   type AdminDataSourceMode,
-} from '@bukeer/admin-contract';
+} from "@bukeer/admin-contract";
 
-const TRUE_ENV_VALUES = new Set(['1', 'on', 'true', 'yes']);
+const TRUE_ENV_VALUES = new Set(["1", "on", "true", "yes"]);
 
 type AdminNextBetaReadonlyInput = {
   accountId?: string | null;
@@ -11,6 +11,11 @@ type AdminNextBetaReadonlyInput = {
 };
 
 type AdminNextExternalHandoffInput = {
+  accountId?: string | null;
+  role?: string | null;
+};
+
+type AdminNextItineraryWritesInput = {
   accountId?: string | null;
   role?: string | null;
 };
@@ -29,13 +34,20 @@ export type AdminNextExternalHandoffGate = {
   externalHandoff: boolean;
 };
 
+export type AdminNextItineraryWritesGate = {
+  enabled: boolean;
+  accountAllowed: boolean;
+  roleAllowed: boolean;
+  itineraryWrites: boolean;
+};
+
 export function isAdminNextPrototypeEnabled(): boolean {
   const raw = process.env.ADMIN_NEXT_PROTOTYPE_ENABLED;
 
-  if (raw === 'true') return true;
-  if (raw === 'false') return false;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
 
-  return process.env.NODE_ENV !== 'production';
+  return process.env.NODE_ENV !== "production";
 }
 
 export function getAdminNextDataSourceMode(): AdminDataSourceMode {
@@ -44,18 +56,26 @@ export function getAdminNextDataSourceMode(): AdminDataSourceMode {
   );
 
   if (parsed.success) return parsed.data;
-  return 'fixture';
+  return "fixture";
 }
 
 export function isAdminNextBetaReadonlyEnabled(): boolean {
   return TRUE_ENV_VALUES.has(
-    (process.env.ADMIN_NEXT_BETA_READONLY_ENABLED ?? '').trim().toLowerCase(),
+    (process.env.ADMIN_NEXT_BETA_READONLY_ENABLED ?? "").trim().toLowerCase(),
   );
 }
 
 export function isAdminNextExternalHandoffEnabled(): boolean {
   return TRUE_ENV_VALUES.has(
-    (process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED ?? '')
+    (process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED ?? "")
+      .trim()
+      .toLowerCase(),
+  );
+}
+
+export function isAdminNextItineraryWritesEnabled(): boolean {
+  return TRUE_ENV_VALUES.has(
+    (process.env.ADMIN_NEXT_WRITES_ITINERARIES_ENABLED ?? "")
       .trim()
       .toLowerCase(),
   );
@@ -119,6 +139,22 @@ export function getAdminNextExternalHandoffGate({
   };
 }
 
+export function getAdminNextItineraryWritesGate({
+  accountId,
+  role,
+}: AdminNextItineraryWritesInput): AdminNextItineraryWritesGate {
+  const enabled = isAdminNextItineraryWritesEnabled();
+  const accountAllowed = isAdminNextBetaAccountAllowed(accountId);
+  const roleAllowed = isAdminNextBetaRoleAllowed(role);
+
+  return {
+    enabled,
+    accountAllowed,
+    roleAllowed,
+    itineraryWrites: enabled && accountAllowed && roleAllowed,
+  };
+}
+
 function parseEnvAllowlist(
   raw: string | undefined,
   normalize: (value: string) => string = (value) => value.trim(),
@@ -136,5 +172,5 @@ function parseEnvAllowlist(
 }
 
 function normalizeRole(role?: string | null): string {
-  return role?.trim().toLowerCase() ?? '';
+  return role?.trim().toLowerCase() ?? "";
 }

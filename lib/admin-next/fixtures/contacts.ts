@@ -16,6 +16,13 @@ export type ContactRecord = {
   tone: ContactTone;
 };
 
+export type ContactDetail = {
+  contact: ContactRecord;
+  profile: Array<{ label: string; value: string }>;
+  itineraries: ContactTimelineItem[];
+  signals: ContactSignal[];
+};
+
 export type ContactTimelineItem = {
   id: string;
   title: string;
@@ -37,6 +44,7 @@ export type ContactsFixture = {
   selected: ContactRecord;
   timeline: ContactTimelineItem[];
   signals: ContactSignal[];
+  details?: Record<string, ContactDetail>;
 };
 
 const contacts: ContactRecord[] = [
@@ -181,4 +189,20 @@ export const contactsFixture: ContactsFixture = {
       tone: 'success',
     },
   ],
+  details: Object.fromEntries(
+    contacts.map((contact) => [
+      contact.id,
+      {
+        contact,
+        profile: [
+          { label: 'Ciudad', value: contact.city },
+          { label: 'Documento', value: contact.document },
+          { label: 'Email', value: contact.email },
+          { label: 'Telefono', value: contact.phone },
+        ],
+        itineraries: [],
+        signals: [],
+      },
+    ]),
+  ),
 };
