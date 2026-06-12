@@ -206,7 +206,11 @@ function buildAgendaDays(
         month: monthLabel(dateKey),
         title: longDateLabel(dateKey),
         meta: `${services.length} servicios · ${formatMoney(total)}`,
-        services: services.map(({ amountValue: _amountValue, ...service }) => service),
+        services: services.map((service) => {
+          const { amountValue, ...agendaService } = service;
+          void amountValue;
+          return agendaService;
+        }),
       };
     });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -160,13 +161,13 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <a
+        <Link
           data-testid="auth-register-login"
           href="/login"
           className="block text-center text-sm text-blue-600 hover:text-blue-700 mt-4"
         >
           Back to login
-        </a>
+        </Link>
       </motion.div>
     </div>
   );

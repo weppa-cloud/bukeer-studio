@@ -3,7 +3,6 @@ import {
   reportsFixture,
   type ReportChartPoint,
   type ReportDefinition,
-  type ReportInsight,
   type ReportRow,
   type ReportTone,
   type ReportsFixture,
@@ -194,7 +193,6 @@ function buildReadonlyReportsFixture({
       return Math.max(total - rowPaid, 0);
     }),
   );
-  const cost = sum(itineraries.map((row) => moneyValue(row.total_cost)));
   const markup = sum(
     itineraries.map((row) => {
       const explicitMarkup = moneyValue(row.total_markup);

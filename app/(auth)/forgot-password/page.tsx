@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -59,12 +60,12 @@ export default function ForgotPasswordPage() {
             <p className="text-slate-600 dark:text-slate-400">
               We sent a password reset link to <strong>{email}</strong>
             </p>
-            <a
+            <Link
               href="/login"
               className="inline-block mt-6 text-blue-600 hover:text-blue-700"
             >
               Back to login
-            </a>
+            </Link>
           </div>
         ) : (
           <>
@@ -104,12 +105,12 @@ export default function ForgotPasswordPage() {
               >
                 {loading ? "Sending..." : "Send reset link"}
               </button>
-              <a
+              <Link
                 href="/login"
                 className="block text-center text-sm text-blue-600 hover:text-blue-700"
               >
                 Back to login
-              </a>
+              </Link>
             </form>
           </>
         )}

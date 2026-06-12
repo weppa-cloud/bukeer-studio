@@ -46,7 +46,11 @@ function createSupabaseMock(options: { website?: unknown; websiteError?: unknown
           () => Promise<{ data: unknown; error: unknown }>
         >;
       } = {
-        eq: jest.fn((_column: string, _value: unknown) => query),
+        eq: jest.fn((column: string, value: unknown) => {
+          void column;
+          void value;
+          return query;
+        }),
         maybeSingle: jest.fn(async () => ({
           data: website,
           error: options.websiteError ?? null,

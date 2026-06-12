@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 
 type MfaState =
@@ -104,12 +105,12 @@ export default function MfaPage() {
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               Sign in before setting up MFA.
             </p>
-            <a
+            <Link
               href="/login?next=/mfa"
               className="inline-block text-blue-600 hover:text-blue-700"
             >
               Go to login
-            </a>
+            </Link>
           </div>
         ) : null}
 

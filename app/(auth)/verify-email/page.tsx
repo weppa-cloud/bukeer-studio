@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
@@ -11,13 +13,13 @@ export default function VerifyEmailPage() {
         <p className="text-slate-600 dark:text-slate-400 mb-6">
           Open the verification link sent by Bukeer before signing in.
         </p>
-        <a
+        <Link
           data-testid="auth-verify-email-login"
           href="/login"
           className="inline-block text-blue-600 hover:text-blue-700"
         >
           Back to login
-        </a>
+        </Link>
       </main>
     </div>
   );

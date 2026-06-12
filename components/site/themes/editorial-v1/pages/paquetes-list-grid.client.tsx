@@ -28,7 +28,6 @@ import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-import { CATEGORY_CANONICAL_SEGMENT, localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 
 // -------------------- Types --------------------
@@ -102,11 +101,6 @@ const DURATION_BUCKETS: { key: string; label: string; test: (d: number) => boole
 ];
 
 // -------------------- Helpers --------------------
-
-function localizedPackageSegment(locale: string | null | undefined): string {
-  const language = localeToLanguage(normalizeLocale(locale ?? 'es-CO')) as keyof typeof CATEGORY_CANONICAL_SEGMENT.package;
-  return CATEGORY_CANONICAL_SEGMENT.package[language] ?? CATEGORY_CANONICAL_SEGMENT.package.es;
-}
 
 function parseDurationDays(pkg: PaquetesListItem): number | null {
   if (typeof pkg.durationDays === 'number' && pkg.durationDays > 0) return pkg.durationDays;

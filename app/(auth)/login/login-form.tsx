@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { sanitizeInternalRedirect } from "@/lib/auth/safe-redirect";
 
 export function LoginForm({ redirect }: { redirect: string }) {
@@ -205,22 +206,22 @@ export function LoginForm({ redirect }: { redirect: string }) {
           </button>
 
           <div className="mt-4 text-center">
-            <a
+            <Link
               data-testid="login-forgot-password"
               href="/forgot-password"
               className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
             >
               Forgot password?
-            </a>
+            </Link>
           </div>
           <div className="mt-3 flex items-center justify-center gap-3 text-sm">
-            <a
+            <Link
               data-testid="login-register"
               href="/register"
               className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
             >
               Create account
-            </a>
+            </Link>
             <span className="text-slate-300 dark:text-slate-600">·</span>
             <a
               data-testid="login-demo-code"

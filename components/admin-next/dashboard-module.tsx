@@ -1,6 +1,7 @@
 "use client";
 
 import type { AuthenticatedAdminSessionContext } from '@bukeer/admin-contract';
+import Link from 'next/link';
 import {
   Activity,
   BarChart3,
@@ -151,14 +152,14 @@ function SalesChart({
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <LegendDot label={adminNextCopy.dashboard.salesLegend} tone="primary" />
           <LegendDot label={adminNextCopy.dashboard.costLegend} tone="live" />
-          <a
+          <Link
             className="inline-flex items-center gap-1 font-semibold text-primary"
             data-testid="admin-next-dashboard-sales-report"
             href="/admin/reports?report=sales&range=30d"
           >
             <BarChart3 className="size-3.5" />
             {adminNextCopy.dashboard.viewReportAction}
-          </a>
+          </Link>
         </div>
       </div>
       <div className="mt-6 grid flex-1 grid-cols-6 items-end gap-2 sm:gap-3">

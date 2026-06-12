@@ -24,7 +24,6 @@ import type {
 import { cn } from '@/lib/utils';
 import { AdminShell } from './admin-shell';
 
-const DEFAULT_REPORT: ReportId = 'sales';
 const DEFAULT_RANGE = '30d';
 
 export function ReportsModule({

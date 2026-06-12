@@ -643,7 +643,7 @@ export async function generateAdminNextItineraryPdfAction(
   formData: FormData,
 ): Promise<void> {
   const itineraryId = formData.get("itineraryId")?.toString() ?? "";
-  const session = await requireAdminNextSession({
+  await requireAdminNextSession({
     nextPath: itineraryId
       ? `/admin/itineraries/${itineraryId}?tab=preview`
       : "/admin/itineraries",

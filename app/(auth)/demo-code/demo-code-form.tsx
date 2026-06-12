@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { sanitizeInternalRedirect } from "@/lib/auth/safe-redirect";
 
 export function DemoCodeForm({ redirectTo }: { redirectTo: string }) {
@@ -88,13 +89,13 @@ export function DemoCodeForm({ redirectTo }: { redirectTo: string }) {
             {loading ? "Opening demo..." : "Open demo"}
           </button>
         </form>
-        <a
+        <Link
           data-testid="auth-demo-code-login"
           href="/login"
           className="block text-center text-sm text-blue-600 hover:text-blue-700 mt-4"
         >
           Use email and password instead
-        </a>
+        </Link>
       </motion.div>
     </div>
   );

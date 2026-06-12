@@ -833,10 +833,6 @@ function joinLocation(
     : productsFixture.selected.location;
 }
 
-function countMedia(value: JsonValue): number {
-  return extractPhotoUrls(value).length;
-}
-
 function extractPhotoUrls(value: JsonValue): string[] {
   if (Array.isArray(value)) {
     return value.flatMap(extractPhotoUrlFromItem);

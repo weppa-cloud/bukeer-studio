@@ -13,10 +13,6 @@ interface SupabasePublicFilter<T> extends SupabaseReadResult<T> {
   limit(count: number): SupabasePublicFilter<T>;
 }
 
-interface SupabasePublicInsert {
-  insert(values: Record<string, unknown>): SupabaseWriteResult;
-}
-
 interface SupabasePublicBuilder {
   select<T = unknown>(columns: string): SupabasePublicFilter<T>;
   insert(values: Record<string, unknown>): SupabaseWriteResult;
@@ -285,8 +281,6 @@ export async function getPublicItineraryById({
     paymentPlan: buildPaymentPlan({
       activePaymentMethod: itinerary.active_payment_method,
       fallbackCurrency: itinerary.currency_type,
-      itineraryId,
-      lang: normalizeLanguage(itinerary.language),
       schedule,
       scheduledPayments,
       totalAmount: itinerary.total_amount,
@@ -430,16 +424,12 @@ function mapScheduledPayment({
 function buildPaymentPlan({
   activePaymentMethod,
   fallbackCurrency,
-  itineraryId,
-  lang,
   schedule,
   scheduledPayments,
   totalAmount,
 }: {
   activePaymentMethod: string | null;
   fallbackCurrency: string | null;
-  itineraryId: string;
-  lang: "es" | "en";
   schedule: PublicPaymentScheduleRow | null;
   scheduledPayments: PublicScheduledPayment[];
   totalAmount: number | null;
