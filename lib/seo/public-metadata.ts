@@ -81,7 +81,7 @@ export function buildLocaleAwareAlternateLanguages(
   pathname: string,
   localeContext: Pick<
     PublicMetadataLocaleContext,
-    "defaultLocale" | "supportedLocales"
+    "defaultLocale" | "supportedLocales" | "resolvedLocale"
   >,
   options?: {
     translatedLocales?: string[];
@@ -95,7 +95,7 @@ export function buildLocaleAwareAlternateLanguages(
         defaultLocale: localeContext.defaultLocale,
         supportedLocales: localeContext.supportedLocales,
       },
-      options?.translatedLocales,
+      [...new Set([localeContext.resolvedLocale, ...(options?.translatedLocales || [])])],
     ),
   );
 }

@@ -19,7 +19,7 @@
  * `hreflang-canonical.spec.ts`).
  */
 
-import { parseInternalSitePath } from '@/middleware';
+import { middlewareInternals, parseInternalSitePath } from '@/middleware';
 import {
   PUBLIC_LOCALE_HEADER_NAMES,
   extractWebsiteLocaleSettings,
@@ -144,6 +144,21 @@ describe('locale resolution for /site/<sub>/<lang>/... (contract)', () => {
     expect(resolution.canonicalPathname).toBe('/terms');
   });
 
+  it('decodes percent-encoded UTF-8 slugs before middleware canonicalization', () => {
+    const internal = parseInternalSitePath(
+      '/site/colombiatours/en/packages/medell%C3%ADn-city-tour',
+    );
+    const resolution = resolveLocaleFromPublicPath(
+      internal!.innerPathname,
+      localeSettings,
+    );
+
+    expect(resolution.hasLanguageSegment).toBe(true);
+    expect(resolution.resolvedLocale).toBe('en-US');
+    expect(resolution.pathnameWithoutLang).toBe('/packages/medellín-city-tour');
+    expect(resolution.canonicalPathname).toBe('/paquetes/medellín-city-tour');
+  });
+
   it('does NOT intervene when inner path is default-locale (no /<lang>/ segment)', () => {
     const internal = parseInternalSitePath(
       '/site/colombiatours/paquetes/amazon-adventure',
@@ -157,6 +172,18 @@ describe('locale resolution for /site/<sub>/<lang>/... (contract)', () => {
     // Middleware guard: only intervene when resolvedLocale !== defaultLocale.
     expect(resolution.resolvedLocale).toBe(resolution.defaultLocale);
     expect(resolution.resolvedLocale).toBe('es-CO');
+  });
+
+  it('recognizes localized FR forfait detail paths as package product routes', () => {
+    expect(
+      middlewareInternals.getPotentialProductRoute(
+        '/forfaits/bogota-medellin-carthagene',
+      ),
+    ).toEqual({
+      categorySlug: 'forfaits',
+      productType: 'package',
+      productSlug: 'bogota-medellin-carthagene',
+    });
   });
 
   it('resolves pt-br regional prefix for internal preview routes', () => {

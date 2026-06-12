@@ -9,8 +9,8 @@ import { getBasePath, inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 import {
   getCategoryProducts,
   getDestinations,
-  getLocalizedProductOverlay,
   getPageBySlugForLocale,
+  getLocalizedProductOverlay,
   getProductPage,
   getProductSlugRedirect,
 } from "@/lib/supabase/get-pages";
@@ -125,43 +125,24 @@ export async function generateMetadata({
       slug,
       localeContext.localizedPathname,
     );
-    const fallbackLanding = staticSlug
+    const staticPage = staticSlug
       ? await getPageBySlugForLocale(
           String(website.id),
           staticSlug,
           localeContext.resolvedLocale,
         )
       : null;
-    if (fallbackLanding?.is_published) {
+    if (staticPage?.is_published) {
       const canonicalPathname =
         localeContext.localizedPathname || `/${staticSlug}`;
-      const title = normalizePublicMetadataTitle(
-        fallbackLanding.seo_title || fallbackLanding.title,
+      const pageTitle = normalizePublicMetadataTitle(
+        staticPage.seo_title || staticPage.title,
         siteName,
       );
-      const description =
-        fallbackLanding.seo_description ||
-        `${siteName} - Viajes a Colombia con itinerarios completos, planner local y soporte por WhatsApp.`;
-      const ogImage = resolveOgImage(
-        website,
-        fallbackLanding.hero_config?.backgroundImage || null,
-      );
+      const description = staticPage.seo_description || fallbackDescription;
       const metadata: Metadata = {
-        title,
+        title: pageTitle,
         description,
-        openGraph: {
-          title,
-          description,
-          type: "website",
-          locale: localeToOgLocale(localeContext.resolvedLocale),
-          ...(ogImage && { images: [{ url: ogImage }] }),
-        },
-        twitter: {
-          card: "summary_large_image",
-          title,
-          description,
-          ...(ogImage && { images: [ogImage] }),
-        },
         alternates: {
           canonical: `${baseUrl}${canonicalPathname}`,
           languages: buildLocaleAwareAlternateLanguages(
@@ -170,20 +151,19 @@ export async function generateMetadata({
             localeContext,
           ),
         },
+        openGraph: {
+          title: pageTitle,
+          description,
+          type: "website",
+          locale: localeToOgLocale(localeContext.resolvedLocale),
+        },
       };
-
-      if (fallbackLanding.robots_noindex) {
+      if (staticPage.robots_noindex) {
         metadata.robots = { index: false, follow: true };
       }
-
       return metadata;
     }
-
-    return {
-      title: "Paquete no encontrado",
-      description: fallbackDescription,
-      robots: { index: false, follow: true },
-    };
+    notFound();
   }
 
   const canonicalPathname = `/paquetes/${productPage.product.slug || slug}`;
@@ -330,28 +310,24 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       slug,
       localeContext.localizedPathname,
     );
-    const fallbackLanding = staticSlug
+    const staticPage = staticSlug
       ? await getPageBySlugForLocale(String(website.id), staticSlug, resolvedLocale)
       : null;
-    if (fallbackLanding?.is_published) {
-      const isCustomDomain = inferIsCustomDomainWebsite(website);
-      const websiteForRender = {
-        ...website,
-        resolvedLocale,
-        defaultLocale: localeContext.defaultLocale ?? "es-CO",
-        isCustomDomain,
-      };
+    if (staticPage?.is_published) {
       const dynamicDestinations = await getDestinations(subdomain);
-
+      const websiteForStaticRender = {
+        ...website,
+        defaultLocale: localeContext.defaultLocale ?? "es-CO",
+        isCustomDomain: inferIsCustomDomainWebsite(website),
+      };
       return (
         <StaticPage
-          website={websiteForRender}
-          page={fallbackLanding}
+          website={websiteForStaticRender}
+          page={staticPage}
           dynamicDestinations={dynamicDestinations}
         />
       );
     }
-
     const redirectedSlug = website.account_id
       ? await getProductSlugRedirect(
           String(website.account_id),

@@ -39,6 +39,7 @@ import {
   type DeferredHomeDataInput,
 } from "@/lib/site/home-rendering";
 import { inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
+import { localizeEditorialText } from "@/components/site/themes/editorial-v1/i18n";
 
 const SECTION_PACKAGES = SECTION_TYPES.find((t) => t === "packages")!;
 const SECTION_ACTIVITIES = SECTION_TYPES.find((t) => t === "activities")!;
@@ -194,6 +195,35 @@ function contentHasArray(section: WebsiteSection, key: string): boolean {
   const content = section.content as Record<string, unknown> | null | undefined;
   const value = content?.[key];
   return Array.isArray(value) && value.length > 0;
+}
+
+function localizeHomeSerializableValue(
+  website: Parameters<typeof localizeEditorialText>[0],
+  value: unknown,
+): unknown {
+  if (typeof value === "string") return localizeEditorialText(website, value);
+  if (Array.isArray(value)) {
+    return value.map((item) => localizeHomeSerializableValue(website, item));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        localizeHomeSerializableValue(website, item),
+      ]),
+    );
+  }
+  return value;
+}
+
+function localizeHomeSectionForRender(
+  website: Parameters<typeof localizeEditorialText>[0],
+  section: WebsiteSection,
+): WebsiteSection {
+  return {
+    ...section,
+    content: localizeHomeSerializableValue(website, section.content) as WebsiteSection["content"],
+  };
 }
 
 export async function generateMetadata({
@@ -426,7 +456,7 @@ async function DeferredHomeSections({
       {hydratedSections.map((section) => (
         <SectionRenderer
           key={section.id}
-          section={section}
+          section={localizeHomeSectionForRender(websiteForRender, section)}
           website={websiteForRender}
           dbPlanners={
             PLANNER_TYPES.has(section.section_type) ? dbPlanners : undefined
@@ -464,9 +494,19 @@ export default async function SitePage({ params }: SitePageProps) {
     defaultLocale: localeContext.defaultLocale,
     isCustomDomain,
   });
+  const localizedWebsiteForRender = {
+    ...websiteForRender,
+    content: localizeHomeSerializableValue(
+      websiteForRender,
+      websiteForRender.content,
+    ) as typeof websiteForRender.content,
+    sections: (websiteForRender.sections || []).map((section) =>
+      localizeHomeSectionForRender(websiteForRender, section),
+    ),
+  };
   const schemaStartedAt = nowMs();
   const schemas = generateHomepageSchemas(
-    website,
+    localizedWebsiteForRender,
     baseUrl,
     undefined,
     localeContext.resolvedLocale,
@@ -497,15 +537,15 @@ export default async function SitePage({ params }: SitePageProps) {
       {criticalSections.map((section) => (
         <SectionRenderer
           key={section.id}
-          section={section}
-          website={websiteForRender}
+          section={localizeHomeSectionForRender(localizedWebsiteForRender, section)}
+          website={localizedWebsiteForRender}
         />
       ))}
 
       <Suspense fallback={null}>
         <DeferredHomeSections
-          website={website}
-          websiteForRender={websiteForRender}
+          website={localizedWebsiteForRender}
+          websiteForRender={localizedWebsiteForRender}
           subdomain={subdomain}
           locale={localeContext.resolvedLocale}
           defaultLocale={localeContext.defaultLocale}

@@ -28,7 +28,7 @@ import { Logo } from '../primitives/logo';
 import { Icons } from '../primitives/icons';
 import { HeaderScrollState, MobileNavToggle } from './site-header.client';
 import { MarketSwitcher } from './market-switcher';
-import { getEditorialTextGetter } from '../i18n';
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialSiteHeaderProps {
@@ -50,7 +50,6 @@ export function EditorialSiteHeader({
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
     ?? localeSettings.defaultLocale
   );
-  const isEnglish = resolvedLocale.startsWith('en');
   const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale);
   const siteName = content.account?.name || content.siteName;
@@ -58,9 +57,9 @@ export function EditorialSiteHeader({
 
   // Fallback to designer canonical nav labels if no navigation prop is passed.
   const fallbackNav: NavigationItem[] = [
-    { slug: 'destinations', label: isEnglish ? 'Destinations' : 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
-    { slug: 'packages', label: isEnglish ? 'Packages' : 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
-    { slug: 'experiences', label: isEnglish ? 'Experiences' : 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
+    { slug: 'destinations', label: localizeEditorialText(website, 'Destinos'), page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
+    { slug: 'packages', label: localizeEditorialText(website, 'Paquetes'), page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
+    { slug: 'experiences', label: localizeEditorialText(website, 'Experiencias'), page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
     { slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' },
   ];
   const rawNavItems = navigation && navigation.length > 0 ? navigation : fallbackNav;
@@ -91,15 +90,7 @@ export function EditorialSiteHeader({
   const navItems = canonicalOrder
     .map((key) => navByKey.get(key))
     .filter((item): item is NavigationItem => Boolean(item));
-  const navLabelForLocale = (label: string): string => {
-    if (!isEnglish) return label;
-    const normalized = label.trim().toLowerCase();
-    if (normalized === 'destinos') return 'Destinations';
-    if (normalized === 'paquetes') return 'Packages';
-    if (normalized === 'experiencias') return 'Experiences';
-    if (normalized === 'nosotros' || normalized === 'sobre nosotros') return 'About';
-    return label;
-  };
+  const navLabelForLocale = (label: string): string => localizeEditorialText(website, label);
 
   // TODO(editorial-v1 wave 2): read `website.contact_whatsapp` once the
   // column ships. For now, reuse the existing `content.social.whatsapp`.

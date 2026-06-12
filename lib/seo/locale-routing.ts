@@ -254,10 +254,17 @@ function normalizePathname(pathname: string): string {
   if (!pathname || pathname.trim().length === 0) return '/';
   const withSlash = pathname.startsWith('/') ? pathname : `/${pathname}`;
   const compact = withSlash.replace(/\/{2,}/g, '/');
-  if (compact !== '/' && compact.endsWith('/')) {
-    return compact.slice(0, -1);
+  const decoded = (() => {
+    try {
+      return decodeURI(compact);
+    } catch {
+      return compact;
+    }
+  })();
+  if (decoded !== '/' && decoded.endsWith('/')) {
+    return decoded.slice(0, -1);
   }
-  return compact;
+  return decoded;
 }
 
 function normalizeLocaleToken(value: string): string {
@@ -489,6 +496,23 @@ export function buildPublicLocalizedPath(
   }
 
   return `/${segment}${normalizedPathname}`;
+}
+
+export function buildPublicCanonicalPathname(
+  pathname: string,
+  resolvedLocale: string,
+  defaultLocale: string,
+): string {
+  const translatedPathname = translateCategoryPathname(
+    pathname,
+    localeToLanguage(resolvedLocale),
+  );
+
+  return buildPublicLocalizedPath(
+    translatedPathname,
+    resolvedLocale,
+    defaultLocale,
+  );
 }
 
 export function buildLegalPagePath(

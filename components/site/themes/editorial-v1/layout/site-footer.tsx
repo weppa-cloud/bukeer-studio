@@ -27,7 +27,7 @@ import { buildLegalPagePath, type LegalPageType } from '@/lib/seo/locale-routing
 import { Icons } from '../primitives/icons';
 import { FooterSwitcher } from './footer-switcher';
 import { FooterNewsletterForm } from './footer-newsletter-form';
-import { getEditorialTextGetter } from '../i18n';
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialSiteFooterProps {
@@ -72,11 +72,11 @@ export function EditorialSiteFooter({
   const legal = content.account?.legal;
 
   const logoUrl = content.account?.logo || content.logo || null;
-  const tagline = content.tagline || editorialText('editorialFooterTaglineFallback');
+  const tagline = localizeEditorialText(website, content.tagline) || editorialText('editorialFooterTaglineFallback');
   // WebsiteContent exposes `tagline` + account.* but no top-level
   // `description`. Pull from SEO description as a soft fallback.
   const aboutBlurb =
-    content.seo?.description ||
+    localizeEditorialText(website, content.seo?.description) ||
     editorialText('editorialFooterAboutFallback');
 
   const destinosLinks = [
@@ -88,18 +88,18 @@ export function EditorialSiteFooter({
     { label: editorialText('editorialFooterViewAll'), href: `${basePath}/#destinations` },
   ];
   const viajarLinks = [
-    { label: 'Paquetes', href: `${basePath}/paquetes` },
+    { label: localizeEditorialText(website, 'Paquetes'), href: `${basePath}/paquetes` },
     { label: editorialText('editorialFooterSearch'), href: `${basePath}/buscar` },
-    { label: 'Hoteles boutique', href: `${basePath}/#hotels` },
-    { label: 'Luna de miel', href: `${basePath}/paquetes?tipo=luna-de-miel` },
-    { label: 'Grupos y corporativo', href: `${basePath}/#cta` },
+    { label: localizeEditorialText(website, 'Hoteles boutique'), href: `${basePath}/#hotels` },
+    { label: localizeEditorialText(website, 'Luna de miel'), href: `${basePath}/paquetes?tipo=luna-de-miel` },
+    { label: localizeEditorialText(website, 'Grupos y corporativo'), href: `${basePath}/#cta` },
   ];
   const agenciaLinks = [
-    { label: 'Sobre nosotros', href: `${basePath}/#about` },
-    { label: 'Nuestros planners', href: `${basePath}/planners` },
+    { label: localizeEditorialText(website, 'Sobre nosotros'), href: `${basePath}/#about` },
+    { label: localizeEditorialText(website, 'Nuestros planners'), href: `${basePath}/planners` },
     { label: 'Blog', href: `${basePath}/blog` },
-    { label: 'Prensa', href: `${basePath}/prensa` },
-    { label: 'Contacto', href: `${basePath}/#cta` },
+    { label: localizeEditorialText(website, 'Prensa'), href: `${basePath}/prensa` },
+    { label: localizeEditorialText(website, 'Contacto'), href: `${basePath}/#cta` },
   ];
 
   const whatsappRaw = social.whatsapp || content.account?.phone || '';

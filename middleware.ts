@@ -91,12 +91,20 @@ const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinations: "destination",
   hoteles: "hotel",
   hotels: "hotel",
+  "hôtels": "hotel",
+  atividades: "activity",
   actividades: "activity",
   activities: "activity",
+  "activités": "activity",
   traslados: "transfer",
   transfers: "transfer",
+  "transferências": "transfer",
+  transferts: "transfer",
   paquetes: "package",
   packages: "package",
+  pacotes: "package",
+  forfaits: "package",
+  pakete: "package",
 };
 
 interface WebsiteLookup {
@@ -120,7 +128,6 @@ interface LocaleAwareRoutingInput {
   resolvedLanguage: string;
   hasLanguageSegment: boolean;
   languageSegment: string | null;
-  preservePublicPath?: boolean;
 }
 
 function resolveWebsiteLocaleSettingsForMiddleware(
@@ -387,6 +394,57 @@ async function getWebsiteByCustomDomain(
   return result;
 }
 
+interface ProductLookup {
+  product?: {
+    id?: string | null;
+    slug?: string | null;
+  } | null;
+}
+
+async function getProductForRoute(
+  subdomain: string,
+  productType: string,
+  productSlug: string,
+): Promise<ProductLookup["product"] | null | undefined> {
+  const cacheKey = `prod:${subdomain}:${productType}:${productSlug}`;
+  const cached = getCached<ProductLookup["product"] | null | undefined>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const data = await supabaseFetch<ProductLookup | null>(
+    "/rest/v1/rpc/get_website_product_page",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        p_subdomain: subdomain,
+        p_product_type: productType,
+        p_product_slug: productSlug,
+      }),
+    },
+  );
+
+  if (data === null) {
+    // Fail open on lookup errors/missing credentials so middleware does not
+    // incorrectly 404 public traffic when Supabase is unavailable.
+    setCached(cacheKey, undefined);
+    return undefined;
+  }
+
+  const result = data && typeof data === "object" && "product" in data
+    ? data.product ?? null
+    : null;
+  setCached(cacheKey, result);
+  return result;
+}
+
+async function productExists(
+  subdomain: string,
+  productType: string,
+  productSlug: string,
+): Promise<boolean> {
+  const product = await getProductForRoute(subdomain, productType, productSlug);
+  return product === undefined || Boolean(product);
+}
+
 async function publishedWebsitePageExistsBySlug(
   websiteId: string,
   slug: string,
@@ -409,73 +467,96 @@ async function publishedWebsitePageExistsBySlug(
   return result;
 }
 
-async function resolveExactLocalePrefixedPageRouting(input: {
-  website: WebsiteLookup | null;
-  localeResolution: PublicLocalePathResolution;
-}): Promise<
-  | {
-      pathnameWithoutLang: string;
-      canonicalPathname: string;
-      preservePublicPath: true;
-    }
-  | null
-> {
-  const { website, localeResolution } = input;
-  if (!website?.id || !localeResolution.hasLanguageSegment) return null;
-
-  const exactSlug = localeResolution.originalPathname
-    .split("/")
-    .filter(Boolean)
-    .join("/");
-  if (!exactSlug) return null;
-
-  const strippedSlug = localeResolution.pathnameWithoutLang
-    .split("/")
-    .filter(Boolean)
-    .join("/");
-  if (exactSlug === strippedSlug) return null;
-
-  // Paid-search/custom pages can intentionally store locale-prefixed slugs
-  // (for example `pt/pacotes-colombia`). Preserve those exact page routes
-  // instead of stripping the locale prefix before the tenant rewrite.
-  const exactPageExists = await publishedWebsitePageExistsBySlug(
-    website.id,
-    exactSlug,
-  );
-  if (!exactPageExists) return null;
-
-  return {
-    pathnameWithoutLang: localeResolution.originalPathname,
-    canonicalPathname: localeResolution.originalPathname,
-    preservePublicPath: true,
-  };
-}
-
-async function productExists(
-  subdomain: string,
+async function localizedProductOverlayExists(
+  websiteId: string,
   productType: string,
-  productSlug: string,
-): Promise<boolean> {
-  const cacheKey = `prod:${subdomain}:${productType}:${productSlug}`;
-  const cached = getCached<boolean>(cacheKey);
+  productId: string,
+  locale: string,
+): Promise<boolean | null> {
+  const cacheKey = `prod-locale:${websiteId}:${productType}:${productId}:${locale}`;
+  const cached = getCached<boolean | null>(cacheKey);
   if (cached !== undefined) return cached;
 
-  const data = await supabaseFetch<{ product?: unknown } | null>(
-    "/rest/v1/rpc/get_website_product_page",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        p_subdomain: subdomain,
-        p_product_type: productType,
-        p_product_slug: productSlug,
-      }),
+  const direct = await supabaseFetch<Array<{ product_id: string }>>(
+    `/rest/v1/website_product_pages?select=product_id&website_id=eq.${encodeURIComponent(websiteId)}&product_type=eq.${encodeURIComponent(productType)}&product_id=eq.${encodeURIComponent(productId)}&locale=eq.${encodeURIComponent(locale)}&limit=1`,
+  );
+  if (direct === null) {
+    setCached(cacheKey, null);
+    return null;
+  }
+  if (direct.length > 0) {
+    setCached(cacheKey, true);
+    return true;
+  }
+
+  if (productType === "package") {
+    const itinerary = await supabaseFetch<Array<{ source_package_id: string | null }>>(
+      `/rest/v1/itineraries?select=source_package_id&id=eq.${encodeURIComponent(productId)}&limit=1`,
+    );
+    if (itinerary === null) {
+      setCached(cacheKey, null);
+      return null;
+    }
+    const kitId = itinerary[0]?.source_package_id;
+    if (kitId && kitId !== productId) {
+      const fallback = await supabaseFetch<Array<{ product_id: string }>>(
+        `/rest/v1/website_product_pages?select=product_id&website_id=eq.${encodeURIComponent(websiteId)}&product_type=eq.${encodeURIComponent(productType)}&product_id=eq.${encodeURIComponent(kitId)}&locale=eq.${encodeURIComponent(locale)}&limit=1`,
+      );
+      if (fallback === null) {
+        setCached(cacheKey, null);
+        return null;
+      }
+      if (fallback.length > 0) {
+        setCached(cacheKey, true);
+        return true;
+      }
+    }
+  }
+
+  setCached(cacheKey, false);
+  return false;
+}
+
+async function tryMissingLocalizedProductNotFound(
+  route: { productType: string; productSlug: string },
+  website: WebsiteLookup | null,
+  localeResolution: PublicLocalePathResolution,
+): Promise<NextResponse | null> {
+  if (
+    !website?.id ||
+    !website.subdomain ||
+    !localeResolution.hasLanguageSegment ||
+    localeResolution.resolvedLocale === localeResolution.defaultLocale
+  ) {
+    return null;
+  }
+
+  const product = await getProductForRoute(
+    website.subdomain,
+    route.productType,
+    route.productSlug,
+  );
+  if (product === undefined || !product?.id) {
+    return null;
+  }
+
+  const hasLocalizedOverlay = await localizedProductOverlayExists(
+    website.id,
+    route.productType,
+    String(product.id),
+    localeResolution.resolvedLocale,
+  );
+  if (hasLocalizedOverlay !== false) {
+    return null;
+  }
+
+  return new NextResponse("Not found", {
+    status: 404,
+    headers: {
+      "X-Robots-Tag": "noindex, nofollow",
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
     },
-  );
-  const result = Boolean(
-    data && typeof data === "object" && "product" in data && data.product,
-  );
-  setCached(cacheKey, result);
-  return result;
+  });
 }
 
 async function getRedirectedSlug(
@@ -562,21 +643,60 @@ function normalizeBlogPublicLocale(
 async function findPublishedBlogPostAnyLocale(
   websiteId: string,
   slug: string,
-): Promise<{ slug: string; locale: string | null } | null> {
+): Promise<{
+  slug: string;
+  locale: string | null;
+  translation_group_id: string | null;
+} | null> {
   const cacheKey = `blog-any-locale:${websiteId}:${slug}`;
-  const cached = getCached<{ slug: string; locale: string | null } | null>(
+  const cached = getCached<{
+    slug: string;
+    locale: string | null;
+    translation_group_id: string | null;
+  } | null>(
     cacheKey,
   );
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<
-    Array<{ slug: string; locale: string | null }>
+    Array<{
+      slug: string;
+      locale: string | null;
+      translation_group_id: string | null;
+    }>
   >(
-    `/rest/v1/website_blog_posts?select=slug,locale&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(slug)}&status=eq.published&deleted_at=is.null&limit=1`,
+    `/rest/v1/website_blog_posts?select=slug,locale,translation_group_id&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(slug)}&status=eq.published&deleted_at=is.null&limit=1`,
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
   return result;
+}
+
+async function findPublishedBlogPostByTranslationGroupForLocale(
+  websiteId: string,
+  translationGroupId: string | null | undefined,
+  locale: string,
+): Promise<{ slug: string; locale: string | null } | null> {
+  if (!translationGroupId) return null;
+  const cacheKey = `blog-tg-locale:${websiteId}:${translationGroupId}:${locale}`;
+  const cached = getCached<{ slug: string; locale: string | null } | null>(
+    cacheKey,
+  );
+  if (cached !== undefined) return cached;
+
+  for (const candidate of localeLookupCandidates(locale)) {
+    const data = await supabaseFetch<Array<{ slug: string; locale: string | null }>>(
+      `/rest/v1/website_blog_posts?select=slug,locale&website_id=eq.${encodeURIComponent(websiteId)}&translation_group_id=eq.${encodeURIComponent(translationGroupId)}&locale=eq.${encodeURIComponent(candidate)}&status=eq.published&deleted_at=is.null&limit=1`,
+    );
+    if (data && data.length > 0) {
+      const result = data[0];
+      setCached(cacheKey, result);
+      return result;
+    }
+  }
+
+  setCached(cacheKey, null);
+  return null;
 }
 
 async function tryMissingBlogNotFound(
@@ -602,24 +722,47 @@ async function tryMissingBlogNotFound(
   const defaultLocale = normalizeBlogPublicLocale(
     localeResolution.defaultLocale,
   );
-  if (resolvedLocale && defaultLocale && resolvedLocale === defaultLocale) {
+  if (resolvedLocale && defaultLocale) {
     const postInAnotherLocale = await findPublishedBlogPostAnyLocale(
       website.id,
       decodeURIComponent(match[1]),
     );
     const postLocale = normalizeBlogPublicLocale(postInAnotherLocale?.locale);
-    if (postInAnotherLocale && postLocale && postLocale !== resolvedLocale) {
-      return NextResponse.redirect(
-        new URL(
-          buildPublicLocalizedPath(
-            `/blog/${postInAnotherLocale.slug}`,
-            postLocale,
-            localeResolution.defaultLocale,
+
+    if (resolvedLocale === defaultLocale) {
+      if (postInAnotherLocale && postLocale && postLocale !== resolvedLocale) {
+        return NextResponse.redirect(
+          new URL(
+            buildPublicLocalizedPath(
+              `/blog/${postInAnotherLocale.slug}`,
+              postLocale,
+              localeResolution.defaultLocale,
+            ),
+            request.url,
           ),
-          request.url,
-        ),
-        308,
+          308,
+        );
+      }
+    } else if (postInAnotherLocale?.translation_group_id) {
+      const localizedPost = await findPublishedBlogPostByTranslationGroupForLocale(
+        website.id,
+        postInAnotherLocale.translation_group_id,
+        resolvedLocale,
       );
+
+      if (localizedPost) {
+        return NextResponse.redirect(
+          new URL(
+            buildPublicLocalizedPath(
+              `/blog/${localizedPost.slug}`,
+              localizedPost.locale || resolvedLocale,
+              localeResolution.defaultLocale,
+            ),
+            request.url,
+          ),
+          308,
+        );
+      }
     }
   }
 
@@ -681,15 +824,6 @@ interface LegacyRedirectRow {
   status_code: number;
 }
 
-interface RedirectPolicyRow {
-  old_path: string;
-  action: "redirect" | "bypass";
-  new_path: string | null;
-  status_code: number;
-  preserve_query: boolean;
-  priority: number;
-}
-
 function buildLegacyPathCandidates(pathname: string): string[] {
   const ensuredLeadingSlash = pathname.startsWith("/")
     ? pathname
@@ -728,33 +862,6 @@ function coerceRedirectStatusCode(value: number): 301 | 302 | 307 | 308 {
     return value;
   }
   return 301;
-}
-
-async function getRedirectPolicyForCandidates(
-  websiteId: string,
-  candidates: string[],
-): Promise<RedirectPolicyRow | null> {
-  const cacheKey = `redirect-policy:${websiteId}:${candidates.join("|")}`;
-  const cached = getCached<RedirectPolicyRow | null>(cacheKey);
-  if (cached !== undefined) return cached;
-
-  const uniqueCandidates = [...new Set(candidates.filter(Boolean))];
-  if (uniqueCandidates.length === 0) {
-    setCached(cacheKey, null);
-    return null;
-  }
-
-  const oldPathFilter = uniqueCandidates
-    .map((candidate) => `old_path.eq.${encodeURIComponent(candidate)}`)
-    .join(",");
-
-  const data = await supabaseFetch<Array<RedirectPolicyRow>>(
-    `/rest/v1/website_redirect_policies?select=old_path,action,new_path,status_code,preserve_query,priority&website_id=eq.${encodeURIComponent(websiteId)}&is_active=eq.true&or=(${oldPathFilter})&order=priority.asc&limit=1`,
-  );
-
-  const result = data && data.length > 0 ? data[0] : null;
-  setCached(cacheKey, result);
-  return result;
 }
 
 async function getLegacyRedirect(
@@ -856,41 +963,6 @@ async function tryLegacyRedirect(
     return null;
   }
 
-  const policy = await getRedirectPolicyForCandidates(website.id, [
-    ...buildLegacyPathCandidates(pathname),
-  ]);
-
-  if (policy) {
-    if (policy.action === "bypass") {
-      return null;
-    }
-
-    if (policy.action === "redirect" && policy.new_path) {
-      const response = buildLegacyRedirectResponse(request, {
-        new_path: policy.new_path,
-        status_code: policy.status_code,
-      });
-      const target = new URL(response.headers.get("location") || request.url);
-
-      if (!policy.preserve_query) {
-        target.search = "";
-      }
-
-      const current = request.nextUrl;
-      const isSameDestination =
-        target.origin === current.origin &&
-        target.pathname === current.pathname &&
-        target.search === current.search;
-
-      if (!isSameDestination) {
-        return NextResponse.redirect(
-          target,
-          coerceRedirectStatusCode(policy.status_code),
-        );
-      }
-    }
-  }
-
   const legacy = await getLegacyRedirect(website.id, pathname);
   if (!legacy?.new_path) {
     return null;
@@ -937,7 +1009,6 @@ function applyLocaleAwareTenantRewrite(
     resolvedLanguage,
     hasLanguageSegment,
     languageSegment,
-    preservePublicPath,
   } = input;
 
   // Internal rewrite target uses Spanish-canonical category segments so a
@@ -945,7 +1016,7 @@ function applyLocaleAwareTenantRewrite(
   // preserved (response.url unchanged) — see [[ADR-019]] amendment.
   const internalPathname = canonicalPathname || pathnameWithoutLang;
 
-  if (!preservePublicPath && !sourceUrl.pathname.startsWith("/site/")) {
+  if (!sourceUrl.pathname.startsWith("/site/")) {
     const publicPathname = buildPublicLocalizedPath(
       translateCategoryPathname(pathnameWithoutLang, localeToLanguage(resolvedLocale)),
       resolvedLocale,
@@ -1424,6 +1495,19 @@ export async function middleware(request: NextRequest) {
       }
 
       if (potentialProductRoute) {
+        const missingLocalizedProductResponse = await tryMissingLocalizedProductNotFound(
+          potentialProductRoute,
+          website,
+          localeResolution,
+        );
+        if (missingLocalizedProductResponse) {
+          return finalizePublicSiteResponse(
+            request,
+            missingLocalizedProductResponse,
+            capturedClickIds,
+          );
+        }
+
         const redirectResponse = await trySlugRedirect(
           request,
           potentialProductRoute,
@@ -1483,24 +1567,12 @@ export async function middleware(request: NextRequest) {
       pathname,
       resolveWebsiteLocaleSettingsForMiddleware(website),
     );
-    const exactLocalePrefixedPageRouting =
-      await resolveExactLocalePrefixedPageRouting({
-        website,
-        localeResolution,
-      });
-    const routePathnameWithoutLang =
-      exactLocalePrefixedPageRouting?.pathnameWithoutLang ??
-      localeResolution.pathnameWithoutLang;
-    const routeCanonicalPathname =
-      exactLocalePrefixedPageRouting?.canonicalPathname ??
-      localeResolution.canonicalPathname;
     const potentialProductRoute = getPotentialProductRoute(
-      routePathnameWithoutLang,
+      localeResolution.pathnameWithoutLang,
     );
     const allowLegacyRedirects =
-      !exactLocalePrefixedPageRouting &&
-      !isPublicSeoMetadataPath(routePathnameWithoutLang) &&
-      !isLegalPathname(routePathnameWithoutLang) &&
+      !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
+      !isLegalPathname(localeResolution.pathnameWithoutLang) &&
       !isLocalizedSystemPageAliasPath(localeResolution);
 
     if (
@@ -1513,7 +1585,7 @@ export async function middleware(request: NextRequest) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,
-        routePathnameWithoutLang,
+        localeResolution.pathnameWithoutLang,
       );
       if (legacyRedirectResponse) {
         return finalizePublicSiteResponse(
@@ -1534,6 +1606,19 @@ export async function middleware(request: NextRequest) {
     }
 
     if (potentialProductRoute) {
+      const missingLocalizedProductResponse = await tryMissingLocalizedProductNotFound(
+        potentialProductRoute,
+        website,
+        localeResolution,
+      );
+      if (missingLocalizedProductResponse) {
+        return finalizePublicSiteResponse(
+          request,
+          missingLocalizedProductResponse,
+          capturedClickIds,
+        );
+      }
+
       const redirectResponse = await trySlugRedirect(
         request,
         potentialProductRoute,
@@ -1553,8 +1638,8 @@ export async function middleware(request: NextRequest) {
       applyLocaleAwareTenantRewrite({
         request,
         sourceUrl: url,
-        pathnameWithoutLang: routePathnameWithoutLang,
-        canonicalPathname: routeCanonicalPathname,
+        pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+        canonicalPathname: localeResolution.canonicalPathname,
         originalPathname: localeResolution.originalPathname,
         subdomain,
         resolvedLocale: localeResolution.resolvedLocale,
@@ -1562,7 +1647,6 @@ export async function middleware(request: NextRequest) {
         resolvedLanguage: localeResolution.resolvedLanguage,
         hasLanguageSegment: localeResolution.hasLanguageSegment,
         languageSegment: localeResolution.languageSegment,
-        preservePublicPath: exactLocalePrefixedPageRouting?.preservePublicPath,
       }),
       capturedClickIds,
     );
@@ -1585,24 +1669,12 @@ export async function middleware(request: NextRequest) {
       pathname,
       resolveWebsiteLocaleSettingsForMiddleware(website),
     );
-    const exactLocalePrefixedPageRouting =
-      await resolveExactLocalePrefixedPageRouting({
-        website,
-        localeResolution,
-      });
-    const routePathnameWithoutLang =
-      exactLocalePrefixedPageRouting?.pathnameWithoutLang ??
-      localeResolution.pathnameWithoutLang;
-    const routeCanonicalPathname =
-      exactLocalePrefixedPageRouting?.canonicalPathname ??
-      localeResolution.canonicalPathname;
     const potentialProductRoute = getPotentialProductRoute(
-      routePathnameWithoutLang,
+      localeResolution.pathnameWithoutLang,
     );
     const allowLegacyRedirects =
-      !exactLocalePrefixedPageRouting &&
-      !isPublicSeoMetadataPath(routePathnameWithoutLang) &&
-      !isLegalPathname(routePathnameWithoutLang) &&
+      !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
+      !isLegalPathname(localeResolution.pathnameWithoutLang) &&
       !isLocalizedSystemPageAliasPath(localeResolution);
 
     if (
@@ -1615,7 +1687,7 @@ export async function middleware(request: NextRequest) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,
-        routePathnameWithoutLang,
+        localeResolution.pathnameWithoutLang,
       );
       if (legacyRedirectResponse) {
         return finalizePublicSiteResponse(
@@ -1636,6 +1708,19 @@ export async function middleware(request: NextRequest) {
     }
 
     if (potentialProductRoute) {
+      const missingLocalizedProductResponse = await tryMissingLocalizedProductNotFound(
+        potentialProductRoute,
+        website,
+        localeResolution,
+      );
+      if (missingLocalizedProductResponse) {
+        return finalizePublicSiteResponse(
+          request,
+          missingLocalizedProductResponse,
+          capturedClickIds,
+        );
+      }
+
       const redirectResponse = await trySlugRedirect(
         request,
         potentialProductRoute,
@@ -1657,8 +1742,8 @@ export async function middleware(request: NextRequest) {
         applyLocaleAwareTenantRewrite({
           request,
           sourceUrl: url,
-          pathnameWithoutLang: routePathnameWithoutLang,
-          canonicalPathname: routeCanonicalPathname,
+          pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+          canonicalPathname: localeResolution.canonicalPathname,
           originalPathname: localeResolution.originalPathname,
           subdomain: website.subdomain,
           host,
@@ -1667,8 +1752,6 @@ export async function middleware(request: NextRequest) {
           resolvedLanguage: localeResolution.resolvedLanguage,
           hasLanguageSegment: localeResolution.hasLanguageSegment,
           languageSegment: localeResolution.languageSegment,
-          preservePublicPath:
-            exactLocalePrefixedPageRouting?.preservePublicPath,
         }),
         capturedClickIds,
       );
@@ -1693,6 +1776,7 @@ export const middlewareInternals = {
   hasClickIdQueryParam,
   redirectWithoutCacheBustQueryParams,
   shouldApplyPublicHtmlCache,
+  getPotentialProductRoute,
 };
 
 export const config = {
@@ -1701,12 +1785,11 @@ export const config = {
     /*
      * Match all request paths except for the ones starting with:
      * - api (API routes)
-     * - Admin Next routes guard themselves server-side.
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    "/((?!api|admin/prototype|admin/dashboard|admin/itineraries|admin/contacts|admin/conversations|admin/products|admin/reports|admin/payments|admin/agenda|admin/account|admin/settings|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
   ],
 };

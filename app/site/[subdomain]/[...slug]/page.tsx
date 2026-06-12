@@ -27,7 +27,7 @@ import {
   type PublicMetadataLocaleContext,
 } from "@/lib/seo/public-metadata";
 import {
-  buildPublicLocalizedPath,
+  buildPublicCanonicalPathname,
   localeToLanguage,
   localeToOgLocale,
   normalizeLocale,
@@ -63,6 +63,7 @@ import { resolvePublicPageForRoute } from "@/lib/site/public-page-resolution";
 import { getSystemFallbackPage } from "@/lib/site/system-fallback-pages";
 import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
 import { getPublicUiExtraTextGetter } from "@/lib/site/public-ui-extra-text";
+import { getPackagesListingCopy } from "@/lib/site/packages-listing-copy";
 
 const DestinationListingPage = dynamic(() =>
   import("@/components/pages/destination-listing-page").then(
@@ -119,7 +120,7 @@ function buildCanonicalUrl(
   pathname: string,
   localeContext: PublicMetadataLocaleContext,
 ): string {
-  const localizedPath = buildPublicLocalizedPath(
+  const localizedPath = buildPublicCanonicalPathname(
     pathname,
     localeContext.resolvedLocale,
     localeContext.defaultLocale,
@@ -414,11 +415,9 @@ export async function generateMetadata({
       "packages",
     ]);
     const ogImage = resolveOgImage(website);
-    const isEnglish = localeContext.resolvedLanguage === "en";
-    const pageTitle = isEnglish ? "Travel Packages" : "Paquetes de Viaje";
-    const pageDescription = isEnglish
-      ? `Discover curated travel packages by ${siteName}. All-in-one unique experiences.`
-      : `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`;
+    const copy = getPackagesListingCopy(siteName, localeContext.resolvedLocale);
+    const pageTitle = copy.title;
+    const pageDescription = copy.description;
     const metadata: Metadata = {
       title: pageTitle,
       description: pageDescription,

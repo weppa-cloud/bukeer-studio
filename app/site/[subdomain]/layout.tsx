@@ -30,6 +30,7 @@ import { normalizeThemeInput } from "@/lib/theme/normalize-theme";
 import { supabaseImageUrl } from "@/lib/images/supabase-transform";
 import { EditorialSiteHeader } from "@/components/site/themes/editorial-v1/layout/site-header";
 import { EditorialSiteFooter } from "@/components/site/themes/editorial-v1/layout/site-footer";
+import { localizeEditorialText } from "@/components/site/themes/editorial-v1/i18n";
 import { WaflowProvider } from "@/components/site/themes/editorial-v1/waflow/provider";
 import { createHomeRenderWebsite } from "@/lib/site/home-rendering";
 import "@/app/globals.css";
@@ -138,6 +139,25 @@ function generateThemeOutput(themeInput: ThemeInput | undefined): ThemeOutput {
   }
 }
 
+function localizeLayoutSerializableValue(
+  website: Parameters<typeof localizeEditorialText>[0],
+  value: unknown,
+): unknown {
+  if (typeof value === "string") return localizeEditorialText(website, value);
+  if (Array.isArray(value)) {
+    return value.map((item) => localizeLayoutSerializableValue(website, item));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        localizeLayoutSerializableValue(website, item),
+      ]),
+    );
+  }
+  return value;
+}
+
 // Generate metadata for SEO
 export async function generateMetadata({
   params,
@@ -225,6 +245,20 @@ export default async function SiteLayout({
     isCustomDomain,
     includeSectionSummaries: true,
   });
+  const localizedWebsiteForRender = {
+    ...websiteForRender,
+    content: localizeLayoutSerializableValue(
+      websiteForRender,
+      websiteForRender.content,
+    ) as typeof websiteForRender.content,
+    sections: (websiteForRender.sections || []).map((section) => ({
+      ...section,
+      content: localizeLayoutSerializableValue(
+        websiteForRender,
+        section.content,
+      ) as typeof section.content,
+    })),
+  };
   const basePath = getBasePath(subdomain, isCustomDomain);
   const navigation =
     navItems.length > 0
@@ -298,28 +332,28 @@ export default async function SiteLayout({
 
   const headerEl = isEditorial ? (
     <EditorialSiteHeader
-      website={websiteForRender}
+      website={localizedWebsiteForRender}
       navigation={navigation}
       isCustomDomain={isCustomDomain}
       isLanding={isLanding}
     />
   ) : (
     <SiteHeader
-      website={websiteForRender}
+      website={localizedWebsiteForRender}
       navigation={navigation}
       isCustomDomain={isCustomDomain}
     />
   );
   const footerEl = isEditorial ? (
     <EditorialSiteFooter
-      website={websiteForRender}
+      website={localizedWebsiteForRender}
       navigation={navigation}
       isCustomDomain={isCustomDomain}
       isLanding={isLanding}
     />
   ) : (
     <SiteFooter
-      website={websiteForRender}
+      website={localizedWebsiteForRender}
       navigation={navigation}
       isCustomDomain={isCustomDomain}
     />
