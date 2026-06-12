@@ -927,6 +927,7 @@ function freshSignals(context: JsonRecord, lane: AgentLane | null = null, limit 
     transcreation: /translation|hreflang|locale|transcreation/i,
     content_creator: /keyword|gsc|query|serp|content|internal_link/i,
     content_curator: /decay|refresh|stale|content/i,
+    media: /media|image|asset|photo|license|provenance|alt_text/i,
     orchestrator: /funnel|lead|crm|conversion/i,
   };
   const matched = signals.filter((signal) =>

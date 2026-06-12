@@ -427,6 +427,8 @@ interface GoogleAdsUploadRequest {
   validateOnly: boolean;
 }
 
+type GoogleAdsLogStatus = 'pending' | 'sent' | 'failed' | 'skipped';
+
 function readTenantOverride(
   mapping: MappingRow,
   accountId: string,
@@ -577,7 +579,7 @@ async function insertGoogleAdsLog(
   supabase: SupabaseClientLike,
   event: FunnelEventRow,
   conversionActionId: string,
-  status: 'pending' | 'sent' | 'failed' | 'skipped',
+  status: GoogleAdsLogStatus,
   requestPayload: unknown,
   details: { error?: string; providerResponse?: unknown } = {},
 ): Promise<{ deduped: boolean }> {
@@ -610,6 +612,62 @@ async function insertGoogleAdsLog(
   if (!error) return { deduped: false };
   if ((error as { code?: string }).code === '23505') return { deduped: true };
   throw new Error(error.message ?? 'google_ads_offline_uploads insert failed');
+}
+
+async function stageGoogleAdsUploadAttempt(
+  supabase: SupabaseClientLike,
+  event: FunnelEventRow,
+  conversionActionId: string,
+  requestPayload: unknown,
+): Promise<{ shouldUpload: boolean; reason?: string }> {
+  const inserted = await insertGoogleAdsLog(
+    supabase,
+    event,
+    conversionActionId,
+    'pending',
+    requestPayload,
+  );
+  if (!inserted.deduped) return { shouldUpload: true };
+
+  const { data, error } = await supabase
+    .from('google_ads_offline_uploads')
+    .select('status, retry_count')
+    .eq('funnel_event_id', event.event_id)
+    .eq('conversion_action_id', conversionActionId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  const existing = data as { status?: GoogleAdsLogStatus; retry_count?: number } | null;
+  if (existing?.status === 'sent') {
+    return { shouldUpload: false, reason: 'duplicate_sent_log_row' };
+  }
+  if (existing?.status === 'pending') {
+    return { shouldUpload: false, reason: 'duplicate_pending_log_row' };
+  }
+  if (existing?.status === 'skipped') {
+    return { shouldUpload: false, reason: 'duplicate_skipped_log_row' };
+  }
+
+  const retryCount = Number.isFinite(existing?.retry_count)
+    ? Number(existing?.retry_count) + 1
+    : 1;
+  const { error: updateError } = await supabase
+    .from('google_ads_offline_uploads')
+    .update({
+      status: 'pending',
+      retry_count: retryCount,
+      request_payload: requestPayload ?? {},
+      provider_response: null,
+      error: null,
+      sent_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('funnel_event_id', event.event_id)
+    .eq('conversion_action_id', conversionActionId)
+    .eq('status', 'failed');
+  if (updateError) throw new Error(updateError.message);
+
+  return { shouldUpload: true };
 }
 
 async function updateGoogleAdsLog(
@@ -670,9 +728,9 @@ async function dispatchToGoogleAds(
     };
   }
 
-  const pending = await insertGoogleAdsLog(supabase, event, conversionActionId, 'pending', request);
-  if (pending.deduped) {
-    return { destination: mapping.destination, outcome: 'skipped', reason: 'duplicate_log_row' };
+  const staged = await stageGoogleAdsUploadAttempt(supabase, event, conversionActionId, request);
+  if (!staged.shouldUpload) {
+    return { destination: mapping.destination, outcome: 'skipped', reason: staged.reason ?? 'duplicate_log_row' };
   }
 
   try {

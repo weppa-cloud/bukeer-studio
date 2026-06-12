@@ -17,9 +17,13 @@ import {
 } from '@/lib/seo/google-client';
 import { logSeoApiCall } from '@/lib/seo/api-call-logger';
 import { callDataForSeo } from '@/lib/growth/dataforseo-client';
+import {
+  hydrateGoogleCredential,
+  type GoogleProviderCredentialSecret,
+} from '@/lib/growth/provider-credentials/vault';
 
 interface CredentialRow {
-  id: string;
+  id?: string;
   website_id: string;
   provider: 'gsc' | 'ga4';
   access_token: string | null;
@@ -29,6 +33,9 @@ interface CredentialRow {
   property_id: string | null;
   scopes: string[] | null;
   last_error: string | null;
+  credential_ref?: string | null;
+  credential_source?: 'vault' | 'legacy';
+  credential_secret?: GoogleProviderCredentialSecret | null;
 }
 
 export interface GoogleIntegrationOption {
@@ -115,8 +122,8 @@ async function withRetry<T>(
 async function getCredentialMap(websiteId: string) {
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
-    .from('seo_gsc_credentials')
-    .select('id, website_id, provider, access_token, refresh_token, token_expiry, site_url, property_id, scopes, last_error')
+    .from('seo_integrations')
+    .select('website_id, provider, access_token, refresh_token, access_token_expires_at, site_url, property_id, scopes, last_error, credential_ref')
     .eq('website_id', websiteId);
 
   if (error) {
@@ -124,8 +131,73 @@ async function getCredentialMap(websiteId: string) {
   }
 
   const map = new Map<'gsc' | 'ga4', CredentialRow>();
-  for (const row of (data ?? []) as CredentialRow[]) {
-    map.set(row.provider, row);
+  for (const row of (data ?? []) as Array<{
+    website_id: string;
+    provider: 'gsc' | 'ga4' | string;
+    access_token: string | null;
+    refresh_token: string | null;
+    access_token_expires_at: string | null;
+    site_url: string | null;
+    property_id: string | null;
+    scopes: string[] | null;
+    last_error: string | null;
+    credential_ref: string | null;
+  }>) {
+    if (row.provider !== 'gsc' && row.provider !== 'ga4') continue;
+    const base: CredentialRow = {
+      website_id: row.website_id,
+      provider: row.provider,
+      access_token: row.access_token,
+      refresh_token: row.refresh_token,
+      token_expiry: row.access_token_expires_at,
+      site_url: row.site_url,
+      property_id: row.property_id,
+      scopes: row.scopes,
+      last_error: row.last_error,
+      credential_ref: row.credential_ref,
+    };
+    const hydrated = await hydrateGoogleCredential({
+      supabase,
+      provider: row.provider,
+      integration: {
+        website_id: base.website_id,
+        access_token: base.access_token,
+        refresh_token: base.refresh_token,
+        access_token_expires_at: base.token_expiry,
+        site_url: base.site_url,
+        property_id: base.property_id,
+        scopes: base.scopes,
+        credential_ref: base.credential_ref,
+      },
+    });
+    map.set(row.provider, {
+      ...base,
+      access_token: hydrated.integration.access_token ?? null,
+      refresh_token: hydrated.integration.refresh_token ?? null,
+      token_expiry: hydrated.integration.access_token_expires_at ?? null,
+      site_url: hydrated.integration.site_url ?? null,
+      property_id: hydrated.integration.property_id ?? null,
+      scopes: hydrated.integration.scopes ?? null,
+      credential_source: hydrated.credentialSource,
+      credential_secret: hydrated.secret,
+    });
+  }
+
+  if (map.size > 0) {
+    return map;
+  }
+
+  const fallback = await supabase
+    .from('seo_gsc_credentials')
+    .select('id, website_id, provider, access_token, refresh_token, token_expiry, site_url, property_id, scopes, last_error')
+    .eq('website_id', websiteId);
+
+  if (fallback.error) {
+    throw new SeoApiError('INTERNAL_ERROR', 'Failed to load legacy credentials', 500, fallback.error.message);
+  }
+
+  for (const row of (fallback.data ?? []) as CredentialRow[]) {
+    map.set(row.provider, { ...row, credential_source: 'legacy' });
   }
 
   return map;
@@ -197,6 +269,8 @@ async function upsertGrowthIntegration(
         ? 'expired'
         : 'configured';
 
+  const credentialRef = await storeGrowthCredentialSecret(supabase, websiteId, provider, patch);
+
   const { error } = await supabase
     .from('seo_integrations')
     .upsert(
@@ -205,15 +279,17 @@ async function upsertGrowthIntegration(
         website_id: websiteId,
         provider,
         status,
-        access_token: patch.access_token ?? null,
-        refresh_token: patch.refresh_token ?? null,
+        access_token: null,
+        refresh_token: null,
         access_token_expires_at: patch.token_expiry ?? null,
         site_url: patch.site_url ?? null,
         property_id: patch.property_id ?? null,
         scopes: patch.scopes ?? [],
+        credential_ref: credentialRef,
         metadata: {
           source_table: 'seo_gsc_credentials',
           synced_by: 'seo_backend_service',
+          credential_storage: credentialRef ? 'supabase_vault' : 'legacy_columns_only',
         },
         last_error: patch.last_error ?? null,
         connected_at: patch.access_token ? new Date().toISOString() : null,
@@ -224,6 +300,45 @@ async function upsertGrowthIntegration(
   if (error) {
     throw new SeoApiError('INTERNAL_ERROR', `Failed to persist ${provider} growth integration`, 500, error.message);
   }
+}
+
+async function storeGrowthCredentialSecret(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  websiteId: string,
+  provider: 'gsc' | 'ga4',
+  patch: Partial<CredentialRow>
+) {
+  if (!patch.access_token && !patch.refresh_token) {
+    return null;
+  }
+
+  const secretPayload = {
+    provider,
+    access_token: patch.access_token ?? null,
+    refresh_token: patch.refresh_token ?? null,
+    access_token_expires_at: patch.token_expiry ?? null,
+    scopes: patch.scopes ?? [],
+    site_url: patch.site_url ?? null,
+    property_id: patch.property_id ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase.rpc('store_seo_integration_credential_secret', {
+    p_website_id: websiteId,
+    p_provider: provider,
+    p_secret: secretPayload,
+  });
+
+  if (error) {
+    throw new SeoApiError(
+      'INTERNAL_ERROR',
+      `Failed to persist ${provider} credential_ref`,
+      500,
+      error.message
+    );
+  }
+
+  return typeof data === 'string' && data.length > 0 ? data : null;
 }
 
 async function ensureFreshToken(websiteId: string, credential: CredentialRow): Promise<CredentialRow> {

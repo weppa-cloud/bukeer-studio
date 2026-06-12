@@ -99,6 +99,7 @@ npx wrangler versions deploy <version-id>      # Deploy specific version
 - **Deployment spec**: `docs/specs/SPEC_DEPLOY_WEB_PUBLIC_CLOUDFLARE_WORKERS.md`
 - **Architecture**: `docs/02-architecture/decisions/ADR-033-website-platform-evolution.md`
 - **AI Copilot spec**: `docs/specs/SPEC_WEBSITE_COPILOT.md`
+- **Admin Next controlled preview**: `docs/design/human-agent-v0/MVP_CONTROLLED_PREVIEW_2026-05-19.md`
 
 ## Studio Theme System V1 (Admin/Editor)
 

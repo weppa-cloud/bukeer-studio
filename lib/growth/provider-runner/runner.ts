@@ -218,6 +218,17 @@ function evaluateApproval(input: z.infer<typeof inputSchema>, profile: GrowthPro
   if (scope && (scope.website_id !== input.websiteId || scope.account_id !== input.accountId || scope.profile_id !== profile.profile_id)) {
     reasons.push('approval_scope_mismatch');
   }
+  if (scope && profile.cost_policy.cost_class !== 'free') {
+    if (scope.provider !== profile.provider) {
+      reasons.push('approval_scope_provider_mismatch');
+    }
+    const costCap = typeof scope.cost_cap_usd === 'number' ? scope.cost_cap_usd : null;
+    if (!costCap || costCap <= 0) {
+      reasons.push('approval_scope_cost_cap_usd_required');
+    } else if (input.estimatedCostUsd && input.estimatedCostUsd > costCap) {
+      reasons.push('approval_scope_cost_cap_exceeded');
+    }
+  }
   if (reasons.length === 0) return null;
   return { gate: { gate: 'approval', status: 'blocked', reason: 'approval_metadata_invalid', metadata: { reasons } }, reasons };
 }

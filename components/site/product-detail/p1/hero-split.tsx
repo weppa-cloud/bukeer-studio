@@ -89,9 +89,8 @@ export function HeroSplit({
           src={backgroundImage}
           alt={`${productTypeLabel} ${displayName}${displayLocation ? ` en ${displayLocation}` : ''}`}
           fill
-          priority
-          fetchPriority="high"
-          sizes="100vw"
+          sizes="(max-width: 639px) 0px, 100vw"
+          quality={74}
           className="hidden object-cover sm:block"
         />
       ) : null}
@@ -108,7 +107,8 @@ export function HeroSplit({
                 fill
                 priority
                 fetchPriority="high"
-                sizes="100vw"
+                sizes="(max-width: 639px) 100vw, 0px"
+                quality={74}
                 className="object-cover"
               />
             </div>

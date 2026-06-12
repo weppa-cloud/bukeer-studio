@@ -1,8 +1,8 @@
 # Public Template Systemic Fix v1 QA
 
-Date: 2026-05-15 America/Bogota  
-Branch: `fix/public-template-systemic-fix`  
-PR: https://github.com/weppa-cloud/bukeer-studio/pull/567  
+Date: 2026-05-15 America/Bogota
+Branch: `fix/public-template-systemic-fix`
+PR: https://github.com/weppa-cloud/bukeer-studio/pull/567
 Commits validated: `f2c24b34`, `d203586e`, plus QA follow-up changes in this branch.
 
 ## Decision

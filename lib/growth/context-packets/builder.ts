@@ -49,10 +49,14 @@ const FACT_BUCKETS = [
 ] as const;
 
 const PROFILE_TO_BUCKET: Record<string, keyof GrowthProviderContextFacts> = {
+  gsc_daily_complete_web_v1: "search_demand",
   gsc_growth_minimum_v1: "search_demand",
   gsc_indexability_v1: "technical_issues",
+  ga4_daily_web_traffic_v1: "conversion_signals",
+  ga4_daily_landing_channel_v1: "conversion_signals",
   ga4_growth_minimum_v1: "conversion_signals",
   ga4_admin_governance_v1: "conversion_signals",
+  dataforseo_serp_opportunity_v1: "market_terms",
   dfs_onpage_full_comparable_v3: "technical_issues",
   dfs_onpage_changed_urls_v1: "technical_issues",
   dfs_serp_labs_primary_v1: "market_terms",
@@ -82,13 +86,23 @@ async function readRows(
     .select("*")
     .eq("account_id", accountId)
     .eq("website_id", websiteId)
-    .order("created_at", { ascending: false })
+    .order(orderColumnForTable(table), { ascending: false })
     .limit(200);
 
   if (error) {
     throw new Error(`Failed to read ${table}: ${error.message ?? String(error)}`);
   }
   return Array.isArray(data) ? data : [];
+}
+
+function orderColumnForTable(table: string) {
+  if (table === "growth_gsc_cache" || table === "growth_ga4_cache" || table === "growth_dataforseo_cache") {
+    return "fetched_at";
+  }
+  if (table === "growth_inventory") {
+    return "updated_at";
+  }
+  return "created_at";
 }
 
 function profileDefinition(profileId: string) {
@@ -103,7 +117,9 @@ function providerForProfile(profileId: string, row?: GrowthProviderContextPacket
 }
 
 function isoOrNull(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
+  if (typeof value !== "string" || value.length === 0) return null;
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? new Date(time).toISOString() : null;
 }
 
 function classifyFreshness(
@@ -121,11 +137,44 @@ function classifyFreshness(
   }
 
   const explicitStatus = typeof row.freshness_status === "string" ? row.freshness_status : null;
+  const runStatus = typeof row.run_status === "string" ? row.run_status : null;
+  const legacyStatus = typeof row.status === "string" ? row.status : null;
+  const qualityStatus = typeof row.quality_status === "string" ? row.quality_status : null;
   const fetchedAt = isoOrNull(row.completed_at) ?? isoOrNull(row.fetched_at) ?? isoOrNull(row.created_at);
   const explicitExpiresAt = isoOrNull(row.expires_at);
   const ttlHours = profileDefinition(profileId)?.cadence.freshnessTtlHours;
   const computedExpiresAt = fetchedAt && ttlHours ? addHours(new Date(fetchedAt), ttlHours).toISOString() : null;
   const expiresAt = explicitExpiresAt ?? computedExpiresAt;
+  const costGated = runStatus === "cost_gated" || explicitStatus === "cost_gated" || legacyStatus === "cost_gated";
+  const approvalRequired = runStatus === "blocked" && explicitStatus === "approval_required";
+  const blocked = legacyStatus === "blocked" || qualityStatus === "blocked";
+
+  if (costGated) {
+    return {
+      status: "cost_gated",
+      expiresAt,
+      fetchedAt,
+      reasons: [`profile_cost_gated:${profileId}`],
+    };
+  }
+
+  if (approvalRequired) {
+    return {
+      status: "approval_required",
+      expiresAt,
+      fetchedAt,
+      reasons: [`profile_approval_required:${profileId}`],
+    };
+  }
+
+  if (blocked) {
+    return {
+      status: "blocked",
+      expiresAt,
+      fetchedAt,
+      reasons: [`profile_blocked:${profileId}`],
+    };
+  }
 
   if (
     explicitStatus &&
@@ -154,7 +203,18 @@ function classifyFreshness(
 
 function sourceRefs(row: GrowthProviderContextPacketTableRow): string[] {
   const refs = row.source_refs;
-  if (Array.isArray(refs)) return refs.map(String);
+  if (Array.isArray(refs)) {
+    return refs.map((ref) => {
+      if (typeof ref === "string") return ref;
+      if (ref && typeof ref === "object") {
+        const record = ref as Record<string, unknown>;
+        const type = typeof record.type === "string" ? record.type : "ref";
+        const value = typeof record.ref === "string" ? record.ref : JSON.stringify(record);
+        return `${type}:${value}`;
+      }
+      return String(ref);
+    });
+  }
   const id = typeof row.id === "string" ? row.id : null;
   const profileId = typeof row.profile_id === "string" ? row.profile_id : "profile";
   return id ? [`growth_profile_runs:${id}`] : [`growth_profile_runs:${profileId}`];
@@ -287,11 +347,13 @@ export async function buildGrowthProviderContextPacket(
   const freshnessMap: Record<string, GrowthProviderFreshnessEntry> = {};
   const packetNoGoReasons: string[] = [];
   const freshRequiredRows: GrowthProviderContextPacketTableRow[] = [];
+  const availableRequiredRows: GrowthProviderContextPacketTableRow[] = [];
 
   for (const profileId of requiredProfileIds) {
     const row = rowsByProfile.get(profileId);
     const freshness = classifyFreshness(profileId, row, now);
     packetNoGoReasons.push(...freshness.reasons);
+    if (row) availableRequiredRows.push(row);
     if (row && freshness.status === "fresh") freshRequiredRows.push(row);
 
     freshnessMap[profileId] = {
@@ -321,10 +383,28 @@ export async function buildGrowthProviderContextPacket(
     bucket.source_profile_ids.push(profileId);
   }
 
-  if (gscRows.length > 0 && facts.search_demand.source_profile_ids.includes("gsc_growth_minimum_v1")) {
+  for (const row of availableRequiredRows) {
+    const profileId = String(row.profile_id);
+    const freshness = freshnessMap[profileId];
+    if (!freshness || freshness.status === "fresh") continue;
+    const bucketName = PROFILE_TO_BUCKET[profileId] ?? "market_terms";
+    const bucket = facts[bucketName];
+    bucket.no_go_reasons.push(...freshness.no_go_reasons);
+  }
+
+  if (
+    gscRows.length > 0 &&
+    (facts.search_demand.source_profile_ids.includes("gsc_growth_minimum_v1") ||
+      facts.search_demand.source_profile_ids.includes("gsc_daily_complete_web_v1"))
+  ) {
     facts.search_demand.items.push(...gscRows.slice(0, 10).map(asRecord));
   }
-  if (ga4Rows.length > 0 && facts.conversion_signals.source_profile_ids.includes("ga4_growth_minimum_v1")) {
+  if (
+    ga4Rows.length > 0 &&
+    (facts.conversion_signals.source_profile_ids.includes("ga4_growth_minimum_v1") ||
+      facts.conversion_signals.source_profile_ids.includes("ga4_daily_web_traffic_v1") ||
+      facts.conversion_signals.source_profile_ids.includes("ga4_daily_landing_channel_v1"))
+  ) {
     facts.conversion_signals.items.push(...ga4Rows.slice(0, 10).map(asRecord));
   }
   if (dataforseoRows.length > 0) {
@@ -397,6 +477,12 @@ export async function buildGrowthProviderContextPacket(
     dedupeReason = correlation.reason ?? "anti_rework_gate";
     previousRefs = correlation.previous_work_item_ids.map((id) => `growth_work_items:${id}`);
     dedupeNoGoReasons = correlation.no_go_reasons;
+    if (dedupeVerdict === "coalesce") {
+      dedupeReason = dedupeNoGoReasons.some((reason) => reason.startsWith("active_work:"))
+        ? "active_work_coalesced"
+        : dedupeReason;
+      dedupeNoGoReasons = dedupeNoGoReasons.filter((reason) => !reason.startsWith("active_work:"));
+    }
   }
 
   const packet = {
@@ -420,7 +506,7 @@ export async function buildGrowthProviderContextPacket(
       ...options.entity,
     },
     freshness_map: freshnessMap,
-    source_profiles: sourceProfilesFromRows(freshRequiredRows),
+    source_profiles: sourceProfilesFromRows(availableRequiredRows),
     facts,
     previous_actions: buildPreviousActions(workItems, publicationJobs, outcomes),
     dedupe_verdict: {

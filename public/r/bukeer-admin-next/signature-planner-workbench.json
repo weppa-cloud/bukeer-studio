@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "signature-planner-workbench",
+  "title": "Signature Planner Workbench",
+  "description": "Primary Bukeer workbench surface for lead to itinerary to approval workflows.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "bukeer-signature-theme",
+    "bukeer-signature-components"
+  ],
+  "files": [
+    {
+      "path": "docs/design/human-agent-v0/registry/blocks/signature-planner-workbench.tsx",
+      "content": "import {\n  ApprovalCommandBar,\n  CopilotThread,\n  ItineraryBlock,\n  LiveFeedColumn,\n  MarginGuard,\n  MissingDataChecklist,\n  TripRail,\n} from \"@/components/bukeer-admin/signature-components\"\n\nconst trips = [\n  { name: \"Mariana Rios\", destination: \"Cartagena, Colombia\", value: \"$4,800\", state: \"2 missing\", tone: \"live\" as const },\n  { name: \"James Thornton\", destination: \"Medellin, Colombia\", value: \"$3,200\", state: \"approval\", tone: \"humanLoop\" as const },\n  { name: \"Sophie Muller\", destination: \"Santa Marta + Tayrona\", value: \"$9,500\", state: \"hold\", tone: \"humanLoop\" as const },\n]\n\nconst feed = [\n  { title: \"Hotel Casa San Agustin\", meta: \"Better margin and kid-friendly amenities\", tone: \"live\" as const },\n  { title: \"Sofitel Legend Santa Clara\", meta: \"Confirmation needed from revenue desk\", tone: \"humanLoop\" as const },\n  { title: \"Private transfer CTG\", meta: \"Confirmed, vehicle assigned\", tone: \"success\" as const },\n]\n\nexport default function SignaturePlannerWorkbench() {\n  return (\n    <main className=\"bukeer-admin-signature flex min-h-screen bg-[hsl(var(--background))] pb-20 text-[hsl(var(--foreground))]\">\n      <TripRail trips={trips} />\n      <section className=\"min-w-0 flex-1 overflow-y-auto\">\n        <header className=\"sticky top-0 z-10 border-b bg-background/95 px-8 py-4 backdrop-blur\">\n          <div className=\"flex items-center justify-between gap-6\">\n            <div>\n              <div className=\"text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground\">Client</div>\n              <h1 className=\"mt-1 text-xl font-semibold\">Mariana Rios - Cartagena family escape</h1>\n              <p className=\"mt-1 text-sm text-muted-foreground\">Jul 12-17, 2026 - 2 adults + 2 children - Budget USD 4,800</p>\n            </div>\n            <div className=\"text-right\">\n              <div className=\"text-xs text-muted-foreground\">Quoted</div>\n              <div className=\"text-lg font-semibold text-[hsl(var(--bukeer-live))]\">$3,805</div>\n            </div>\n          </div>\n        </header>\n        <div className=\"mx-auto max-w-4xl space-y-5 px-8 py-6\">\n          <div className=\"rounded-lg border border-[hsl(var(--bukeer-human-loop)/0.36)] bg-[hsl(var(--bukeer-human-loop)/0.10)] px-4 py-3 text-sm\">\n            Missing data: children ages and full passport names. Proposal accuracy may be limited.\n          </div>\n          <div className=\"space-y-3\">\n            <ItineraryBlock kind=\"Transfer\" title=\"Private transfer - CTG Airport to hotel\" meta=\"Rafael Nunez Intl - Family van - Meet and greet included\" price=\"$85\" margin=\"17.4% margin\" tone=\"live\" />\n            <ItineraryBlock kind=\"Hotel\" title=\"Hotel Casa San Agustin\" meta=\"Superior suite, city view - 4 nights - Breakfast included\" price=\"$1,680\" margin=\"18.6% margin\" tone=\"humanLoop\" />\n            <CopilotThread title=\"AI suggests hotel swap\" rationale=\"Casa San Agustin improves margin and lowers supplier confirmation risk while preserving Old City proximity.\" action=\"Review suggestion\" />\n            <ItineraryBlock kind=\"Excursion\" title=\"Private Old City walking tour\" meta=\"Bilingual guide - 3h - Includes Castillo de San Felipe entry\" price=\"$240\" margin=\"22.1% margin\" tone=\"live\" />\n          </div>\n        </div>\n      </section>\n      <LiveFeedColumn items={feed} />\n      <div className=\"fixed right-4 top-24 w-80 space-y-4\">\n        <MarginGuard margin=\"16.8%\" target=\"18%\" revenue=\"$4,800\" cost=\"$3,805\" profit=\"$995\" />\n        <MissingDataChecklist items={[\"Children ages\", \"Full passport names\", \"Dietary preferences\", \"Inbound flight details\"]} />\n      </div>\n      <ApprovalCommandBar />\n    </main>\n  )\n}\n",
+      "type": "registry:page",
+      "target": "app/bukeer-signature/planner/page.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

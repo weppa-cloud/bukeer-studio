@@ -15,10 +15,12 @@ import {
 } from '@/lib/supabase/get-pages';
 import { resolvePublicPageForRoute } from '@/lib/site/public-page-resolution';
 import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supabase/get-website';
-import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
+import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas, generateStaticPageSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import { buildPublicLocalizedPath } from '@/lib/seo/locale-routing';
 import { resolveSiteIcons } from '@/lib/seo/site-icons';
+import { normalizePublicMetadataTitle } from '@/lib/seo/metadata-title';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import Image from 'next/image';
@@ -43,6 +45,11 @@ function getAnalyticsContext(website: WebsiteData) {
     locale,
     market: locale.split('-')[1] ?? null,
   };
+}
+
+function joinPublicUrl(baseUrl: string, pathname: string): string {
+  const normalizedPathname = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  return normalizedPathname === '/' ? baseUrl : `${baseUrl}${normalizedPathname}`;
 }
 
 async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteData | null> {
@@ -542,6 +549,25 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     notFound();
   }
 
+  const pageJsonLdSchemas = page
+    ? generateStaticPageSchemas(
+        website,
+        page,
+        joinPublicUrl(
+          baseUrl,
+          buildPublicLocalizedPath(
+            resolvedPageRoute.locale.canonicalPathname,
+            resolvedPageRoute.locale.resolvedLocale,
+            resolvedPageRoute.locale.defaultLocale,
+          ),
+        ),
+        {
+          publicBaseUrl: baseUrl,
+          inLanguage: resolvedPageRoute.locale.resolvedLocale,
+        },
+      )
+    : null;
+
   return (
     <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
       {/* Google Tag Manager and Analytics Scripts */}
@@ -553,6 +579,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
         <SiteHeader website={website} isCustomDomain={true} />
         <main className="flex-1">
+          {pageJsonLdSchemas && <JsonLd data={pageJsonLdSchemas} />}
           {page && <StaticPage website={website} page={page} dynamicDestinations={dynamicDestinations} />}
         </main>
         <SiteFooter website={website} isCustomDomain={true} />
@@ -679,6 +706,57 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
         ...(icons ? { icons } : {}),
       };
     }
+  }
+
+  // Custom/static landing metadata for paid-search and SEO pages.
+  // Without this branch, custom domains can fall back to tenant-level SEO title
+  // and truncate market-specific promises such as "desde España".
+  const page = await getPageBySlug(website.subdomain, slugPath || 'home');
+  if (page?.is_published) {
+    const siteName = website.content.account?.name || website.content.siteName || website.subdomain;
+    const baseUrl = `https://${normalizedHost}`;
+    const pagePath = page.slug && page.slug !== 'home' ? `/${page.slug}` : '/';
+    const canonical = `${baseUrl}${pagePath === '/' ? '' : pagePath}`;
+    const pageTitle = normalizePublicMetadataTitle(page.seo_title || page.title, siteName);
+    const pageRecord = page as typeof page & { seo_keywords?: string[] | string | null };
+    const description =
+      page.seo_description ||
+      (typeof page.intro_content?.text === 'string' ? page.intro_content.text : undefined) ||
+      website.content.seo?.description ||
+      website.content.tagline;
+    const heroConfig = (page.hero_config ?? {}) as Record<string, unknown>;
+    const heroImage =
+      (typeof heroConfig.backgroundImage === 'string' && heroConfig.backgroundImage) ||
+      (typeof heroConfig.background_image === 'string' && heroConfig.background_image) ||
+      (typeof heroConfig.image === 'string' && heroConfig.image) ||
+      undefined;
+
+    return {
+      title: pageTitle,
+      description,
+      keywords: pageRecord.seo_keywords ?? undefined,
+      robots: page.robots_noindex
+        ? { index: false, follow: false }
+        : { index: true, follow: true },
+      alternates: {
+        canonical,
+      },
+      openGraph: {
+        title: pageTitle,
+        description,
+        siteName,
+        type: 'website',
+        url: canonical,
+        images: heroImage ? [{ url: heroImage }] : undefined,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: pageTitle,
+        description,
+        images: heroImage ? [heroImage] : undefined,
+      },
+      ...(icons ? { icons } : {}),
+    };
   }
 
   // Default metadata with og:image

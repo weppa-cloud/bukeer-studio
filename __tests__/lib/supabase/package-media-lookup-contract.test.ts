@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
-import path from "path";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 describe("package media lookup contract", () => {
   const sourcePath = path.join(process.cwd(), "lib/supabase/get-pages.ts");

@@ -1,8 +1,13 @@
 #!/usr/bin/env tsx
 
+import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 import { createMemoryProviderRunnerStore } from '../../lib/growth/provider-runner/ledger';
+import { createSupabaseProviderRunnerStore } from '../../lib/growth/provider-runner/supabase-store';
 import { buildProviderRunPlan, runProviderProfile } from '../../lib/growth/provider-runner/runner';
 import type { ProviderCacheRow, ProviderRunnerInput } from '../../lib/growth/provider-runner/types';
+
+dotenv.config({ path: '.env.local' });
 
 function main() {
   run().catch((error) => {
@@ -48,7 +53,9 @@ async function run() {
       ]
     : [];
 
-  const store = createMemoryProviderRunnerStore({ cacheRows });
+  const store = parsed.store === 'supabase'
+    ? createSupabaseProviderRunnerStore(createSupabaseAdmin())
+    : createMemoryProviderRunnerStore({ cacheRows });
   const result = parsed.mode === 'dry-run'
     ? await buildProviderRunPlan(input, { store })
     : await runProviderProfile(input, { store });
@@ -114,6 +121,7 @@ function parseArgs(argv: string[]) {
     estimatedCostUsd: optionalNumber(flags, 'estimated-cost-usd'),
     approvalScope: optionalJson(flags, 'approval-scope-json'),
     fixtureFreshCache: flags.has('fixture-fresh-cache'),
+    store: optional(flags, 'store') === 'supabase' ? 'supabase' as const : 'memory' as const,
   };
 }
 
@@ -141,6 +149,15 @@ function optionalJson(flags: Map<string, string | boolean>, key: string): Record
 function redactError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return message.replace(/(token|key|secret|password)=?[^\s,]*/gi, '$1=[REDACTED]');
+}
+
+function createSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRole) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for --store supabase');
+  }
+  return createClient(url, serviceRole, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 main();

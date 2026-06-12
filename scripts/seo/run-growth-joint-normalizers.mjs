@@ -493,7 +493,7 @@ function summarizeGa4Cache(rows) {
       current.sessions += intMetric(metricMap.sessions);
       current.users += intMetric(metricMap.totalUsers ?? metricMap.activeUsers);
       current.events += intMetric(metricMap.eventCount);
-      current.conversions += numberOrZero(metricMap.conversions);
+      current.conversions += numberOrZero(metricMap.keyEvents ?? metricMap.conversions);
       current.engagement_weight +=
         rateMetric(metricMap.engagementRate) *
         Math.max(1, intMetric(metricMap.sessions));

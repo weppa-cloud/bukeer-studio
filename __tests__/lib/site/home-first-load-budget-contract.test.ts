@@ -37,7 +37,9 @@ describe("home first-load data budget contract", () => {
     expect(helperSource).toContain("sections: includeSectionSummaries");
     expect(helperSource).toContain("featured_products: {");
     expect(source).not.toMatch(/const websiteForRender = \{\s*\.\.\.website/);
-    expect(layoutSource).not.toMatch(/const websiteForRender = \{\s*\.\.\.website/);
+    expect(layoutSource).not.toMatch(
+      /const websiteForRender = \{\s*\.\.\.website/,
+    );
     expect(source).toContain("deferredSections");
     expect(source).toContain("enabledSections={deferredSections}");
     expect(source).not.toContain("criticalSectionIds={criticalSectionIds}");
