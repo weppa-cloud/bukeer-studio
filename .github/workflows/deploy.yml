@@ -334,6 +334,9 @@ jobs:
         env:
           EVOLUCION_ALLOWED_SKIPS: evolucion-f3-itinerary-create-modal.spec.ts::abre modal de creación y mantiene el submit cerrado sin flag de writes
 
+      - name: Assert Evolución write parity evidence
+        run: npm run admin-next:assert-evolucion-write-parity -- playwright-report/evolucion/results.json
+
       - name: Run F3 write-disabled guard lane
         run: npm run test:e2e:evolucion:f3-guard:session
 
@@ -363,6 +366,7 @@ jobs:
             test-results/
             reports/evolucion-core/
             reports/evolucion-parity/
+            reports/evolucion-write-parity/
           retention-days: 14
 
   # ── Pilot editor→render (EPIC #214 W4 #218) ────────────────────────

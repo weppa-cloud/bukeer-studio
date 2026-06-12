@@ -49,6 +49,7 @@
     "admin-next:assert-evolucion-ci-env": "node scripts/admin-next/assert-evolucion-ci-env.mjs",
     "admin-next:assert-evolucion-results": "node scripts/admin-next/assert-evolucion-results.mjs",
     "admin-next:assert-evolucion-core-results": "EVOLUCION_EXPECTED_FLOWS=F1,F2,F3,F4,F5,F6,F7,F8,F9,F11 node scripts/admin-next/assert-evolucion-results.mjs",
+    "admin-next:assert-evolucion-write-parity": "node scripts/admin-next/assert-evolucion-write-parity.mjs",
     "admin-next:report-evolucion-results": "node scripts/admin-next/report-evolucion-results.mjs",
     "admin-next:report-evolucion-core-results": "EVOLUCION_EXPECTED_FLOWS=F1,F2,F3,F4,F5,F6,F7,F8,F9,F11 EVOLUCION_PARITY_REPORT_DIR=reports/evolucion-core node scripts/admin-next/report-evolucion-results.mjs",
     "admin-next:validate:evolucion": "node scripts/admin-next/validate-evolucion-contract.mjs",
