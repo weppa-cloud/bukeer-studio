@@ -47,6 +47,7 @@ const staticRoutes = [
 let sessionName = null;
 let port = null;
 let server = null;
+let serverExited = false;
 let chrome = null;
 let playwrightBrowser = null;
 
@@ -411,14 +412,27 @@ async function startLocalServer() {
     }
 
     log(`starting production server on ${baseUrl}`);
-    server = spawn("npm", ["run", "start", "--", "--port", port], {
+    const nextBin = path.join(
+      process.cwd(),
+      "node_modules",
+      "next",
+      "dist",
+      "bin",
+      "next",
+    );
+    server = spawnManagedServer(process.execPath, [
+      nextBin,
+      "start",
+      "--port",
+      port,
+    ], {
       cwd: process.cwd(),
       env,
       stdio: ["ignore", "pipe", "pipe"],
     });
   } else if (serverMode === "dev") {
     log(`starting dev server on ${baseUrl}`);
-    server = spawn("npm", ["run", "dev:session"], {
+    server = spawnManagedServer("npm", ["run", "dev:session"], {
       cwd: process.cwd(),
       env: {
         ...env,
@@ -440,6 +454,18 @@ async function startLocalServer() {
   });
 
   return baseUrl;
+}
+
+function spawnManagedServer(command, args, options) {
+  serverExited = false;
+  const child = spawn(command, args, {
+    ...options,
+    detached: process.platform !== "win32",
+  });
+  child.on("exit", () => {
+    serverExited = true;
+  });
+  return child;
 }
 
 function log(message) {
@@ -540,7 +566,7 @@ async function cleanup() {
     await chrome.kill().catch(() => {});
   }
   if (server && !server.killed) {
-    server.kill("SIGTERM");
+    await stopServer();
   }
   if (sessionName) {
     try {
@@ -561,4 +587,34 @@ main()
     console.error(error);
     process.exitCode = 1;
   })
-  .finally(cleanup);
+  .finally(async () => {
+    await cleanup();
+    process.exit(process.exitCode ?? 0);
+  });
+
+async function stopServer() {
+  if (!server?.pid || serverExited) return;
+
+  try {
+    if (process.platform === "win32") {
+      server.kill("SIGTERM");
+    } else {
+      process.kill(-server.pid, "SIGTERM");
+    }
+  } catch {
+    server.kill("SIGTERM");
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  if (serverExited) return;
+
+  try {
+    if (process.platform === "win32") {
+      server.kill("SIGKILL");
+    } else {
+      process.kill(-server.pid, "SIGKILL");
+    }
+  } catch {
+    server.kill("SIGKILL");
+  }
+}
