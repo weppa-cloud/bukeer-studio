@@ -16,6 +16,15 @@ on:
       - ".github/ISSUE_TEMPLATE/**"
       - "qa-screenshots/**"
   workflow_dispatch:
+    inputs:
+      run_pilot:
+        description: "Run the pilot editor/render E2E lane"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -292,9 +301,14 @@ jobs:
         run: npm run admin-next:assert-evolucion-ci-env
 
       - name: Run Evolución core CRM/itinerarios suite
-        run: npm run test:e2e:evolucion:core:session -- --reporter=list,json,html
-        env:
-          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/evolucion-core/results.json
+        run: npm run test:e2e:evolucion:core:session
+
+      - name: Persist Evolución core JSON report
+        run: |
+          mkdir -p playwright-report/evolucion-core
+          latest_results="$(ls -t test-results/*/results.json | head -1)"
+          test -n "$latest_results"
+          cp "$latest_results" playwright-report/evolucion-core/results.json
 
       - name: Assert Evolución core CRM/itinerarios has no unapproved skips
         run: npm run admin-next:assert-evolucion-core-results -- playwright-report/evolucion-core/results.json
@@ -306,7 +320,14 @@ jobs:
         run: npm run admin-next:report-evolucion-core-results -- playwright-report/evolucion-core/results.json
 
       - name: Run Evolución F1-F17 suite
-        run: npm run test:e2e:evolucion:session -- --reporter=list,json,html
+        run: npm run test:e2e:evolucion:session
+
+      - name: Persist Evolución F1-F17 JSON report
+        run: |
+          mkdir -p playwright-report/evolucion
+          latest_results="$(ls -t test-results/*/results.json | head -1)"
+          test -n "$latest_results"
+          cp "$latest_results" playwright-report/evolucion/results.json
 
       - name: Assert Evolución F1-F17 has no unapproved skips
         run: npm run admin-next:assert-evolucion-results
@@ -314,7 +335,14 @@ jobs:
           EVOLUCION_ALLOWED_SKIPS: evolucion-f3-itinerary-create-modal.spec.ts::abre modal de creación y mantiene el submit cerrado sin flag de writes
 
       - name: Run F3 write-disabled guard lane
-        run: npm run test:e2e:evolucion:f3-guard:session -- --reporter=list,json,html
+        run: npm run test:e2e:evolucion:f3-guard:session
+
+      - name: Persist F3 write-disabled JSON report
+        run: |
+          mkdir -p playwright-report/evolucion-f3-guarded
+          latest_results="$(ls -t test-results/*/results.json | head -1)"
+          test -n "$latest_results"
+          cp "$latest_results" playwright-report/evolucion-f3-guarded/results.json
 
       - name: Assert F3 write-disabled guard lane
         run: npm run admin-next:assert-evolucion-results -- playwright-report/evolucion-f3-guarded/results.json
@@ -342,7 +370,7 @@ jobs:
   # Uses workers: 1 + timeout 45 min per AC-W4-3 session-pool semantics.
   e2e-pilot:
     needs: quality
-    if: github.event_name == 'workflow_dispatch' && (vars.CI_QUALITY_PROVIDER == 'github' || vars.CI_QUALITY_PROVIDER == 'both')
+    if: github.event_name == 'workflow_dispatch' && inputs.run_pilot == 'true' && (vars.CI_QUALITY_PROVIDER == 'github' || vars.CI_QUALITY_PROVIDER == 'both')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
