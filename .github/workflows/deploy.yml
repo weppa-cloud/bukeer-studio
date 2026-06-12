@@ -319,6 +319,12 @@ jobs:
         if: always()
         run: npm run admin-next:report-evolucion-core-results -- playwright-report/evolucion-core/results.json
 
+      - name: Run Evolución core Lighthouse gate
+        run: npm run admin-next:lighthouse:evolucion:core
+        env:
+          ADMIN_NEXT_CORE_LIGHTHOUSE_FORCE_BUILD: "1"
+          ADMIN_NEXT_CORE_LIGHTHOUSE_ROUTE_TIMEOUT_MS: "120000"
+
       - name: Run Evolución F1-F17 suite
         run: npm run test:e2e:evolucion:session
 
@@ -365,6 +371,7 @@ jobs:
             playwright-report/
             test-results/
             reports/evolucion-core/
+            reports/evolucion-lighthouse-core/
             reports/evolucion-parity/
             reports/evolucion-write-parity/
           retention-days: 14

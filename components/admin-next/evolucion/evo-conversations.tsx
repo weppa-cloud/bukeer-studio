@@ -260,7 +260,7 @@ export function EvoConversations({
             </div>
 
             <div className="panel-sec">
-              <h4>Asignación</h4>
+              <h2>Asignación</h2>
               <div className="panel-kv">
                 <div className="av s24">{initialsOf(selected.owner)}</div>
                 <span>{selected.owner}</span>
@@ -272,7 +272,7 @@ export function EvoConversations({
             </div>
 
             <div className="panel-sec">
-              <h4>Calificación del lead</h4>
+              <h2>Calificación del lead</h2>
               <div
                 style={{
                   display: "flex",
@@ -312,7 +312,7 @@ export function EvoConversations({
             </div>
 
             <div className="panel-sec">
-              <h4>Itinerario vinculado</h4>
+              <h2>Itinerario vinculado</h2>
               <Link
                 href="/admin/itineraries"
                 className="iti-mini"
@@ -344,7 +344,7 @@ export function EvoConversations({
             </div>
 
             <div className="panel-sec">
-              <h4>Etiquetas</h4>
+              <h2>Etiquetas</h2>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <span className="chip teal">{selected.agencyLabel}</span>
                 <span className="chip purple">{selected.itineraryId}</span>
@@ -353,7 +353,7 @@ export function EvoConversations({
             </div>
 
             <div className="panel-sec">
-              <h4>Notas</h4>
+              <h2>Notas</h2>
               {fixture.selected.notes.map((note) => (
                 <div
                   key={note.id}

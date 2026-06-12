@@ -265,7 +265,7 @@ function PassengerForm({
       <input name="itineraryId" type="hidden" value={itineraryId} />
       <input name="passengerId" type="hidden" value={item?.id ?? ""} />
       <div className="passenger-form-head">
-        <h3>{title}</h3>
+        <h2>{title}</h2>
         <span className={writesEnabled ? "chip green" : "chip orange"}>
           {writesEnabled ? "Writes activo" : "Solo lectura"}
         </span>
@@ -426,7 +426,7 @@ function PassengersPanel({
       <div className="card passenger-head">
         <div>
           <div className="k">Pasajeros</div>
-          <h3>{passengers.length} registrados</h3>
+          <h2>{passengers.length} registrados</h2>
         </div>
         <span className="chip purple">{items.length} filas</span>
       </div>
@@ -557,7 +557,7 @@ function SuppliersPanel({
         <div className="payment-records-head">
           <div>
             <div className="k">Pagos a proveedores</div>
-            <h3>{suppliers.length} proveedores agrupados</h3>
+            <h2>{suppliers.length} proveedores agrupados</h2>
           </div>
           <span className={writesEnabled ? "chip green" : "chip orange"}>
             {writesEnabled ? "Writes activo" : "Solo lectura"}
@@ -845,7 +845,7 @@ function PaymentsPanel({
         <div className="payment-records-head">
           <div>
             <div className="k">Historial</div>
-            <h3>{transactions.length} pagos registrados</h3>
+            <h2>{transactions.length} pagos registrados</h2>
           </div>
           <span className={writesEnabled ? "chip green" : "chip orange"}>
             {writesEnabled ? "Writes activo" : "Solo lectura"}
@@ -1282,7 +1282,7 @@ function SummaryCard({
   return (
     <div className="card">
       <div className="card-head">
-        <h3>Resumen financiero</h3>
+        <h2>Resumen financiero</h2>
       </div>
       <div className="sum-row">
         <span>Total</span>
@@ -1401,7 +1401,7 @@ function AuditTrail({ auditTrail }: { auditTrail: ItineraryAuditItem[] }) {
   return (
     <div className="card" data-testid="admin-next-itinerary-audit-trail">
       <div className="card-head">
-        <h3>Auditoria</h3>
+        <h2>Auditoria</h2>
         <span className="chip">{auditTrail.length}</span>
       </div>
       {auditTrail.map((event) => (

@@ -43,6 +43,7 @@
     "admin-next:cutover:evolucion": "node scripts/admin-next/cutover-readiness-evolucion.mjs",
     "admin-next:visual-qa:evolucion": "node scripts/admin-next/visual-qa-evolucion.mjs",
     "admin-next:lighthouse:evolucion": "node scripts/admin-next/lighthouse-evolucion.mjs",
+    "admin-next:lighthouse:evolucion:core": "node scripts/admin-next/lighthouse-evolucion-core.mjs",
     "admin-next:rollback:evolucion": "node scripts/admin-next/rollback-evidence-evolucion.mjs",
     "admin-next:agent-evals:evolucion": "node scripts/admin-next/agent-evals-evolucion.mjs",
     "admin-next:scope:evolucion": "node scripts/admin-next/scope-audit-evolucion.mjs",

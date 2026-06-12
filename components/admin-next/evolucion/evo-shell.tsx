@@ -173,6 +173,7 @@ export type EvoMarketPreferences = {
 
 type ShellCopy = {
   accountLabel: string;
+  assistantTitle: string;
   closeNotifications: string;
   closeSearch: string;
   commandEmpty: string;
@@ -196,6 +197,7 @@ type ShellCopy = {
 const SHELL_COPY: Record<EvoLanguage, ShellCopy> = {
   es: {
     accountLabel: "Cuenta",
+    assistantTitle: "Asistente IA",
     closeNotifications: "Cerrar notificaciones",
     closeSearch: "Cerrar búsqueda",
     commandEmpty: "Sin resultados",
@@ -210,13 +212,14 @@ const SHELL_COPY: Record<EvoLanguage, ShellCopy> = {
     newNotifications: (count) => `${count} nuevas`,
     notificationAria: (count) => `Notificaciones (${count} sin leer)`,
     notificationsTitle: "Notificaciones",
-    searchAria: "Buscar en Bukeer",
+    searchAria: "Buscar itinerarios, contactos, reservas... ⌘K",
     searchPlaceholder: "Buscar itinerarios, contactos, reservas...",
     searchTitle: "Buscar itinerarios, contactos, reservas...",
     themeTitle: "Cambiar tema",
   },
   en: {
     accountLabel: "Account",
+    assistantTitle: "AI assistant",
     closeNotifications: "Close notifications",
     closeSearch: "Close search",
     commandEmpty: "No results",
@@ -231,7 +234,7 @@ const SHELL_COPY: Record<EvoLanguage, ShellCopy> = {
     newNotifications: (count) => `${count} new`,
     notificationAria: (count) => `Notifications (${count} unread)`,
     notificationsTitle: "Notifications",
-    searchAria: "Search Bukeer",
+    searchAria: "Search itineraries, contacts, bookings... ⌘K",
     searchPlaceholder: "Search itineraries, contacts, bookings...",
     searchTitle: "Search itineraries, contacts, bookings...",
     themeTitle: "Toggle theme",
@@ -623,7 +626,6 @@ export function EvoShell({
           <button
             className="searchbox"
             type="button"
-            aria-label={copy.searchAria}
             onClick={() => setCmdOpen(true)}
             data-testid="admin-next-evo-cmdk"
           >
@@ -693,6 +695,8 @@ export function EvoShell({
           <button
             className="iconbtn"
             type="button"
+            aria-label={copy.assistantTitle}
+            title={copy.assistantTitle}
             data-testid="admin-next-evo-ai"
           >
             <EvoIcon name="spark" size={17} />
