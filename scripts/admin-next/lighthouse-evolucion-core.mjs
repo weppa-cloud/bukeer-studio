@@ -36,6 +36,7 @@ const routeFilter = new Set(
     .filter(Boolean),
 );
 const generatedAt = new Date().toISOString();
+const lighthouseHardTimeoutMs = routeTimeoutMs + 30_000;
 
 const staticRoutes = [
   ["itineraries-list", "/admin/itineraries"],
@@ -59,9 +60,11 @@ async function main() {
 
   mkdirSync(outputDir, { recursive: true });
 
+  log("starting server");
   const baseUrl = externalBaseUrl || (await startLocalServer());
   await waitForHttp(new URL("/api/health", baseUrl).toString());
 
+  log("launching chrome");
   const chromeUserDataDir = path.join(outputDir, ".chrome-profile");
   mkdirSync(chromeUserDataDir, { recursive: true });
   chrome = await chromeLauncher.launch({
@@ -76,18 +79,22 @@ async function main() {
   const page = await context.newPage();
 
   try {
+    log(`logging in as ${demoEmail}`);
     await loginAsDemo(page, baseUrl);
     const cookieHeader = await getCookieHeader(context, baseUrl);
+    log("discovering dynamic routes");
     const dynamicRoutes = await discoverDynamicRoutes(page, baseUrl);
     const routes = [...staticRoutes, ...dynamicRoutes].filter(
       ([moduleName]) => routeFilter.size === 0 || routeFilter.has(moduleName),
     );
     const checks = [];
+    log(`auditing ${routes.map(([moduleName]) => moduleName).join(", ")}`);
     await warmAuthenticatedRoutes(page, baseUrl, routes);
 
     for (const [moduleName, route] of routes) {
       const targetUrl = new URL(route, baseUrl).toString();
       await waitForHttp(targetUrl);
+      log(`running lighthouse for ${moduleName}`);
       checks.push(
         await runLighthouse({ moduleName, targetUrl, cookieHeader }),
       );
@@ -104,6 +111,7 @@ async function main() {
       minPerformanceScore,
       minAccessibilityScore,
       routeTimeoutMs,
+      lighthouseHardTimeoutMs,
       retryCount,
       routeFilter: [...routeFilter],
       checks,
@@ -187,6 +195,7 @@ async function discoverDynamicRoutes(page, baseUrl) {
 
 async function warmAuthenticatedRoutes(page, baseUrl, routes) {
   for (const [, route] of routes) {
+    log(`warming ${route}`);
     await page.goto(new URL(route, baseUrl).toString(), {
       waitUntil: "domcontentloaded",
       timeout: 60_000,
@@ -257,22 +266,27 @@ async function runLighthouseAttempt({
   const outputPath = path.join(outputDir, `${moduleName}-lighthouse.json`);
 
   try {
-    const runnerResult = await lighthouse(targetUrl, {
-      port: chrome.port,
-      logLevel: "error",
-      output: "json",
-      onlyCategories: ["performance", "accessibility"],
-      disableStorageReset: true,
-      extraHeaders: {
-        Cookie: cookieHeader,
-      },
-      formFactor: "desktop",
-      screenEmulation: {
-        disabled: true,
-      },
-      throttlingMethod: "provided",
-      maxWaitForLoad: routeTimeoutMs,
-    });
+    log(`lighthouse ${moduleName} attempt ${attempt}`);
+    const runnerResult = await withTimeout(
+      lighthouse(targetUrl, {
+        port: chrome.port,
+        logLevel: "error",
+        output: "json",
+        onlyCategories: ["performance", "accessibility"],
+        disableStorageReset: true,
+        extraHeaders: {
+          Cookie: cookieHeader,
+        },
+        formFactor: "desktop",
+        screenEmulation: {
+          disabled: true,
+        },
+        throttlingMethod: "provided",
+        maxWaitForLoad: routeTimeoutMs,
+      }),
+      lighthouseHardTimeoutMs,
+      `Lighthouse timed out for ${moduleName} attempt ${attempt}`,
+    );
 
     if (!runnerResult) {
       throw new Error("Lighthouse returned no result.");
@@ -291,6 +305,10 @@ async function runLighthouseAttempt({
       attempt,
     });
   } catch (error) {
+    if (error instanceof LighthouseTimeoutError) {
+      throw error;
+    }
+
     const detail = String(error.stderr || error.message || error).trim();
 
     return {
@@ -304,6 +322,26 @@ async function runLighthouseAttempt({
       failures: ["lighthouse-error"],
       error: detail.slice(0, 1000),
     };
+  }
+}
+
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new LighthouseTimeoutError(message));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
+class LighthouseTimeoutError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "LighthouseTimeoutError";
   }
 }
 
@@ -364,6 +402,7 @@ async function startLocalServer() {
       process.env.ADMIN_NEXT_CORE_LIGHTHOUSE_FORCE_BUILD === "1" ||
       !existsSync(buildIdPath)
     ) {
+      log(`building production app in ${distDir}`);
       execFileSync("npm", ["run", "build"], {
         cwd: process.cwd(),
         env,
@@ -371,12 +410,14 @@ async function startLocalServer() {
       });
     }
 
+    log(`starting production server on ${baseUrl}`);
     server = spawn("npm", ["run", "start", "--", "--port", port], {
       cwd: process.cwd(),
       env,
       stdio: ["ignore", "pipe", "pipe"],
     });
   } else if (serverMode === "dev") {
+    log(`starting dev server on ${baseUrl}`);
     server = spawn("npm", ["run", "dev:session"], {
       cwd: process.cwd(),
       env: {
@@ -399,6 +440,10 @@ async function startLocalServer() {
   });
 
   return baseUrl;
+}
+
+function log(message) {
+  process.stderr.write(`[evolucion-lighthouse-core] ${message}\n`);
 }
 
 function acquireSession() {

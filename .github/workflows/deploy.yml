@@ -320,6 +320,7 @@ jobs:
         run: npm run admin-next:report-evolucion-core-results -- playwright-report/evolucion-core/results.json
 
       - name: Run Evolución core Lighthouse gate
+        timeout-minutes: 15
         run: npm run admin-next:lighthouse:evolucion:core
         env:
           ADMIN_NEXT_CORE_LIGHTHOUSE_FORCE_BUILD: "1"
