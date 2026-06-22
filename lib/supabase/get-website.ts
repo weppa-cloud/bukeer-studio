@@ -208,10 +208,10 @@ async function hydrateWebsiteAnalyticsColumns(
 async function getAccountCurrencyColumns(
   accountId: string,
 ): Promise<AccountCurrencyColumns | null> {
+  // Column-scoped public read (no PII). Uses the SECURITY DEFINER RPC instead of
+  // a raw anon SELECT on `accounts`, so the broad anon RLS policy can be dropped.
   const { data, error } = await supabase
-    .from("accounts")
-    .select("primary_currency, enabled_currencies, currency")
-    .eq("id", accountId)
+    .rpc("get_public_account_currency", { p_account_id: accountId })
     .maybeSingle();
 
   if (error || !data) {
