@@ -79,10 +79,10 @@ async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteDa
 
   const websiteData = website as unknown as WebsiteData;
   if (websiteData.account_id && websiteData.content.account) {
+    // Column-scoped public read (no PII) via SECURITY DEFINER RPC instead of a
+    // raw anon SELECT on `accounts` (lets us drop the broad anon RLS policy).
     const { data: accountCurrency } = await supabase
-      .from('accounts')
-      .select('primary_currency, enabled_currencies, currency')
-      .eq('id', websiteData.account_id)
+      .rpc('get_public_account_currency', { p_account_id: websiteData.account_id })
       .maybeSingle();
 
     if (accountCurrency) {
