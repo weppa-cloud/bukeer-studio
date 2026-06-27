@@ -337,14 +337,26 @@ export function GA4Script({ analytics, defer }: GoogleTagManagerProps) {
   );
 }
 
+function shouldForceStandaloneFacebookPixel(context?: AnalyticsRuntimeContext): boolean {
+  return String(context?.tenant ?? '').toLowerCase().includes('colombiatours');
+}
+
 /**
- * Facebook Pixel Standalone (when not using GTM)
+ * Facebook Pixel Standalone.
+ *
+ * Most tenants run Meta through GTM. ColombiaTours keeps GTM for historical
+ * tags, but Events Manager needs a browser PageView from the configured pixel
+ * to mark the dataset active during ads launch validation.
  */
-export function FacebookPixelScript({ analytics, defer }: GoogleTagManagerProps) {
-  // Skip if using GTM (Pixel should be configured in GTM)
-  if (!analytics?.facebook_pixel_id || analytics?.gtm_id) return null;
+export function FacebookPixelScript({ analytics, defer, context }: GoogleTagManagerProps) {
+  const forceStandalone = shouldForceStandaloneFacebookPixel(context);
+
+  if (!analytics?.facebook_pixel_id || (analytics?.gtm_id && !forceStandalone)) return null;
 
   const loadPixel = `
+    window.__bukeerLoadedScripts = window.__bukeerLoadedScripts || {};
+    if (window.__bukeerLoadedScripts.fb_pixel) return;
+    window.__bukeerLoadedScripts.fb_pixel = true;
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
     n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -454,8 +466,8 @@ export function GoogleTagManager({ analytics, defer, context }: GoogleTagManager
       {/* Lightweight GA4 pageview, independent from deferred GTM */}
       <GA4Script analytics={analytics} defer={defer} />
 
-      {/* Standalone Facebook Pixel (only if GTM not configured) */}
-      <FacebookPixelScript analytics={analytics} defer={defer} />
+      {/* Standalone Facebook Pixel for tenants that do not rely on GTM, plus ColombiaTours launch validation. */}
+      <FacebookPixelScript analytics={analytics} defer={defer} context={context} />
 
       {/* Microsoft Clarity behavior analytics */}
       <MicrosoftClarityScript analytics={analytics} defer={defer} context={context} />

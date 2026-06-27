@@ -329,6 +329,11 @@ export default async function SiteLayout({
     locale: localeContext.resolvedLocale,
     market: localeContext.resolvedLocale.split("-")[1] ?? null,
   };
+  const shouldDeferAnalytics =
+    !(
+      subdomain.toLowerCase().includes("colombiatours") &&
+      website.analytics?.facebook_pixel_id
+    );
 
   const headerEl = isEditorial ? (
     <EditorialSiteHeader
@@ -443,7 +448,7 @@ export default async function SiteLayout({
           {/* Google Tag Manager and Analytics Scripts */}
           <GoogleTagManager
             analytics={website.analytics}
-            defer
+            defer={shouldDeferAnalytics}
             context={analyticsContext}
           />
 

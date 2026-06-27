@@ -140,6 +140,12 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     redirect('https://bukeer.com/domain-not-verified');
   }
 
+  const shouldDeferAnalytics =
+    !(
+      website.subdomain?.toLowerCase().includes('colombiatours') &&
+      website.analytics?.facebook_pixel_id
+    );
+
   // Parse the slug path
   const slugPath = slug?.join('/') || '';
 
@@ -165,9 +171,13 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
+        <GoogleTagManager
+          analytics={website.analytics}
+          defer={shouldDeferAnalytics}
+          context={getAnalyticsContext(website)}
+        />
         <div className="min-h-screen flex flex-col">
-          <GoogleTagManagerBody analytics={website.analytics} defer />
+          <GoogleTagManagerBody analytics={website.analytics} defer={shouldDeferAnalytics} />
           <SiteHeader website={website} isCustomDomain={true} />
           <main className="flex-1">
             <JsonLd data={schemas} />
@@ -321,9 +331,13 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
+        <GoogleTagManager
+          analytics={website.analytics}
+          defer={shouldDeferAnalytics}
+          context={getAnalyticsContext(website)}
+        />
         <div className="min-h-screen flex flex-col">
-          <GoogleTagManagerBody analytics={website.analytics} defer />
+          <GoogleTagManagerBody analytics={website.analytics} defer={shouldDeferAnalytics} />
           <SiteHeader website={website} isCustomDomain={true} />
           <main className="flex-1">
             <JsonLd data={schemas} />
@@ -474,9 +488,13 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
+        <GoogleTagManager
+          analytics={website.analytics}
+          defer={shouldDeferAnalytics}
+          context={getAnalyticsContext(website)}
+        />
         <div className="min-h-screen flex flex-col">
-          <GoogleTagManagerBody analytics={website.analytics} defer />
+          <GoogleTagManagerBody analytics={website.analytics} defer={shouldDeferAnalytics} />
           <SiteHeader website={website} isCustomDomain={true} />
           <main className="flex-1">
             <article className="section-padding">
@@ -545,11 +563,15 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
   return (
     <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
       {/* Google Tag Manager and Analytics Scripts */}
-      <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
+      <GoogleTagManager
+        analytics={website.analytics}
+        defer={shouldDeferAnalytics}
+        context={getAnalyticsContext(website)}
+      />
 
       <div className="min-h-screen flex flex-col">
         {/* GTM NoScript fallback */}
-        <GoogleTagManagerBody analytics={website.analytics} defer />
+        <GoogleTagManagerBody analytics={website.analytics} defer={shouldDeferAnalytics} />
 
         <SiteHeader website={website} isCustomDomain={true} />
         <main className="flex-1">
