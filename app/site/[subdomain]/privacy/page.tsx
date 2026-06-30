@@ -5,6 +5,7 @@ import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { SafeHtml } from '@/lib/sanitize';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
+import { resolveLegalContent } from '@bukeer/website-contract';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 
@@ -48,7 +49,11 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
   const siteName = website.content.account?.name || website.content.siteName;
   const localeContext = await resolvePublicMetadataLocale(website, '/privacy');
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
-  const customContent = website.content.account?.legal?.privacy_policy;
+  const customContent = resolveLegalContent(
+    website.content.account?.legal,
+    'privacy_policy',
+    localeContext.resolvedLocale,
+  );
 
   // If content is a URL, redirect to it
   if (customContent?.startsWith('http://') || customContent?.startsWith('https://')) {

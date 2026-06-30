@@ -20,7 +20,10 @@ export type {
   AccountCurrencyRate,
   MarketExperienceSettings,
   MarketSwitcherStyle,
+  LegalContentFields,
+  LegalField,
 } from './types/website';
+export { resolveLegalContent } from './types/website';
 
 export type {
   WebsiteSection,
