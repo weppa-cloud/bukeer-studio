@@ -7,6 +7,7 @@ import { SafeHtml } from '@/lib/sanitize';
 import { StaticPage } from '@/components/pages/static-page';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
+import { resolveLegalContent } from '@bukeer/website-contract';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import { getLocalizedLegalLookupSlug } from '@/lib/site/legal-route-seo';
 import { buildLocaleAwareAlternateLanguages, resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
@@ -99,7 +100,11 @@ export default async function TermsPage({ params }: TermsPageProps) {
     );
   }
 
-  const customContent = website.content.account?.legal?.terms_conditions;
+  const customContent = resolveLegalContent(
+    website.content.account?.legal,
+    'terms_conditions',
+    localeContext.resolvedLocale,
+  );
 
   // If content is a URL, redirect to it
   if (customContent?.startsWith('http://') || customContent?.startsWith('https://')) {

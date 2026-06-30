@@ -9,6 +9,7 @@ import type {
   BlogPost,
   BlogCategory,
   ThemeV3,
+  LegalContentFields,
 } from "@bukeer/website-contract";
 import {
   resolveThemeDesignerV1Flag,
@@ -257,6 +258,40 @@ async function getAccountCurrencyColumns(
   };
 }
 
+/**
+ * The `get_website_by_subdomain` RPC builds `content.account.legal` from the
+ * plain-text `accounts.{terms_conditions,privacy_policy,cancellation_policy}`
+ * columns and has no per-locale awareness. Per-locale overlays live in the
+ * additive `accounts.legal_translations` JSONB column, so we hydrate them
+ * post-RPC (same pattern as `getAccountCurrencyColumns`). Returns the raw
+ * locale->fields map or null when unset.
+ */
+async function getAccountLegalTranslations(
+  accountId: string,
+): Promise<Record<string, Partial<LegalContentFields>> | null> {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("legal_translations")
+    .eq("id", accountId)
+    .maybeSingle<{ legal_translations: unknown }>();
+
+  if (error || !data?.legal_translations) {
+    return null;
+  }
+
+  if (
+    typeof data.legal_translations !== "object" ||
+    Array.isArray(data.legal_translations)
+  ) {
+    return null;
+  }
+
+  return data.legal_translations as Record<
+    string,
+    Partial<LegalContentFields>
+  >;
+}
+
 async function applyThemeDesignerV1Resolution(
   website: WebsiteData,
 ): Promise<WebsiteWithEffectiveTheme> {
@@ -358,17 +393,32 @@ export async function getWebsiteBySubdomain(
       };
 
       if (website.account_id && website.content.account) {
-        const accountCurrencyColumns = await getAccountCurrencyColumns(
-          website.account_id,
-        );
+        const [accountCurrencyColumns, legalTranslations] = await Promise.all([
+          getAccountCurrencyColumns(website.account_id),
+          getAccountLegalTranslations(website.account_id),
+        ]);
+
+        let account = website.content.account;
+
         if (accountCurrencyColumns) {
-          website.content = {
-            ...website.content,
-            account: {
-              ...website.content.account,
-              ...accountCurrencyColumns,
+          account = { ...account, ...accountCurrencyColumns };
+        }
+
+        if (legalTranslations) {
+          account = {
+            ...account,
+            legal: {
+              terms_conditions: null,
+              privacy_policy: null,
+              cancellation_policy: null,
+              ...account.legal,
+              translations: legalTranslations,
             },
           };
+        }
+
+        if (account !== website.content.account) {
+          website.content = { ...website.content, account };
         }
       }
 

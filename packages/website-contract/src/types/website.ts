@@ -40,6 +40,65 @@ export interface MarketExperienceSettings {
   show_currency?: boolean;
 }
 
+/** Legal page body fields stored at account level. */
+export interface LegalContentFields {
+  terms_conditions: string | null;
+  privacy_policy: string | null;
+  cancellation_policy: string | null;
+}
+
+/** Key of a single legal page body field. */
+export type LegalField = keyof LegalContentFields;
+
+type LegalContentWithTranslations = LegalContentFields & {
+  translations?: Record<string, Partial<LegalContentFields>>;
+};
+
+/**
+ * Resolve a legal page body for the requested locale.
+ *
+ * Fallback chain: exact locale (`en-US`) -> language (`en`) -> base field
+ * (default-locale content). Locale keys are matched case-insensitively and
+ * `_`/`-` agnostically. Mirrors `resolveAlt` for media localization.
+ */
+export function resolveLegalContent(
+  legal: Partial<LegalContentWithTranslations> | undefined | null,
+  field: LegalField,
+  locale?: string | null,
+): string | null {
+  if (!legal) return null;
+  const base = legal[field] ?? null;
+  const translations = legal.translations;
+  if (!translations || !locale) return base;
+
+  const normalized = locale.replace('_', '-').trim().toLowerCase();
+  const language = normalized.split('-')[0] || normalized;
+
+  const pick = (
+    matches: (normalizedKey: string, keyLanguage: string) => boolean,
+  ): string | null => {
+    for (const [key, values] of Object.entries(translations)) {
+      const normalizedKey = key.replace('_', '-').trim().toLowerCase();
+      const keyLanguage = normalizedKey.split('-')[0] || normalizedKey;
+      if (!matches(normalizedKey, keyLanguage)) continue;
+      const value = values?.[field];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value;
+      }
+    }
+    return null;
+  };
+
+  // 1) exact locale match (en-US -> en-US)
+  // 2) same-language match in either direction (en -> en-US, en-US -> en)
+  // 3) base (default-locale) field
+  return (
+    pick((normalizedKey) => normalizedKey === normalized) ??
+    pick((_normalizedKey, keyLanguage) => keyLanguage === language) ??
+    base
+  );
+}
+
 export interface WebsiteContent {
   siteName: string;
   tagline: string;
@@ -85,6 +144,13 @@ export interface WebsiteContent {
       terms_conditions: string | null;
       privacy_policy: string | null;
       cancellation_policy: string | null;
+      /**
+       * Per-locale overlay for legal page bodies. Keyed by BCP-47 locale
+       * (e.g. "en-US"); each entry may override any of the legal fields.
+       * Falls back to the base (default-locale) field when a locale or
+       * field is missing. See `resolveLegalContent`.
+       */
+      translations?: Record<string, Partial<LegalContentFields>>;
     };
   };
   market_experience?: MarketExperienceSettings;
